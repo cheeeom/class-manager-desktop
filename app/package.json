@@ -1,0 +1,57 @@
+{
+  "name": "class-manager-desktop",
+  "productName": "班主任工作台",
+  "version": "1.0.0",
+  "description": "班主任工作台 · 桌面版（数据全本地）",
+  "author": "chee",
+  "copyright": "© 2026 chee · 班主任工作台 · 保留所有权利",
+  "license": "UNLICENSED",
+  "main": "main.js",
+  "scripts": {
+    "build": "node build.js",
+    "start": "electron .",
+    "dist": "electron-builder --win",
+    "smoke": "cross-env CM_SMOKE=1 electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.chee.classmanager",
+    "productName": "班主任工作台",
+    "copyright": "© 2026 chee · 班主任工作台 · 保留所有权利",
+    "electronDist": "node_modules/electron/dist",
+    "directories": {
+      "output": "release",
+      "buildResources": "icon"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "dist/**",
+      "icon/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "icon/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "班主任工作台",
+      "artifactName": "班主任工作台-Setup.${ext}"
+    }
+  },
+  "baseWeb": "v3.4.0"
+}
