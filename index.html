@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>班主任工作台 · Windows 桌面版</title>
+<meta name="description" content="班主任工作台 Windows 桌面版免费下载：点名、学分、值日、请假、家校通知，一间教室的日常搬上电脑。数据只存本机，无广告、无激活限制。">
+<meta name="theme-color" content="#F6F2E9">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%23A63A2B'/%3E%3Crect%20x='5'%20y='5'%20width='54'%20height='54'%20rx='10'%20fill='none'%20stroke='%23FFFDF7'%20stroke-opacity='.8'%20stroke-width='2.5'/%3E%3Ctext%20x='32'%20y='45'%20font-family='STZhongsong,SimSun,serif'%20font-size='34'%20font-weight='700'%20fill='%23FFFDF7'%20text-anchor='middle'%3E%E7%8F%AD%3C/text%3E%3C/svg%3E">
+<style>
+/* ============ 令牌：继承应用「纸墨·新中式」设计系统（AGENTS.md 9.5） ============ */
+:root{
+  --paper:#F6F2E9;        /* 宣纸底 */
+  --card:#FFFDF7;         /* 纸白卡 */
+  --ink:#2B2B33;          /* 浓墨 */
+  --ink-2:#5C574F;        /* 次墨 */
+  --ink-3:#8C8577;        /* 淡墨 */
+  --line:#E6DECD;         /* 纸纹线 */
+  --zhu:#A63A2B;          /* 朱砂 */
+  --zhu-deep:#7F2D1F;     /* 朱砂·深 */
+  --xuan:#191613;         /* 玄墨 */
+  --xuan-line:#3A352C;
+  --xuan-text:#EAE4D6;
+  --xuan-muted:#7E776A;
+  --zhu-bright:#CE6B52;   /* 玄墨上的朱砂 */
+  --font-display:"Noto Serif SC","Source Han Serif SC","STZhongsong","SimSun",serif;
+  --font-body:"MiSans","HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--font-body);
+  color:var(--ink);
+  background-color:var(--paper);
+  /* 宣纸纤维：两层极淡交叉细纹，静态 */
+  background-image:
+    repeating-linear-gradient(0deg, rgba(166,58,43,.014) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgba(92,87,79,.012) 0 1px, transparent 1px 4px);
+  font-size:16.5px;
+  line-height:1.85;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:clip;
+}
+.wrap{max-width:1080px;margin-inline:auto;padding-inline:clamp(20px,4vw,44px)}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--zhu);outline-offset:3px;border-radius:4px}
+::selection{background:rgba(166,58,43,.16)}
+
+/* ============ 顶栏 ============ */
+.nav{
+  position:sticky;top:0;z-index:20;
+  background:rgba(246,242,233,.86);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+.brand{display:flex;align-items:center;gap:11px;font-family:var(--font-display);font-weight:700;font-size:17px;letter-spacing:.04em}
+.brand svg{display:block}
+.nav-links{display:flex;gap:26px;font-size:14.5px;color:var(--ink-2)}
+.nav-links a{transition:color .15s ease}
+.nav-links a:hover{color:var(--zhu)}
+
+/* ============ Hero ============ */
+.hero{padding-block:clamp(56px,8.5vw,104px) clamp(48px,7vw,88px)}
+.hero .wrap{
+  display:grid;grid-template-columns:1.08fr .92fr;gap:clamp(36px,5vw,64px);align-items:center;
+}
+.hero-copy h1{
+  font-family:var(--font-display);
+  font-size:clamp(2.1rem,4.6vw,3.3rem);
+  font-weight:700;line-height:1.28;letter-spacing:.015em;
+}
+.hero-copy .lead{
+  margin-top:22px;max-width:33em;
+  color:var(--ink-2);font-size:17px;
+}
+.cta{margin-top:34px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  height:52px;padding:0 27px;border-radius:12px;
+  font-size:16.5px;font-weight:600;font-family:var(--font-body);
+  transition:background-color .15s ease,border-color .15s ease,color .15s ease,transform .15s ease;
+}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--zhu);color:#FFFDF7}
+.btn-primary:hover{background:var(--zhu-deep)}
+.btn-ghost{border:1px solid #D9CFBB;background:var(--card);color:var(--ink)}
+.btn-ghost:hover{border-color:var(--zhu);color:var(--zhu)}
+.meta{margin-top:18px;font-size:13.5px;color:var(--ink-3)}
+
+/* —— 玄墨缩影卡：复刻应用登录页（窗棂纹 + 印章 + 竖排校训）—— */
+.visual{
+  position:relative;border-radius:16px;overflow:hidden;
+  background:var(--xuan);border:1px solid var(--xuan-line);
+  min-height:380px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 24px 60px -28px rgba(43,43,51,.45);
+}
+.visual::before{ /* 窗棂纹 */
+  content:"";position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(234,228,214,.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(234,228,214,.055) 1px, transparent 1px);
+  background-size:30px 30px;
+  -webkit-mask-image:radial-gradient(130% 110% at 78% 12%, #000 20%, transparent 78%);
+          mask-image:radial-gradient(130% 110% at 78% 12%, #000 20%, transparent 78%);
+}
+.v-motto{
+  position:absolute;top:30px;right:28px;
+  writing-mode:vertical-rl;
+  font-family:var(--font-display);
+  color:rgba(234,228,214,.5);font-size:15px;letter-spacing:.42em;
+}
+.v-center{position:relative;text-align:center;padding:44px 40px}
+.v-seal{display:block;margin-inline:auto;filter:drop-shadow(0 14px 26px rgba(0,0,0,.42))}
+.v-name{margin-top:26px;font-family:var(--font-display);font-size:21px;font-weight:700;color:var(--xuan-text);letter-spacing:.14em}
+.v-ver{margin-top:7px;font-size:12.5px;color:var(--xuan-muted);letter-spacing:.18em}
+.v-stamp{ /* 旋转「印」字落款 */
+  position:absolute;right:22px;bottom:20px;width:34px;height:34px;
+  transform:rotate(8deg);opacity:.72;
+}
+
+/* ============ 区块标题：印章点 ============ */
+.sec{padding-block:clamp(44px,6vw,72px)}
+.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:clamp(26px,4vw,40px)}
+.sec-head h2{
+  font-family:var(--font-display);font-size:clamp(1.45rem,2.6vw,1.8rem);
+  font-weight:700;letter-spacing:.03em;
+}
+.sec-head .dot{ /* 旋转小方块：印章点 */
+  width:9px;height:9px;background:var(--zhu);transform:rotate(45deg);
+  flex:none;align-self:center;
+}
+.sec-head .hint{font-size:14px;color:var(--ink-3)}
+
+/* ============ 功能：发丝线行式列表 ============ */
+.rows{display:grid;grid-template-columns:1fr 1fr;column-gap:56px}
+.row{
+  display:flex;gap:18px;align-items:flex-start;
+  border-top:1px solid var(--line);padding-block:24px;
+}
+.row svg{flex:none;margin-top:5px;color:var(--zhu)}
+.row h3{font-size:16.5px;font-weight:600;letter-spacing:.02em}
+.row p{margin-top:5px;font-size:14.5px;line-height:1.8;color:var(--ink-2)}
+
+/* ============ 三步上手（真实步骤，故编号） ============ */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(24px,3.5vw,44px)}
+.step{border-top:1px solid var(--line);padding-top:22px}
+.step .num{
+  font-family:var(--font-display);font-size:2rem;font-weight:700;
+  color:var(--zhu);line-height:1;
+}
+.step h3{margin-top:16px;font-size:16.5px;font-weight:600}
+.step p{margin-top:7px;font-size:14.5px;color:var(--ink-2)}
+
+/* ============ 玄墨下载区 ============ */
+.dl{background:var(--xuan);border-block:1px solid var(--xuan-line);color:var(--xuan-text)}
+.dl .wrap{
+  display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(36px,5vw,72px);
+  padding-block:clamp(56px,8vw,96px);align-items:center;position:relative;
+}
+.dl h2{
+  font-family:var(--font-display);
+  font-size:clamp(1.7rem,3.4vw,2.5rem);font-weight:700;line-height:1.4;letter-spacing:.02em;
+}
+.dl .sub{margin-top:18px;font-size:15.5px;color:#B3AA98;max-width:32em}
+.dl .cta{margin-top:32px}
+.dl .btn-primary{background:var(--zhu-bright);color:#191613}
+.dl .btn-primary:hover{background:#DD8368}
+.dl .btn-ghost{background:transparent;border-color:var(--xuan-line);color:var(--xuan-text)}
+.dl .btn-ghost:hover{border-color:var(--zhu-bright);color:var(--zhu-bright)}
+.dl .meta{color:var(--xuan-muted)}
+.dl .note{margin-top:22px;font-size:13px;color:var(--xuan-muted);max-width:34em}
+.promises{list-style:none}
+.promises li{
+  border-top:1px solid var(--xuan-line);padding-block:19px;
+  display:flex;gap:14px;align-items:baseline;font-size:15.5px;
+}
+.promises li::before{
+  content:"";width:7px;height:7px;background:var(--zhu-bright);
+  transform:rotate(45deg);flex:none;position:relative;top:-1px;
+}
+.promises .p-sub{display:block;font-size:13px;color:var(--xuan-muted);margin-top:3px}
+.dl .v-stamp{right:clamp(20px,4vw,44px);bottom:26px}
+
+/* ============ FAQ ============ */
+.faq details{border-top:1px solid var(--line)}
+.faq details:last-child{border-bottom:1px solid var(--line)}
+.faq summary{
+  list-style:none;cursor:pointer;
+  display:flex;justify-content:space-between;align-items:center;gap:20px;
+  padding-block:21px;font-size:16.5px;font-weight:600;
+}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{
+  content:"+";font-size:22px;font-weight:400;color:var(--ink-3);
+  transition:transform .2s ease;line-height:1;flex:none;
+}
+.faq details[open] summary::after{transform:rotate(45deg);color:var(--zhu)}
+.faq .a{padding-bottom:24px;color:var(--ink-2);font-size:15px;max-width:44em}
+.faq .a code{
+  font-family:Consolas,Menlo,monospace;font-size:.9em;
+  background:var(--card);border:1px solid var(--line);border-radius:6px;padding:1px 7px;
+}
+
+/* ============ 页脚 ============ */
+.footer{border-top:1px solid var(--line);padding-block:36px 44px}
+.footer .wrap{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
+.f-brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;font-size:15px;letter-spacing:.05em}
+.f-brand small{display:block;font-family:var(--font-body);font-weight:400;font-size:12px;color:var(--ink-3);letter-spacing:.08em;margin-top:2px}
+.f-links{display:flex;gap:22px;font-size:14px;color:var(--ink-2)}
+.f-links a:hover{color:var(--zhu)}
+.f-copy{margin-top:14px;font-size:12.5px;color:var(--ink-3)}
+
+/* ============ 入场：仅 hero 一处编排 ============ */
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.hero-copy h1,.hero-copy .lead{animation:rise .34s ease-out both}
+.hero-copy .cta{animation:rise .34s .08s ease-out both}
+.hero-copy .meta{animation:rise .34s .14s ease-out both}
+.visual{animation:rise .38s .1s ease-out both}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
+
+/* ============ 响应式 ============ */
+@media (max-width:960px){
+  .hero .wrap{grid-template-columns:1fr;gap:44px}
+  .visual{max-width:440px;margin-inline:auto;min-height:340px}
+  .dl .wrap{grid-template-columns:1fr;gap:40px}
+}
+@media (max-width:720px){
+  .rows{grid-template-columns:1fr;column-gap:0}
+  .steps{grid-template-columns:1fr;gap:0}
+  .step{padding-block:20px;border-top:1px solid var(--line)}
+  .step:last-child{border-bottom:1px solid var(--line)}
+  .step .num{display:inline-block;margin-right:10px;font-size:1.5rem}
+  .step h3{display:inline}
+  .step p{margin-top:8px}
+  .nav-links{gap:16px;font-size:13.5px}
+  .nav-links .hide-m{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- 墨线 SVG 印章（symbol 复用，与应用 i- 图标体系同构） -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="seal" viewBox="0 0 96 96">
+      <rect width="96" height="96" rx="19" fill="#A63A2B"/>
+      <rect x="7" y="7" width="82" height="82" rx="13" fill="none" stroke="#FFFDF7" stroke-opacity=".82" stroke-width="2.6"/>
+      <text x="48" y="67" font-family="STZhongsong,SimSun,serif" font-size="46" font-weight="700" fill="#FFFDF7" text-anchor="middle">班</text>
+    </symbol>
+    <symbol id="stamp-yin" viewBox="0 0 40 40">
+      <rect x="1.5" y="1.5" width="37" height="37" rx="6" fill="none" stroke="#CE6B52" stroke-width="2.4"/>
+      <text x="20" y="28.5" font-family="STZhongsong,SimSun,serif" font-size="21" font-weight="700" fill="#CE6B52" text-anchor="middle">印</text>
+    </symbol>
+  </defs>
+</svg>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="班主任工作台 首页">
+      <svg width="30" height="30" aria-hidden="true"><use href="#seal"/></svg>
+      班主任工作台
+    </a>
+    <div class="nav-links">
+      <a class="hide-m" href="https://cheeeom.github.io/class-manager/">网页版</a>
+      <a href="https://github.com/cheeeom/class-manager-desktop/releases">更新日志</a>
+      <a href="https://github.com/cheeeom/class-manager-desktop">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="hero-copy">
+      <h1>把一个班，<br>管得明明白白。</h1>
+      <p class="lead">点名、学分、值日、请假、家校通知——为班主任日常写就的桌面应用。双击安装，打开即用，所有数据只保存在你自己的电脑上。</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://github.com/cheeeom/class-manager-desktop/releases/latest/download/%E7%8F%AD%E4%B8%BB%E4%BB%BB%E5%B7%A5%E4%BD%9C%E5%8F%B0-Setup.exe" download>下载 Windows 版</a>
+        <a class="btn btn-ghost" href="https://cheeeom.github.io/class-manager/">先在浏览器试试</a>
+      </div>
+      <p class="meta">Windows 10 / 11　·　约 85 MB　·　免费，无广告、无激活限制</p>
+    </div>
+
+    <div class="visual" role="img" aria-label="班主任工作台桌面版：玄墨底、窗棂纹与朱砂「班」字印章">
+      <span class="v-motto">厚德博学 · 敬业爱生</span>
+      <div class="v-center">
+        <svg class="v-seal" width="128" height="128" aria-hidden="true"><use href="#seal"/></svg>
+        <div class="v-name">班主任工作台</div>
+        <div class="v-ver">WINDOWS 桌面版 · V1.0.0</div>
+      </div>
+      <svg class="v-stamp" aria-hidden="true"><use href="#stamp-yin"/></svg>
+    </div>
+  </div>
+</header>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="dot" aria-hidden="true"></span>
+      <h2>一间教室的日常，都在里面</h2>
+    </div>
+    <div class="rows">
+      <div class="row">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <div><h3>学生档案</h3><p>一屏看清每个学生的基本情况与成长记录，坐在谁旁边、谁在哪个小组，随时可查。</p></div>
+      </div>
+      <div class="row">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+        <div><h3>课堂点名</h3><p>随机点名、实到统计，公平又不冷场，课堂节奏不断。</p></div>
+      </div>
+      <div class="row">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.5 13 17 22l-5-3-5 3 1.5-9"/></svg>
+        <div><h3>学分与荣誉</h3><p>加减分有据可查，荣誉墙上墙，定期公示给全班。</p></div>
+      </div>
+      <div class="row">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <div><h3>值日与请假</h3><p>值日排班自动轮转，请假销假一本账，月底一眼盘点。</p></div>
+      </div>
+      <div class="row">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15v-4M12 15V7M17 15v-7"/></svg>
+        <div><h3>成绩分析</h3><p>分数录入后自动生成趋势图，班级走向、个体波动，一目了然。</p></div>
+      </div>
+      <div class="row">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 8c0-2-1.8-3-4-3H6C3.8 5 2 6 2 8v6c0 2 1.8 3 4 3h12c2.2 0 4-1 4-3z"/><path d="m7 9 5 3 5-3"/></svg>
+        <div><h3>家校通知</h3><p>通知、奖状一键导出成图片，转发家长群即用。</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="dot" aria-hidden="true"></span>
+      <h2>三步上手</h2>
+      <span class="hint">装完即可导入网页版数据</span>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <span class="num" aria-hidden="true">01</span>
+        <h3>下载安装</h3>
+        <p>双击安装程序，装完桌面图标即用，全程不需要管理员权限。</p>
+      </div>
+      <div class="step">
+        <span class="num" aria-hidden="true">02</span>
+        <h3>首启向导</h3>
+        <p>一分钟设好登录密码与管理员密码；不想设密码，也可以直接进入。</p>
+      </div>
+      <div class="step">
+        <span class="num" aria-hidden="true">03</span>
+        <h3>迁移旧数据</h3>
+        <p>用过网页版？把导出的 JSON 文件在向导里一键导入，接着用。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="dl">
+  <div class="wrap">
+    <div>
+      <h2>所有数据，<br>只留在这台电脑上。</h2>
+      <p class="sub">不需要注册账号，不连接任何服务器。学生信息不出你的机器；升级、重装应用，数据都还在原处。</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://github.com/cheeeom/class-manager-desktop/releases/latest/download/%E7%8F%AD%E4%B8%BB%E4%BB%BB%E5%B7%A5%E4%BD%9C%E5%8F%B0-Setup.exe" download>下载 Windows 版</a>
+        <a class="btn btn-ghost" href="https://github.com/cheeeom/class-manager-desktop/releases">查看历史版本</a>
+      </div>
+      <p class="note">首次运行若被 Windows SmartScreen 拦截，点「更多信息」再选「仍要运行」即可，这是未签名安装包的正常提示。</p>
+    </div>
+    <ul class="promises">
+      <li><span>本地存储<span class="p-sub">学生信息永不上传，断网也能用</span></span></li>
+      <li><span>免费分享<span class="p-sub">无广告、无激活码、无功能限制</span></span></li>
+      <li><span>升级无忧<span class="p-sub">下载新版覆盖安装，数据自动保留</span></span></li>
+    </ul>
+    <svg class="v-stamp" aria-hidden="true"><use href="#stamp-yin"/></svg>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap faq">
+    <div class="sec-head">
+      <span class="dot" aria-hidden="true"></span>
+      <h2>常见问题</h2>
+    </div>
+    <details>
+      <summary>它和网页版是什么关系？</summary>
+      <p class="a">同一套功能、同一种数据格式。网页版在浏览器打开、适合多人协作；桌面版装在本机、数据完全本地。两边用「导出 / 导入 JSON」即可互相搬家。</p>
+    </details>
+    <details>
+      <summary>忘记登录密码怎么办？</summary>
+      <p class="a">桌面版的密码只锁本机，当前版本不提供找回——卸载重装即清空重来。建议养成定期「导出数据」备份的习惯。</p>
+    </details>
+    <details>
+      <summary>换电脑时数据怎么迁移？</summary>
+      <p class="a">旧电脑上「导出全部数据」得到一个 JSON 文件，新电脑安装后，在首启向导或设置里一键导入即可。升级安装不影响已存数据。</p>
+    </details>
+    <details>
+      <summary>真的免费吗？以后会收费吗？</summary>
+      <p class="a">免费，无广告、无激活限制。它是一位一线班主任为自己班级写的工具，分享给同样需要的人。</p>
+    </details>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="f-brand">
+      <svg width="26" height="26" aria-hidden="true"><use href="#seal"/></svg>
+      <span>班主任工作台<small>纸墨 · 新中式</small></span>
+    </div>
+    <div class="f-links">
+      <a href="https://github.com/cheeeom/class-manager">GitHub 仓库</a>
+      <a href="https://cheeeom.github.io/class-manager/">网页版</a>
+      <a href="https://github.com/cheeeom/class-manager-desktop/issues">提交反馈</a>
+    </div>
+  </div>
+  <div class="wrap"><p class="f-copy">© 2026 班主任工作台 · 独立开发，免费分享</p></div>
+</footer>
+
+</body>
+</html>
