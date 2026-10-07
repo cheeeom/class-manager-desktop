@@ -2,10 +2,43 @@
    原则：本地内容、无远程加载、contextIsolation 开、nodeIntegration 关、禁 ServiceWorker。 */
 const { app, BrowserWindow, shell, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 app.setName('班主任工作台');
 
+/* ---------- 更新代理（国内网络直连 GitHub 常超时：允许用户为更新器指定代理，存 userData 文件） ---------- */
+const proxyFile = () => path.join(app.getPath('userData'), 'updater-proxy.json');
+function readProxy() {
+  try {
+    const j = JSON.parse(fs.readFileSync(proxyFile(), 'utf8'));
+    return typeof j.proxy === 'string' ? j.proxy : '';
+  } catch (e) { return ''; }
+}
+function applyProxy(p) {
+  try {
+    const { session } = require('electron');
+    if (p) session.defaultSession.setProxy({ proxyRules: p });   // 形如 host:port 或 scheme=host:port
+    else session.defaultSession.setProxy({ mode: 'direct' });
+  } catch (e) {}
+}
+function normalizeProxy(input) {
+  var p = String(input || '').trim();
+  if (!p) return '';
+  if (!/^[a-z]+:\/\//i.test(p)) p = 'http://' + p;
+  var u = new URL(p);
+  if (!u.hostname) throw new Error('代理地址无效');
+  var scheme = u.protocol.replace(':', '');
+  if (scheme === 'https') scheme = 'http';
+  return scheme === 'http' ? (u.hostname + ':' + (u.port || 80)) : (scheme + '=' + u.hostname + ':' + (u.port || 1080));
+}
+
 let win = null;
+
+/* 冒烟模式：隔离 userData（临时目录）——既保证向导断言确定性，也绝不碰真实数据 */
+if (process.env.CM_SMOKE) {
+  const os = require('os');
+  app.setPath('userData', path.join(os.tmpdir(), 'cm_smoke_' + Date.now()));
+}
 
 /* ---------- 应用内更新（electron-updater，GitHub Releases 作源） ----------
    开发模式（electron .）无 app-update.yml，自动跳过；仅打包运行时生效。
@@ -82,6 +115,18 @@ function createWindow() {
 }
 
 app.whenReady().then(function () {
+  const savedProxy = readProxy();
+  if (savedProxy) applyProxy(savedProxy);   // 更新器（electron.net）走默认会话，代理需在检查前生效
+  // 更新代理 IPC：无条件注册（dev 下更新器跳过，但页面桥始终存在，漏注册会落未捕获异常）
+  ipcMain.handle('cm-upd-getproxy', () => readProxy());
+  ipcMain.handle('cm-upd-setproxy', function (e, input) {
+    try {
+      const rules = normalizeProxy(input);
+      fs.writeFileSync(proxyFile(), JSON.stringify({ proxy: rules }, null, 2) + '\n');
+      applyProxy(rules);
+      return { ok: true, proxy: rules };
+    } catch (err) { return { ok: false, message: String(err && err.message || err).slice(0, 140) }; }
+  });
   setupUpdater();
   createWindow();
 
