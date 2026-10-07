@@ -598,6 +598,7 @@
 
     function setStatus(txt, color) { status.textContent = txt; status.style.color = color || 'var(--text-muted)'; }
     var handling = false;
+    var cmUpdFeed = null; // 最近一次检查实际使用的更新源（择源结果，供无更新分支显示）
     function checkNow(manual) {
       if (handling) return;
       handling = true;
@@ -606,7 +607,8 @@
       window.__CM_UPDATER.check().then(function (r) {
         handling = false;
         if (!r || !r.ok) { setStatus('检查失败：' + ((r && r.message) || '网络不通，稍后再试'), 'var(--danger)'); cmUpdCloseToast(); return; }
-        if (r.version && r.version === D.version) { setStatus('已是最新版本 v' + D.version); cmUpdCloseToast(); }
+        cmUpdFeed = r.feed || cmUpdFeed;
+        if (r.version && r.version === D.version) { setStatus('已是最新版本 v' + D.version + (cmUpdFeed ? '（源：' + cmUpdFeed + '）' : '')); cmUpdCloseToast(); }
       }).catch(function (e) {
         handling = false;
         setStatus('检查失败：' + String(e && e.message || e).slice(0, 60), 'var(--danger)');
@@ -621,7 +623,7 @@
         setStatus('发现新版 v' + ev.version + '，等待选择');
         if (cmUpdManual || !cmUpdDeclined) cmUpdToast({ state: 'available', version: ev.version });
       } else if (ev.state === 'none') {
-        setStatus('已是最新版本 v' + D.version); cmUpdCloseToast();
+        setStatus('已是最新版本 v' + D.version + (cmUpdFeed ? '（源：' + cmUpdFeed + '）' : '')); cmUpdCloseToast();
       } else if (ev.state === 'downloading') {
         setStatus('正在下载新版… ' + ev.percent + '%（' + ev.mb + ' MB）');
         cmUpdToast({ state: 'downloading', percent: ev.percent, mb: ev.mb });

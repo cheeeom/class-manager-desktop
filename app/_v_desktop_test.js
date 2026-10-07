@@ -158,9 +158,14 @@ t('⑤主进程安全基线', () => {
   has(m, 'autoDownload = false', '更新器：发现新版先问用户，不自动下载');
   has(m, "'cm-upd-download'", '下载 IPC 通道（弹窗选「立即更新」用）');
   has(m, "require('electron-updater')", '更新器接线');
-  has(m, "if (!app.isPackaged) return null", '开发模式跳过更新器');
-  has(m, "setProxy({ mode: 'direct' })", '更新器一律直连，不走任何代理（2026-10-07 拍板）');
+  has(m, "if (!app.isPackaged && !process.env.CM_UPDTEST) return null", '开发模式跳过更新器（CM_UPDTEST 端到端验证例外）');
+  notHas(m, "mode: 'direct'", '不强制直连（跟随系统代理；github.com 直连被墙，强制直连必挂）');
   has(m, 'updater-proxy.json', 'v1.0.5 代理残留启动即清理');
+  has(m, 'pickFeed', '更新源并发探测择优（v1.0.8）');
+  has(m, 'setFeedURL({ provider: \'generic\', url: feed.url })', '运行时切 generic 源');
+  has(m, 'releases/latest/download/', 'latest.yml 走 latest/download 固定路径（免 tag 依赖）');
+  has(m, 'gh-proxy.com', '镜像主源（实测直连可达 206/200）');
+  has(m, "/^version:\\s*\\d/m", 'latest.yml 合法性校验（防镜像劫持返回 HTML）');
   const pre = fs.readFileSync(path.join(HERE, 'preload.js'), 'utf8');
   has(pre, 'contextBridge', '桥接方式暴露');
   has(pre, '__CM_UPDATER', '更新器受控桥');
