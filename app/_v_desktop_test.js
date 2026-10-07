@@ -102,7 +102,7 @@ t('③e 注入层契约：更新弹窗与设置页桌面化', () => {
   has(p, 'enterWithTransition', '进入工作台平滑过渡');
   has(css, 'cmDeskAppIn', '工作台淡入动画');
   has(css, '.login-overlay', '启动界面背景覆盖');
-  ok(css.indexOf('data:image/svg+xml') >= 0 && css.indexOf('html.dark .login-overlay') >= 0, '纸墨远山背景明暗两套');
+  ok(css.indexOf("url('./login-bg.jpg')") >= 0 && css.indexOf('html.dark .login-overlay') >= 0, 'AI 海报背景接入 + 暗色压暗层');
   ok(/\.cmDesk-login-card #cmDeskEnter\{[^}]*justify-content:center/.test(css), '直接进入按钮文字居中');
   has(css, '.cmDeskUpdToast', '弹窗样式（定位/卡片）');
   has(css, '.cmUpdBar', '下载进度条样式');

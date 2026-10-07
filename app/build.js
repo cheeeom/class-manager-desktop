@@ -66,6 +66,9 @@ fs.writeFileSync(path.join(dist, 'index.html'), html);
 for (const f of ['src/app.patch.js', 'src/wizard.css']) {
   fs.copyFileSync(path.join(HERE, f), path.join(dist, path.basename(f)));
 }
+// 登录页背景海报（AI 生成，已裁水印）
+const bgAsset = path.join(HERE, 'src', 'img', 'login-bg-a.jpg');
+if (fs.existsSync(bgAsset)) fs.copyFileSync(bgAsset, path.join(dist, 'login-bg.jpg'));
 // 本地运行资产：pdf 库（成绩/课表导入用；存在则带）
 for (const f of ['pdf.min.js', 'pdf.worker.min.js']) {
   const p = path.join(ROOT, f);

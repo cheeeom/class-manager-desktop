@@ -59,19 +59,15 @@
 .cmDesk-login-card #cmDeskEnter{width:100%;height:48px;font-size:16px;justify-content:center;text-align:center}
 .cmDesk-login-card .cmDesk-copy{width:100%}
 
-/* ---------- 启动界面背景：纸墨远山（浅/暗两套，覆盖网页版素底） ---------- */
+/* ---------- 启动界面背景：AI 生成纸墨海报（浅色直接用图；暗色叠压暗层保文字对比） ---------- */
 .login-overlay{
   background-color:var(--bg,#F6F2E9);
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 900'%3E%3Ccircle cx='1120' cy='170' r='86' fill='%23A63A2B' fill-opacity='0.13'/%3E%3Ccircle cx='1120' cy='170' r='112' fill='none' stroke='%23A63A2B' stroke-opacity='0.10' stroke-width='1.5'/%3E%3Cpath d='M0 700 Q240 560 480 660 T960 640 T1440 690 L1440 900 L0 900 Z' fill='%232B2B33' fill-opacity='0.06'/%3E%3Cpath d='M0 780 Q300 660 620 740 T1160 720 T1440 770 L1440 900 L0 900 Z' fill='%232B2B33' fill-opacity='0.09'/%3E%3Cpath d='M0 850 Q360 760 760 820 T1440 800 L1440 900 L0 900 Z' fill='%232B2B33' fill-opacity='0.13'/%3E%3Cpath d='M0 690 Q240 555 480 652' fill='none' stroke='%232B2B33' stroke-opacity='0.15' stroke-width='1'/%3E%3Cpath d='M960 636 Q1200 600 1440 686' fill='none' stroke='%232B2B33' stroke-opacity='0.12' stroke-width='1'/%3E%3C/svg%3E"),
-    repeating-linear-gradient(0deg,rgba(166,58,43,0.03) 0 1px,transparent 1px 34px),
-    repeating-linear-gradient(90deg,rgba(166,58,43,0.03) 0 1px,transparent 1px 34px);
+  background-image:url('./login-bg.jpg');
+  background-size:cover;background-position:center;
 }
 html.dark .login-overlay{
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 900'%3E%3Ccircle cx='1120' cy='170' r='86' fill='%23C96A50' fill-opacity='0.18'/%3E%3Ccircle cx='1120' cy='170' r='112' fill='none' stroke='%23C96A50' stroke-opacity='0.14' stroke-width='1.5'/%3E%3Cpath d='M0 700 Q240 560 480 660 T960 640 T1440 690 L1440 900 L0 900 Z' fill='%23E8E0D0' fill-opacity='0.05'/%3E%3Cpath d='M0 780 Q300 660 620 740 T1160 720 T1440 770 L1440 900 L0 900 Z' fill='%23E8E0D0' fill-opacity='0.08'/%3E%3Cpath d='M0 850 Q360 760 760 820 T1440 800 L1440 900 L0 900 Z' fill='%23E8E0D0' fill-opacity='0.12'/%3E%3Cpath d='M0 690 Q240 555 480 652' fill='none' stroke='%23E8E0D0' stroke-opacity='0.14' stroke-width='1'/%3E%3Cpath d='M960 636 Q1200 600 1440 686' fill='none' stroke='%23E8E0D0' stroke-opacity='0.11' stroke-width='1'/%3E%3C/svg%3E"),
-    repeating-linear-gradient(0deg,rgba(232,224,208,0.025) 0 1px,transparent 1px 34px),
-    repeating-linear-gradient(90deg,rgba(232,224,208,0.025) 0 1px,transparent 1px 34px);
+  background-image:linear-gradient(rgba(20,17,14,0.82),rgba(20,17,14,0.90)),url('./login-bg.jpg');
+  background-size:cover;background-position:center;
 }
 
 /* ---------- 进入工作台过渡动画 ---------- */
