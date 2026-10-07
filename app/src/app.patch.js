@@ -64,8 +64,8 @@
         '<div class="r"><button class="btn btn-outline" id="cmUpdHide">收起</button></div>';
     } else if (ev.state === 'ready') {
       html = '<div class="t">✅ 新版 v' + ev.version + ' 已就绪</div>' +
-        '<div class="d">重启应用即完成安装；也可以继续使用，正常退出应用时会自动安装。</div>' +
-        '<div class="r"><button class="btn btn-outline" id="cmUpdLater2">稍后</button><button class="btn btn-primary" id="cmUpdInstall">立即重启安装</button></div>';
+        '<div class="d">点击「立即重启」：自动关闭 → 沿用原目录静默覆盖安装 → 自动重启新版，全程无需其他操作。</div>' +
+        '<div class="r"><button class="btn btn-outline" id="cmUpdLater2">稍后</button><button class="btn btn-primary" id="cmUpdInstall">立即重启</button></div>';
     } else if (ev.state === 'error') {
       html = '<div class="t">⚠️ 更新未完成</div>' +
         '<div class="d">' + (ev.message || '网络问题，稍后再试。') + '</div>' +
@@ -437,25 +437,31 @@
       '<div style="color:var(--text-secondary);font-size:13.5px;line-height:2">' +
       (wizState.loginSkip ? '<p>🔓 当前为<b>零密码模式</b>：打开应用直接进入。想加密码可到「设置 → 🔐 安全」。</p>' : '<p>🔐 登录密码已设置，下次打开需输入。</p>') +
       (userAdminPwdSet() ? '' : '<p>🛡️ 未设管理员密码：清空数据时输入「清空」二字确认。</p>') +
+      '<p>🎓 拿不准从哪开始？可以<b>带示例数据体验</b>：每个功能配指引弹窗，走完自动清除示例，不留任何痕迹。</p>' +
       '<p>💾 建议：定期在「设置 → 导出数据」留一份备份。</p>' +
       '</div>' +
       '<div class="cmDesk-copy">© 2026 <b>chee</b> · 班主任工作台（桌面版 v' + D.version + '） · 保留所有权利</div>',
+      '<button class="btn btn-outline" id="cmWizSample"><span>🎓 带示例体验</span><span class="arr">→</span></button>' +
       '<button class="btn btn-primary" id="cmWizDone"><span>进入工作台</span><span class="arr">→</span></button>');
-    w.foot.querySelector('#cmWizDone').onclick = function () { finishWizard(); };
+    w.foot.querySelector('#cmWizSample').onclick = function () { finishWizard(true); };
+    w.foot.querySelector('#cmWizDone').onclick = function () { finishWizard(false); };
   }
 
-  function finishWizard() {
+  function finishWizard(withSample) {
     lsSet(LS_ONBOARD, String(Date.now()));
     var masks = document.querySelectorAll('.cmDesk-wizard');
     for (var i = 0; i < masks.length; i++) masks[i].remove();
     patchLogin();
     buildSecurityCard();
+    if (withSample) cmSampleInject();
     if (userLoginPwdSet()) {
-      // 正常登录页（密码已设置）
+      // 正常登录页（密码已设置）：示例体验的工作台指引等登录后由 watch 触发
+      if (withSample) cmTourWatch();
       if (typeof window.showToast === 'function') window.showToast('初始设置完成', 'success');
     } else {
       // 零密码模式：平滑过渡进入
-      enterWithTransition('初始设置完成（零密码模式）');
+      if (withSample) cmTourWatch();
+      enterWithTransition(withSample ? '欢迎！先用示例数据逛一圈' : '初始设置完成（零密码模式）');
     }
   }
 
@@ -483,6 +489,143 @@
         overlay.style.transition = ''; overlay.style.opacity = ''; overlay.style.transform = '';
       }, 620);
     }
+  }
+
+  /* ---------- 4b. 新手示例体验（v1.0.9）：示例数据 + 对应位置弹窗指引 + 完成/跳过自动清除 ----------
+     安全设计：
+     · 注入前把受影响字段快照进 sessionStorage（同一会话内可恢复；跨会话由 boot 幂等清扫兜底）；
+     · 示例 id 全部落在 990001+ 区间，与真实自增 id（从 1 起）永不冲突；
+     · 清除 = 恢复快照 + saveData + renderAll，用户在体验期间写入的真实数据一律保留。 ---------- */
+  var CM_TOUR_FLAG = 'cmSampleTour';
+  var CM_TOUR_SNAP = 'cmSampleSnap';
+  var CM_TOUR_STEPS = [
+    { page: 'dashboard', icon: '🏠', title: '工作台首页', text: '课表、班级人数、今日实到都在这里。示例班级「高2026级一班」已放好 6 名学生。' },
+    { page: 'students', icon: '👥', title: '学生名册', text: '示例学生列在这里。正式使用时到 设置 → 数据管理 →「批量导入学生表格」，Excel/CSV 一键导入真实名单。' },
+    { page: 'credits', icon: '⭐', title: '学分管理', text: '点学生加减分，全程留痕。示例里「陈曦」已有一条课堂表现 +2 的流水，可试撤销/恢复。' },
+    { page: 'attendance', icon: '🗓️', title: '考勤请假', text: '登记请假自动算时长、销假自动恢复实到；值日、点名也从侧栏进入。' },
+    { page: 'settings', icon: '⚙️', title: '设置 · 桌面版专属', text: '「🔐 安全（桌面版）」改密码、「关于本系统」检查更新、导出备份都在这里。' }
+  ];
+
+  function cmSampleInject() {
+    try {
+      var snap = {
+        className: state.className,
+        classNameFull: state.classNameFull,
+        classMotto: state.classMotto,
+        nextId: state.nextId,
+        nextOpId: state.nextOpId,
+        students: JSON.parse(JSON.stringify(state.students)),
+        operations: JSON.parse(JSON.stringify(state.operations))
+      };
+      sessionStorage.setItem(CM_TOUR_SNAP, JSON.stringify(snap));
+      lsSet(CM_TOUR_FLAG, '1');
+      var names = ['陈曦', '林浩然', '苏雨桐', '王一鸣', '赵可欣', '周子墨'];
+      for (var i = 0; i < names.length; i++) {
+        state.students.push({ id: 990001 + i, sid: 'S2026' + ('0' + (i + 1)).slice(-2), name: names[i], credit: i === 0 ? 102 : 100, tags: [] });
+      }
+      // 只放一条 +2 流水，且对应学生 credit 同步 +2，保证「基准+Σ流水=当前分」不变式，学分体检不报异常
+      state.operations.unshift({
+        id: 990001, studentId: 990001, studentName: '陈曦', amount: 2, coin: 2,
+        reason: '课堂表现优秀（示例）', time: Date.now() - 3600000
+      });
+      state.className = '高2026级一班';
+      state.classNameFull = '高2026级一班';
+      state.nextId = Math.max(state.nextId, 990007);
+      state.nextOpId = Math.max(state.nextOpId, 990002);
+      if (appFn('saveData')) saveData();
+      if (appFn('renderAll')) renderAll();
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function cmSampleCleanup(keepToast) {
+    try {
+      lsDel(CM_TOUR_FLAG);
+      var raw = null;
+      try { raw = sessionStorage.getItem(CM_TOUR_SNAP); } catch (e) {}
+      if (raw) {
+        var snap = JSON.parse(raw);
+        state.className = snap.className;
+        state.classNameFull = snap.classNameFull;
+        state.classMotto = snap.classMotto;
+        state.nextId = snap.nextId;
+        state.nextOpId = snap.nextOpId;
+        state.students = JSON.parse(JSON.stringify(snap.students));
+        state.operations = JSON.parse(JSON.stringify(snap.operations));
+      } else {
+        // 跨会话兜底：快照已不可得，按示例 id 区间（990001–990999）剔除
+        state.students = state.students.filter(function (s) { return !(s.id >= 990001 && s.id <= 990999); });
+        state.operations = state.operations.filter(function (o) { return !(o.id >= 990001 && o.id <= 990999); });
+        state.nextId = state.students.reduce(function (m, s) { return Math.max(m, s.id + 1); }, 1);
+        state.nextOpId = state.operations.reduce(function (m, o) { return Math.max(m, o.id + 1); }, 1);
+        state.classNameFull = '';
+      }
+      try { sessionStorage.removeItem(CM_TOUR_SNAP); } catch (e) {}
+      if (appFn('saveData')) saveData();
+      if (appFn('renderAll')) renderAll();
+      if (!keepToast && appFn('showToast')) window.showToast('示例数据已清除，工作台已恢复空白，正式开始吧！', 'success');
+    } catch (e) {}
+  }
+
+  function cmStartTour() {
+    if (lsGet(CM_TOUR_FLAG) !== '1') return;
+    var idx = 0;
+    function detach() {
+      var b = document.getElementById('cmDeskGuide');
+      if (b) b.remove();
+      var hls = document.querySelectorAll('.cmDesk-guide-hl');
+      for (var i = 0; i < hls.length; i++) hls[i].classList.remove('cmDesk-guide-hl');
+    }
+    function stop() { detach(); cmSampleCleanup(false); }
+    function show() {
+      var st = CM_TOUR_STEPS[idx];
+      var last = idx === CM_TOUR_STEPS.length - 1;
+      var nav = appFn('navigateTo');
+      if (nav) nav(st.page);
+      detach();
+      var anchor = document.querySelector('.nav-item[data-page="' + st.page + '"]');
+      if (anchor) anchor.classList.add('cmDesk-guide-hl');
+      var b = el('div', 'cmDesk-guide');
+      b.id = 'cmDeskGuide';
+      b.innerHTML =
+        '<div class="cmDesk-gstep">' + st.icon + ' 新手指引 · ' + (idx + 1) + ' / ' + CM_TOUR_STEPS.length + '</div>' +
+        '<div class="cmDesk-gtitle">' + st.title + '</div>' +
+        '<div class="cmDesk-gtext">' + st.text + '</div>' +
+        '<div class="cmDesk-gbtns">' +
+        '<button class="btn btn-outline btn-sm" id="cmGuideSkip">跳过并清除示例</button>' +
+        '<button class="btn btn-primary btn-sm" id="cmGuideNext"><span>' + (last ? '完成体验 ✓' : '下一步') + '</span><span class="arr">→</span></button>' +
+        '</div>';
+      document.body.appendChild(b);
+      if (anchor) {
+        var r = anchor.getBoundingClientRect();
+        b.style.left = Math.max(12, Math.min(r.right + 12, window.innerWidth - 316)) + 'px';
+        b.style.top = Math.max(12, Math.min(r.top - 6, window.innerHeight - 260)) + 'px';
+      } else {
+        b.style.left = '50%'; b.style.top = '90px'; b.style.transform = 'translateX(-50%)';
+      }
+      b.querySelector('#cmGuideSkip').onclick = function () { stop(); };
+      b.querySelector('#cmGuideNext').onclick = function () {
+        if (last) stop();
+        else { idx++; show(); }
+      };
+    }
+    show();
+  }
+
+  // 等工作台真正可见（零密码过渡 / 密码登录两条路都会被它接住）再起指引
+  function cmTourWatch() {
+    var tries = 0;
+    var t = setInterval(function () {
+      tries++;
+      if (lsGet(CM_TOUR_FLAG) !== '1') { clearInterval(t); return; }
+      var ov = document.getElementById('loginOverlay');
+      var overlayGone = !ov || ov.classList.contains('hidden');
+      var appEl = document.querySelector('.app');
+      if (overlayGone && appEl && appEl.offsetParent !== null) {
+        clearInterval(t);
+        setTimeout(cmStartTour, 700);
+      } else if (tries > 240) { clearInterval(t); }
+    }, 500);
   }
 
   /* ---------- 5. 无密码登录面板（自包含样式，禁用网页版 .login-card 横排双栏布局） ---------- */
@@ -583,7 +726,7 @@
     intro.style.cssText = 'margin:10px 0 12px;padding:10px 12px;background:var(--row-bg,#FBF8F1);border:1px dashed var(--border,#E6DECD);border-radius:10px;font-size:12.5px;color:var(--text-secondary,#5F5E5A);line-height:1.9';
     intro.innerHTML =
       '🖥️ <b>班主任工作台 · 桌面版 v' + D.version + '</b>（单机版）——这是安装在 Windows 上的独立应用，<b>全部数据仅保存在这台电脑上</b>，不经任何服务器。' + (D.baseWeb ? '功能与网页版 ' + D.baseWeb + ' 一致（网页版的云同步在桌面版中不适用，已移除）。' : '') + '<br>' +
-      '🔄 <b>自动更新</b>：发现新版会在左下角弹窗询问，选择「立即更新」后台下载，完成后重启应用即完成安装。<br>' +
+      '🔄 <b>自动更新</b>：发现新版会在左下角弹窗询问，选择「立即更新」后台下载；就绪后点「立即重启」，自动沿用原目录覆盖安装并重启新版。<br>' +
       '<span style="color:var(--text-muted,#8C8577)">' + COPYRIGHT + ' · 转发分享请保留开发者署名</span>';
     var rows = about.querySelectorAll(':scope > div');
     var badgeRow = null;
@@ -592,6 +735,11 @@
     }
     if (badgeRow) badgeRow.parentNode.insertBefore(intro, badgeRow.nextSibling);
     else about.appendChild(intro);
+
+    /* 桌面版 v1.0.9：移除「网页版近版更新速览」整块（桌面版无网页版语境，老板拍板撤下）。
+       #settingsReleaseNotes 的 parentElement = 虚线容器（含折叠标题 + 速览正文），删它即整块摘除。 */
+    var sn = document.getElementById('settingsReleaseNotes');
+    if (sn && sn.parentElement) sn.parentElement.remove();
 
     // 应用内更新逻辑（仅桌面且有更新桥时接线）
     if (!window.__CM_UPDATER) return;
@@ -628,7 +776,7 @@
         setStatus('正在下载新版… ' + ev.percent + '%（' + ev.mb + ' MB）');
         cmUpdToast({ state: 'downloading', percent: ev.percent, mb: ev.mb });
       } else if (ev.state === 'ready') {
-        setStatus('✅ 新版 v' + ev.version + ' 已就绪：重启应用即完成安装', 'var(--success)');
+        setStatus('✅ 新版 v' + ev.version + ' 已就绪：点「立即重启」自动安装并重启', 'var(--success)');
         cmUpdToast({ state: 'ready', version: ev.version });
         if (!cmUpdReadyToasted && typeof window.showToast === 'function') {
           cmUpdReadyToasted = true;
@@ -646,6 +794,8 @@
 
   /* ---------- 启动 ---------- */
   function boot() {
+    // 上次会话示例体验未走完（中途关应用）→ 幂等清扫，绝不把示例数据留给正式使用
+    if (lsGet(CM_TOUR_FLAG) === '1') cmSampleCleanup(true);
     stripCloudUI();
     wrapDangerousFns();
     enhanceAbout();

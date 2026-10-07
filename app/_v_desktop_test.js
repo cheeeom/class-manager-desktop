@@ -121,10 +121,36 @@ t('③d 向导按钮绑定回归：foot 区按钮一律 w.foot.querySelector（v
   notHas(p, "w.body.querySelector('#cmWizNext')", '首屏按钮不许从 body 找（foot 渲染区）');
   notHas(p, "w.body.querySelector('#cmWizSkipAll')", '同上（跳过按钮）');
   // 全文件扫：所有 w.body.querySelector('#…') 的 id 必须不是 foot 按钮命名（cmWizNext/Skip/Done/Back/Ok/SkipAll/SkipPwd/Import 系）
-  const FOOT_IDS = ['cmWizNext', 'cmWizSkipAll', 'cmWizSkipPwd', 'cmWizBack', 'cmWizBack2', 'cmWizOk', 'cmWizDone', 'cmWizSkip', 'cmWizImport'];
+  const FOOT_IDS = ['cmWizNext', 'cmWizSkipAll', 'cmWizSkipPwd', 'cmWizBack', 'cmWizBack2', 'cmWizOk', 'cmWizDone', 'cmWizSkip', 'cmWizImport', 'cmWizSample'];
   for (const m of p.matchAll(/w\.body\.querySelector\('#([A-Za-z0-9_]+)'\)/g)) {
     ok(FOOT_IDS.indexOf(m[1]) < 0, 'foot 按钮 ' + m[1] + ' 被写成了 w.body.querySelector（首屏按钮死 bug 重演）');
   }
+});
+
+t('③f 注入层契约：示例体验 + 设置页再裁剪（v1.0.9）', () => {
+  const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
+  const css = fs.readFileSync(path.join(HERE, 'src', 'wizard.css'), 'utf8');
+  const build = fs.readFileSync(path.join(HERE, 'build.js'), 'utf8');
+  // 示例体验：注入/清除/指引/等待进入 四件套
+  has(p, 'function cmSampleInject', '示例数据注入');
+  has(p, 'function cmSampleCleanup', '示例数据清除（完成/跳过/跨会话兜底共用）');
+  has(p, 'function cmStartTour', '位置弹窗指引');
+  has(p, 'function cmTourWatch', '等工作台可见再起指引（零密码/密码登录两路兼容）');
+  has(p, "sessionStorage.setItem(CM_TOUR_SNAP", '注入前快照进 sessionStorage（可恢复）');
+  has(p, "990001", '示例 id 落在 990001+ 区间（与真实自增 id 永不冲突）');
+  has(p, "'高2026级一班'", '示例班级名');
+  has(p, "if (lsGet(CM_TOUR_FLAG) === '1') cmSampleCleanup(true);", 'boot 幂等清扫：中途关应用不残留示例');
+  has(p, "w.foot.querySelector('#cmWizSample').onclick", '完成页「带示例体验」按钮走 foot 绑定');
+  // 指引气泡样式
+  has(css, '.cmDesk-guide{position:fixed', '指引气泡样式');
+  has(css, '.cmDesk-guide-hl', '指引目标高亮样式');
+  // 设置页再裁剪：网页版速览整块摘除
+  has(p, "getElementById('settingsReleaseNotes')", '速览块 DOM 摘除');
+  has(p, 'sn.parentElement.remove()', '摘除的是虚线容器整块（含折叠标题）');
+  // build.js 文案补丁
+  has(build, 'placeholder="如：高2026级一班"', '班级全称输入提示（老板示例：高2026级一班）');
+  has(build, '三名学生可进入班委协作', '班委协作说明已重写（去版本号标签）');
+  has(build, '登记 / 续假 / 销假 / 删除均不可用', '班委协作说明：请假页只读口径修正');
 });
 
 t('④版权合规：安装包元数据 + 向导首尾 + 关于卡', () => {
@@ -162,6 +188,7 @@ t('⑤主进程安全基线', () => {
   notHas(m, "mode: 'direct'", '不强制直连（跟随系统代理；github.com 直连被墙，强制直连必挂）');
   has(m, 'updater-proxy.json', 'v1.0.5 代理残留启动即清理');
   has(m, 'pickFeed', '更新源并发探测择优（v1.0.8）');
+  has(m, 'quitAndInstall(true, true)', '静默安装+装完自启（v1.0.9：点一次立即重启后全程免操作）');
   has(m, 'setFeedURL({ provider: \'generic\', url: feed.url })', '运行时切 generic 源');
   has(m, 'releases/latest/download/', 'latest.yml 走 latest/download 固定路径（免 tag 依赖）');
   has(m, 'gh-proxy.com', '镜像主源（实测直连可达 206/200）');
@@ -179,7 +206,8 @@ t('⑥应用内更新：发布配置与页面接线', () => {
   const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
   has(p, '__CM_UPDATER', '页面走受控桥');
   has(p, '检查更新', '手动检查按钮');
-  has(p, '重启应用即完成安装', '就绪提示');
+  has(p, '沿用原目录静默覆盖安装', '就绪提示（自动安装+自动重启文案）');
+  has(p, "id=\"cmUpdInstall\"", '就绪弹窗有「立即重启」按钮');
   has(p, 'setTimeout(function () { checkNow(false); }, 30000)', '启动静默检查（手动参数 false）');
   has(p, "window.__CM_UPDATER.download()", '弹窗「立即更新」→ 下载');
   has(p, '发现新版本 v', '弹窗询问文案（先问后下）');

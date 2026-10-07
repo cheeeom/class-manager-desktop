@@ -93,7 +93,9 @@ function setupUpdater() {
       try { await au.downloadUpdate(); return { ok: true }; }
       catch (e) { return { ok: false, message: String(e && e.message || e).slice(0, 140) }; }
     });
-    ipcMain.handle('cm-upd-install', () => { try { au.quitAndInstall(); } catch (e) {} });
+    // ① 静默安装（isSilent=true：沿用原安装目录自动覆盖，不弹 NSIS 向导页）
+    // ② isForceRunAfter=true：装完自动重启，用户点一次「立即重启」后全程无需再操作
+    ipcMain.handle('cm-upd-install', () => { try { au.quitAndInstall(true, true); } catch (e) {} });
     return au;
   } catch (e) {
     console.log('[updater] init skipped: ' + e.message);
