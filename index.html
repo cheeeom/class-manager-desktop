@@ -18,11 +18,7 @@
   --line:#E6DECD;         /* 纸纹线 */
   --zhu:#A63A2B;          /* 朱砂 */
   --zhu-deep:#7F2D1F;     /* 朱砂·深 */
-  --xuan:#191613;         /* 玄墨 */
-  --xuan-line:#3A352C;
-  --xuan-text:#EAE4D6;
-  --xuan-muted:#7E776A;
-  --zhu-bright:#CE6B52;   /* 玄墨上的朱砂 */
+  --mountain:rgba(60,46,34,.55);  /* 远山墨（文字/印章在纸墨图上的落色） */
   --font-display:"Noto Serif SC","Source Han Serif SC","STZhongsong","SimSun",serif;
   --font-body:"MiSans","HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
 }
@@ -89,36 +85,30 @@ a{color:inherit;text-decoration:none}
 .btn-ghost:hover{border-color:var(--zhu);color:var(--zhu)}
 .meta{margin-top:18px;font-size:13.5px;color:var(--ink-3)}
 
-/* —— 玄墨缩影卡：复刻应用登录页（窗棂纹 + 印章 + 竖排校训）—— */
+/* —— 纸墨缩影卡：应用登录页同款水墨远山壁纸（山峦 + 红日 + 宣纸纹），朱砂「班」字印章 —— */
 .visual{
   position:relative;border-radius:16px;overflow:hidden;
-  background:var(--xuan);border:1px solid var(--xuan-line);
+  background:
+    linear-gradient(rgba(246,242,233,.10),rgba(246,242,233,.26)),
+    url('landing-bg.jpg') center/cover no-repeat var(--paper);
+  border:1px solid var(--line);
   min-height:380px;
   display:flex;align-items:center;justify-content:center;
-  box-shadow:0 24px 60px -28px rgba(43,43,51,.45);
-}
-.visual::before{ /* 窗棂纹 */
-  content:"";position:absolute;inset:0;
-  background-image:
-    linear-gradient(rgba(234,228,214,.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(234,228,214,.055) 1px, transparent 1px);
-  background-size:30px 30px;
-  -webkit-mask-image:radial-gradient(130% 110% at 78% 12%, #000 20%, transparent 78%);
-          mask-image:radial-gradient(130% 110% at 78% 12%, #000 20%, transparent 78%);
+  box-shadow:0 24px 60px -28px rgba(60,46,34,.42);
 }
 .v-motto{
   position:absolute;top:30px;right:28px;
   writing-mode:vertical-rl;
   font-family:var(--font-display);
-  color:rgba(234,228,214,.5);font-size:15px;letter-spacing:.42em;
+  color:var(--mountain);font-size:15px;letter-spacing:.42em;
 }
 .v-center{position:relative;text-align:center;padding:44px 40px}
-.v-seal{display:block;margin-inline:auto;filter:drop-shadow(0 14px 26px rgba(0,0,0,.42))}
-.v-name{margin-top:26px;font-family:var(--font-display);font-size:21px;font-weight:700;color:var(--xuan-text);letter-spacing:.14em}
-.v-ver{margin-top:7px;font-size:12.5px;color:var(--xuan-muted);letter-spacing:.18em}
+.v-seal{display:block;margin-inline:auto;filter:drop-shadow(0 14px 26px rgba(60,46,34,.34))}
+.v-name{margin-top:26px;font-family:var(--font-display);font-size:21px;font-weight:700;color:var(--ink);letter-spacing:.14em}
+.v-ver{margin-top:7px;font-size:12.5px;color:var(--ink-2);letter-spacing:.18em}
 .v-stamp{ /* 旋转「印」字落款 */
   position:absolute;right:22px;bottom:20px;width:34px;height:34px;
-  transform:rotate(8deg);opacity:.72;
+  transform:rotate(8deg);opacity:.78;
 }
 
 /* ============ 区块标题：印章点 ============ */
@@ -154,8 +144,15 @@ a{color:inherit;text-decoration:none}
 .step h3{margin-top:16px;font-size:16.5px;font-weight:600}
 .step p{margin-top:7px;font-size:14.5px;color:var(--ink-2)}
 
-/* ============ 玄墨下载区 ============ */
-.dl{background:var(--xuan);border-block:1px solid var(--xuan-line);color:var(--xuan-text)}
+/* ============ 下载区：纸墨远山（与应用工作台同款 soft-light 混合 + 纸纱罩面保可读） ============ */
+.dl{
+  color:var(--ink);
+  background-color:var(--paper);
+  background-image:linear-gradient(rgba(246,242,233,.68),rgba(246,242,233,.44)),url('landing-bg.jpg');
+  background-size:cover;background-position:center;
+  background-blend-mode:normal,soft-light;
+  border-block:1px solid var(--line);
+}
 .dl .wrap{
   display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(36px,5vw,72px);
   padding-block:clamp(56px,8vw,96px);align-items:center;position:relative;
@@ -164,24 +161,24 @@ a{color:inherit;text-decoration:none}
   font-family:var(--font-display);
   font-size:clamp(1.7rem,3.4vw,2.5rem);font-weight:700;line-height:1.4;letter-spacing:.02em;
 }
-.dl .sub{margin-top:18px;font-size:15.5px;color:#B3AA98;max-width:32em}
+.dl .sub{margin-top:18px;font-size:15.5px;color:var(--ink-2);max-width:32em}
 .dl .cta{margin-top:32px}
-.dl .btn-primary{background:var(--zhu-bright);color:#191613}
-.dl .btn-primary:hover{background:#DD8368}
-.dl .btn-ghost{background:transparent;border-color:var(--xuan-line);color:var(--xuan-text)}
-.dl .btn-ghost:hover{border-color:var(--zhu-bright);color:var(--zhu-bright)}
-.dl .meta{color:var(--xuan-muted)}
-.dl .note{margin-top:22px;font-size:13px;color:var(--xuan-muted);max-width:34em}
+.dl .btn-primary{background:var(--zhu);color:#FFFDF7}
+.dl .btn-primary:hover{background:var(--zhu-deep)}
+.dl .btn-ghost{background:rgba(255,253,247,.78);border-color:#D9CFBB;color:var(--ink)}
+.dl .btn-ghost:hover{border-color:var(--zhu);color:var(--zhu)}
+.dl .meta{color:var(--ink-3)}
+.dl .note{margin-top:22px;font-size:13px;color:var(--ink-2);max-width:34em}
 .promises{list-style:none}
 .promises li{
-  border-top:1px solid var(--xuan-line);padding-block:19px;
+  border-top:1px solid rgba(63,46,34,.22);padding-block:19px;
   display:flex;gap:14px;align-items:baseline;font-size:15.5px;
 }
 .promises li::before{
-  content:"";width:7px;height:7px;background:var(--zhu-bright);
+  content:"";width:7px;height:7px;background:var(--zhu);
   transform:rotate(45deg);flex:none;position:relative;top:-1px;
 }
-.promises .p-sub{display:block;font-size:13px;color:var(--xuan-muted);margin-top:3px}
+.promises .p-sub{display:block;font-size:13px;color:var(--ink-3);margin-top:3px}
 .dl .v-stamp{right:clamp(20px,4vw,44px);bottom:26px}
 
 /* ============ FAQ ============ */
@@ -283,15 +280,15 @@ a{color:inherit;text-decoration:none}
         <a class="btn btn-primary" href="https://github.com/cheeeom/class-manager-desktop/releases/latest/download/ClassManager-Setup.exe" download>下载 Windows 版</a>
         <a class="btn btn-ghost" href="https://cheeeom.github.io/class-manager/">先在浏览器试试</a>
       </div>
-      <p class="meta">Windows 10 / 11　·　约 85 MB　·　免费，无广告、无激活限制</p>
+      <p class="meta">Windows 10 / 11　·　约 83 MB　·　免费，无广告、无激活限制</p>
     </div>
 
-    <div class="visual" role="img" aria-label="班主任工作台桌面版：玄墨底、窗棂纹与朱砂「班」字印章">
+    <div class="visual" role="img" aria-label="班主任工作台桌面版：纸墨远山壁纸与朱砂「班」字印章">
       <span class="v-motto">厚德博学 · 敬业爱生</span>
       <div class="v-center">
         <svg class="v-seal" width="128" height="128" aria-hidden="true"><use href="#seal"/></svg>
         <div class="v-name">班主任工作台</div>
-        <div class="v-ver">WINDOWS 桌面版 · V1.0.0</div>
+        <div class="v-ver">WINDOWS 桌面版 · V1.0.9</div>
       </div>
       <svg class="v-stamp" aria-hidden="true"><use href="#stamp-yin"/></svg>
     </div>
