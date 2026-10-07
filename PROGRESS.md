@@ -1,6 +1,6 @@
 # PROGRESS.md — 班主任工作台 · 桌面版
 
-> 真实进度只认本文件。基准：线上 Latest = **v1.0.7**（2026-10-07 发布，三件套+直链 206 验收）· baseWeb v3.4.0 · 2026-10-07 11:50。
+> 真实进度只认本文件。基准：本地 main（**v1.0.8 待发布**；线上 Latest = v1.0.7）· 2026-10-07 14:40· baseWeb v3.4.0 · 2026-10-07 11:50。
 
 ## 一、当前状态速览
 
@@ -11,7 +11,13 @@
 
 ## 二、待办队列
 
-### P0（v1.0.7 已发布）
+### P0（v1.0.8 待发布）
+- [x] **诊断「检查更新 net::ERR_CONNECTION_TIMED_OUT」**（v1.0.7 发布后老板实机报）：实测 github.com 直连 TCP 超时、api.github.com 通、gh-proxy 镜像直连 200——electron-updater GitHub 源绑死 github.com 域，直连必挂
+- [x] **更新源智能择优**：generic 源 + `releases/latest/download/` 固定路径；三候选并发探测（gh-proxy/ghfast/官方，6s 超时，latest.yml 正则校验）；`setFeedURL` 运行时切换；撤强制直连（跟随系统代理，镜像直连可达为主源）
+- [x] CM_UPDTEST 端到端验证（dev 实测 ok + version=1.0.7 + 源=gh-proxy）；CM_SMOKE 增加 feed= 输出；回归 12/12；打包 v1.0.8 双冒烟 PASS
+- [ ] 老板验收 → 说推送发 v1.0.8
+
+### v1.0.7（已发布归档）
 - [x] 推送 + 发布 v1.0.7 Release 三件套（commits ea03ac8→c1b36fb；latest.yml 服 1.0.7，稳定直链 206）
 - [x] 启动背景换 AI 海报（ImageGen 生成，PIL 裁 AI 生成角标 → login-bg-a/b.jpg 163/118KB；build.js 复制进 dist；暗色叠压暗层；测试断言更新）
 - [x] **更新器一律直连**（老板 2026-10-07 拍板：直连就行不上代理）：默认会话 `setProxy({mode:'direct'})`（electron-updater 走 electron.net→默认会话，UI 只加载本地 file:// 零影响）+ 启动清理 v1.0.5 残留 `userData/updater-proxy.json`（死代理 = ERR_CONNECTION_TIMED_OUT 根因）；冒烟新增 `updaterRoute=DIRECT` 实证
@@ -57,6 +63,7 @@
 - **v1.0.0**（已发布）：Electron 壳 + 首启向导（密码可跳/零密码）+ 清空数据管理员闸 + 云同步 UI 裁剪 + 版权四处落地。
 - **v1.0.1**（已发布）：P0 修复——向导首屏按钮死 + 换步遮罩堆叠；冒烟升级交互探针；落地页直链改英文资产名。
 - **v1.0.2**（已发布，线上 Latest）：electron-updater 应用内更新 + NSIS 向导式安装 + 安装包名对齐 latest.yml + RELEASE.md 固化。
+- **v1.0.8**（本地待发布）：更新源智能择优（镜像主源+官方兜底，修检查更新超时）。
 - **v1.0.7**（已发布，线上 Latest）：启动背景换 AI 生成纸墨海报（A 稿全景山峦，B 稿 src/img/login-bg-b.jpg 一句话可换）+ 海报嵌入工作台（body soft-light 混合）+ 进入动画交叉淡化（工作台先渲染、遮罩回顶淡出，治导航帧卡）。
 - **v1.0.6**：登录背景重设计 + 进入过渡动画 + 撤更新代理。
 - **v1.0.5**：更新代理设置 + 冒烟隔离化。
