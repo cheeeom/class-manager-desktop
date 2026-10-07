@@ -1,6 +1,6 @@
 # PROGRESS.md — 班主任工作台 · 桌面版
 
-> 真实进度只认本文件。基准：main `c6c1e7a`（v1.0.2 更新弹窗定稿+反馈四连修复，**领先 origin 1 个提交，待推送**）· baseWeb v3.4.0 · 2026-10-07 09:50。
+> 真实进度只认本文件。基准：main `65fdce0`（v1.0.2 更新弹窗定稿+反馈四连修复，**领先 origin 1 个提交，待推送**）· baseWeb v3.4.0 · 2026-10-07 09:50。
 
 ## 一、当前状态速览
 
@@ -15,7 +15,7 @@
 - [x] 补更新 toast 的 CSS（wizard.css：定位左下角/卡片风/进度条/四态）
 - [x] 测试锚点跟随（checkNow(false)）+ 新增 12 项断言（版本位/弹窗/按钮排版/设置页桌面化）
 - [x] 重建 + 12/12 + 冒烟 PASS + 截图人工复核
-- [x] 提交（`c6c1e7a`，含 `_probe_toast.js` 清理；推送待老板指令）
+- [x] 提交（`65fdce0`，含 `_probe_toast.js` 清理；推送待老板指令）
 
 ### P1
 - [ ] **出 v1.0.2 安装包**（沙箱里 Node 起不了子进程，需老板本机跑）：`cd app && node build.js && node _v_desktop_test.js && python _npmrc_proxy_toggle.py off && node _build_retry.js && python _npmrc_proxy_toggle.py on`
