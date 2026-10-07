@@ -455,7 +455,7 @@
     };
   }
 
-  /* ---------- 7. 关于卡版权增强 ---------- */
+  /* ---------- 7. 关于卡版权增强 + 应用内更新 ---------- */
   function enhanceAbout() {
     var about = document.getElementById('settingsAbout');
     if (!about || about.querySelector('.cmDeskAbout')) return;
@@ -464,6 +464,54 @@
     line.innerHTML = '🖥️ 桌面版 v' + D.version + (D.baseWeb ? '（基于网页版 ' + D.baseWeb + ' 构建）' : '') +
       ' · 数据仅保存在本机<br>' + COPYRIGHT + ' · 转发分享请保留开发者署名';
     about.appendChild(line);
+
+    // 应用内更新（仅桌面且有更新桥时渲染）
+    if (!window.__CM_UPDATER) return;
+    var row = el('div', 'cmDeskUpd');
+    row.style.cssText = 'margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap';
+    var btn = el('button', 'btn btn-outline btn-sm', '🔄 检查更新');
+    var status = el('span', 'cmDeskUpdStatus');
+    status.style.cssText = 'font-size:12px;color:var(--text-muted)';
+    status.textContent = '当前版本 v' + D.version;
+    row.appendChild(btn); row.appendChild(status);
+    about.appendChild(row);
+
+    function setStatus(txt, color) { status.textContent = txt; status.style.color = color || 'var(--text-muted)'; }
+    var handling = false;
+    function checkNow() {
+      if (handling) return;
+      handling = true;
+      setStatus('正在检查…');
+      window.__CM_UPDATER.check().then(function (r) {
+        handling = false;
+        if (!r || !r.ok) { setStatus('检查失败：' + ((r && r.message) || '网络不通，稍后再试'), 'var(--danger)'); return; }
+        // 其余状态由事件流驱动（available/downloading/ready/none）
+        if (r.version && r.version === D.version) setStatus('已是最新版本 v' + D.version);
+      }).catch(function (e) {
+        handling = false;
+        setStatus('检查失败：' + String(e && e.message || e).slice(0, 60), 'var(--danger)');
+      });
+    }
+    btn.onclick = checkNow;
+
+    window.__CM_UPDATER.onEvent(function (ev) {
+      if (!ev) return;
+      if (ev.state === 'checking') setStatus('正在检查…');
+      else if (ev.state === 'available') setStatus('发现新版 v' + ev.version + '，正在后台下载…');
+      else if (ev.state === 'none') setStatus('已是最新版本 v' + D.version);
+      else if (ev.state === 'downloading') setStatus('正在下载新版… ' + ev.percent + '%（' + ev.mb + ' MB）');
+      else if (ev.state === 'ready') {
+        setStatus('✅ 新版 v' + ev.version + ' 已就绪：重启应用即完成安装', 'var(--success)');
+        btn.textContent = '🔄 立即重启安装';
+        btn.onclick = function () { window.__CM_UPDATER.install(); };
+        if (typeof window.showToast === 'function') window.showToast('新版本已就绪，重启应用即完成安装', 'success');
+      } else if (ev.state === 'error') {
+        setStatus('更新出错：' + (ev.message || '网络问题，稍后再试'), 'var(--danger)');
+      }
+    });
+
+    // 启动静默检查（一次，30 秒后——避开启动高峰与弱网首屏）
+    setTimeout(function () { checkNow(); }, 30000);
   }
 
   /* ---------- 启动 ---------- */

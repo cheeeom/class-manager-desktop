@@ -50,8 +50,16 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "班主任工作台",
-      "artifactName": "班主任工作台-Setup.${ext}"
+      "artifactName": "${name}-Setup-${version}.${ext}"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "cheeeom",
+      "repo": "class-manager-desktop"
     }
   },
-  "baseWeb": "v3.4.0"
+  "baseWeb": "v3.4.0",
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  }
 }

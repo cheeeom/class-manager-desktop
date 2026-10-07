@@ -1,11 +1,46 @@
 /* 班主任工作台 · 桌面版 —— Electron 主进程
    原则：本地内容、无远程加载、contextIsolation 开、nodeIntegration 关、禁 ServiceWorker。 */
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, shell, ipcMain } = require('electron');
 const path = require('path');
 
 app.setName('班主任工作台');
 
 let win = null;
+
+/* ---------- 应用内更新（electron-updater，GitHub Releases 作源） ----------
+   开发模式（electron .）无 app-update.yml，自动跳过；仅打包运行时生效。
+   策略：启动静默检查 → 发现新版自动后台下载 → 下载完提示（重启即装 / 退出时自动装）。 */
+let autoUpdater = null;
+function setupUpdater() {
+  if (!app.isPackaged) return null;
+  try {
+    const { autoUpdater: au } = require('electron-updater');
+    au.autoDownload = true;
+    au.autoInstallOnAppQuit = true;      // 下载完成后用户正常退出应用时自动安装
+    au.logger = null;                     // 不往 console 刷 error（冒烟计零原则）
+    autoUpdater = au;
+
+    const send = (channel, payload) => {
+      try { if (win && !win.isDestroyed()) win.webContents.send(channel, payload); } catch (e) {}
+    };
+    au.on('checking-for-update', () => send('cm-upd-event', { state: 'checking' }));
+    au.on('update-available', (info) => send('cm-upd-event', { state: 'available', version: info.version }));
+    au.on('update-not-available', () => send('cm-upd-event', { state: 'none' }));
+    au.on('download-progress', (p) => send('cm-upd-event', { state: 'downloading', percent: Math.round(p.percent || 0), mb: ((p.transferred || 0) / 1048576).toFixed(1) + '/' + ((p.total || 0) / 1048576).toFixed(1) }));
+    au.on('update-downloaded', (info) => send('cm-upd-event', { state: 'ready', version: info.version }));
+    au.on('error', (err) => send('cm-upd-event', { state: 'error', message: String(err && err.message || err).slice(0, 140) }));
+
+    ipcMain.handle('cm-upd-check', async () => {
+      try { const r = await au.checkForUpdates(); return { ok: true, version: r && r.update && r.update.version }; }
+      catch (e) { return { ok: false, message: String(e && e.message || e).slice(0, 140) }; }
+    });
+    ipcMain.handle('cm-upd-install', () => { try { au.quitAndInstall(); } catch (e) {} });
+    return au;
+  } catch (e) {
+    console.log('[updater] init skipped: ' + e.message);
+    return null;
+  }
+}
 
 function createWindow() {
   win = new BrowserWindow({
@@ -43,6 +78,7 @@ function createWindow() {
 }
 
 app.whenReady().then(function () {
+  setupUpdater();
   createWindow();
 
   // 冒烟模式：CM_SMOKE=1 时启动后自检并退出（本机验证用）

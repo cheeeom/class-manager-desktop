@@ -116,9 +116,26 @@ t('⑤主进程安全基线', () => {
   has(m, 'will-navigate', '导航守卫');
   has(m, 'setMenu(null)', '去菜单');
   has(m, 'CM_SMOKE', '冒烟自检入口');
+  has(m, 'autoInstallOnAppQuit', '更新器：退出自装');
+  has(m, "require('electron-updater')", '更新器接线');
+  has(m, "if (!app.isPackaged) return null", '开发模式跳过更新器');
   const pre = fs.readFileSync(path.join(HERE, 'preload.js'), 'utf8');
   has(pre, 'contextBridge', '桥接方式暴露');
+  has(pre, '__CM_UPDATER', '更新器受控桥');
   notHas(pre, 'nodeIntegration', 'preload 不开 Node');
+});
+
+t('⑥应用内更新：发布配置与页面接线', () => {
+  const pkg = JSON.parse(fs.readFileSync(path.join(HERE, 'package.json'), 'utf8'));
+  ok(pkg.build.publish && pkg.build.publish.provider === 'github' && pkg.build.publish.repo === 'class-manager-desktop', 'publish=github 源');
+  ok(fs.existsSync(path.join(HERE, 'node_modules', 'electron-updater', 'package.json')), 'electron-updater 已安装');
+  const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
+  has(p, '__CM_UPDATER', '页面走受控桥');
+  has(p, '检查更新', '手动检查按钮');
+  has(p, '重启应用即完成安装', '就绪提示');
+  has(p, 'setTimeout(function () { checkNow(); }, 30000)', '启动静默检查');
+  const rm = fs.readFileSync(path.join(HERE, 'RELEASE.md'), 'utf8');
+  has(rm, 'latest.yml', '发布命令含 latest.yml（漏传=更新链失效）');
 });
 
 console.log('\n通过 ' + pass + ' 项，失败 ' + fail + ' 项');
