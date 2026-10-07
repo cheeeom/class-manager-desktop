@@ -459,25 +459,29 @@
     }
   }
 
-  /* ---------- 进入工作台平滑过渡：登录层淡出上浮 → 工作台淡入 ---------- */
+  /* ---------- 进入工作台平滑过渡（交叉淡化 cross-fade）：
+     ①enterApp 先行——工作台在遮罩下方渲染，帧卡被遮罩盖住；
+     ②遮罩顶回（不透明）→ 强制回流 → 淡出+微放大揭示，工作台悬浮浮现。
+     直接切 display 的「白闪+导航帧卡」由此消除。 ---------- */
   function enterWithTransition(msg) {
     var overlay = document.getElementById('loginOverlay');
     var shell = document.querySelector('.app');
-    var afterEnter = function () {
-      if (shell) { shell.classList.add('cmDesk-appin'); setTimeout(function () { shell.classList.remove('cmDesk-appin'); }, 700); }
-    };
-    if (overlay && !overlay.classList.contains('hidden')) {
-      overlay.style.transition = 'opacity .45s ease, transform .45s ease';
+    if (typeof window.enterApp !== 'function') return;
+    window.enterApp(msg);                                     // 1. 先渲染
+    if (shell) { shell.classList.add('cmDesk-appin'); setTimeout(function () { shell.classList.remove('cmDesk-appin'); }, 700); }
+    if (overlay && overlay.classList.contains('hidden')) {    // 2. 遮罩回顶淡出
+      overlay.classList.remove('hidden');
+      overlay.style.transition = 'none';
+      overlay.style.opacity = '1';
+      overlay.style.transform = 'scale(1)';
+      void overlay.offsetWidth;                               // 强制回流锁定起始态
+      overlay.style.transition = 'opacity .6s ease, transform .6s ease';
       overlay.style.opacity = '0';
-      overlay.style.transform = 'scale(1.03)';
+      overlay.style.transform = 'scale(1.045)';
       setTimeout(function () {
-        if (typeof window.enterApp === 'function') window.enterApp(msg);
+        overlay.classList.add('hidden');
         overlay.style.transition = ''; overlay.style.opacity = ''; overlay.style.transform = '';
-        afterEnter();
-      }, 430);
-    } else {
-      if (typeof window.enterApp === 'function') window.enterApp(msg);
-      afterEnter();
+      }, 620);
     }
   }
 

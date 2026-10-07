@@ -100,6 +100,8 @@ t('③e 注入层契约：更新弹窗与设置页桌面化', () => {
   ok(p.indexOf("btn = el('button', 'btn btn-primary', '🔄 检查更新')") >= 0, '检查更新按钮主色加大（非小号 outline）');
   notHas(p, '更新代理', '更新代理功能已移除（v1.0.6 老板拍板）');
   has(p, 'enterWithTransition', '进入工作台平滑过渡');
+  has(p, "overlay.classList.remove('hidden')", '交叉淡化：工作台先渲染、遮罩回顶淡出（盖住渲染帧卡）');
+  has(css, 'background-blend-mode:soft-light', '工作台背景海报 soft-light 融入（随皮肤/暗色自适应）');
   has(css, 'cmDeskAppIn', '工作台淡入动画');
   has(css, '.login-overlay', '启动界面背景覆盖');
   ok(css.indexOf("url('./login-bg.jpg')") >= 0 && css.indexOf('html.dark .login-overlay') >= 0, 'AI 海报背景接入 + 暗色压暗层');

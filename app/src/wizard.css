@@ -70,6 +70,14 @@ html.dark .login-overlay{
   background-size:cover;background-position:center;
 }
 
+/* ---------- 工作台背景：同一海报 soft-light 融入 body 底色（随皮肤/暗色自适应，卡片不受影响） ---------- */
+body{
+  background-color:var(--bg);
+  background-image:url('./login-bg.jpg');
+  background-size:cover;background-position:center;
+  background-blend-mode:soft-light;
+}
+
 /* ---------- 进入工作台过渡动画 ---------- */
 .cmDesk-appin{animation:cmDeskAppIn .55s ease}
 @keyframes cmDeskAppIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}

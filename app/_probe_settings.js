@@ -21,7 +21,8 @@ app.whenReady().then(function () {
       ['prep', 'localStorage.setItem("cm_onboarded","1");localStorage.setItem("cm_nopwd","1");location.reload();1'],
       ['wait1', null],
       ['desk', 'JSON.stringify({desk:!!window.__CM_DESKTOP,layer:!!window.__CM_DESK_LAYER__,ver:(window.__CM_DESKTOP||{}).version,loginCard:!!document.querySelector(".cmDesk-login-card"),enterBtn:!!document.getElementById("cmDeskEnter")})'],
-      ['enter', 'typeof enterApp==="function" ? (enterApp("探针"),1) : 0'],
+      ['enterclick', 'var b=document.getElementById("cmDeskEnter");b?b.click():0;1'],
+      ['wait250', null],
       ['wait', null],
       ['nav', 'typeof navigateTo==="function" ? (navigateTo("settings"),1) : (window.navigateTo?(window.navigateTo("settings"),1):0)'],
       ['wait', null],
@@ -35,12 +36,17 @@ app.whenReady().then(function () {
       await new Promise(r => setTimeout(r, 600));
       for (const [name, js] of steps) {
         if (js === null) {
-          await new Promise(r => setTimeout(r, 1200));
+          await new Promise(r => setTimeout(r, name === 'wait250' ? 250 : 1200));
           console.log('[PROBE] ' + name + ' ok');
           if (name === 'wait1') {
             const img0 = await win.webContents.capturePage();
             fs.writeFileSync(path.join(__dirname, 'out', '_probe_login.png'), img0.toPNG());
             console.log('[PROBE] login-shot=out/_probe_login.png');
+          }
+          if (name === 'wait250') {
+            const imgT = await win.webContents.capturePage();
+            fs.writeFileSync(path.join(__dirname, 'out', '_probe_transition.png'), imgT.toPNG());
+            console.log('[PROBE] transition-shot=out/_probe_transition.png');
           }
           continue;
         }
