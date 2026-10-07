@@ -93,6 +93,8 @@ t('③e 注入层契约：更新弹窗与设置页桌面化', () => {
   has(p, 'cmUpdDeclined', '「暂不」后本会话不再自动弹');
   has(p, '单机版', '关于卡桌面版介绍');
   has(p, '自动更新', '关于卡更新说明');
+  has(p, "ah3.parentNode.insertBefore(row, ah3.nextSibling)", '检查更新栏 = 关于卡第一栏（紧随标题）');
+  ok(p.indexOf("btn = el('button', 'btn btn-primary', '🔄 检查更新')") >= 0, '检查更新按钮主色加大（非小号 outline）');
   const css = fs.readFileSync(path.join(HERE, 'src', 'wizard.css'), 'utf8');
   has(css, '.cmDeskUpdToast', '弹窗样式（定位/卡片）');
   has(css, '.cmUpdBar', '下载进度条样式');

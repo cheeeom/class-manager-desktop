@@ -531,31 +531,44 @@
     };
   }
 
-  /* ---------- 7. 关于卡桌面版化（介绍重写 + 应用内更新） ---------- */
+  /* ---------- 7. 关于卡桌面版化（检查更新第一栏 + 介绍重写） ---------- */
   function enhanceAbout() {
     var about = document.getElementById('settingsAbout');
     if (!about || about.querySelector('.cmDeskAbout')) return;
-    // 桌面版介绍卡：插在版本徽标行之后、网页版速览之前
+
+    /* 检查更新栏：关于卡第一栏（紧随标题），按钮加大突出 */
+    var btn = null, status = null;
+    if (window.__CM_UPDATER) {
+      var row = el('div', 'cmDeskUpd');
+      row.style.cssText = 'margin:12px 0 4px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 14px;background:var(--row-bg,#FBF8F1);border:1px solid var(--border,#E6DECD);border-radius:10px';
+      btn = el('button', 'btn btn-primary', '🔄 检查更新');
+      btn.style.cssText = 'padding:8px 20px;font-size:13.5px;position:relative;min-width:130px';
+      status = el('span', 'cmDeskUpdStatus');
+      status.style.cssText = 'font-size:13px;color:var(--text-secondary,#5F5E5A)';
+      status.textContent = '当前版本 v' + D.version;
+      row.appendChild(btn); row.appendChild(status);
+      var ah3 = about.querySelector('h3');
+      if (ah3) ah3.parentNode.insertBefore(row, ah3.nextSibling);
+      else about.appendChild(row);
+    }
+
+    /* 桌面版介绍卡：插在版本徽标行之后、网页版速览之前 */
     var intro = el('div', 'cmDeskAbout');
     intro.style.cssText = 'margin:10px 0 12px;padding:10px 12px;background:var(--row-bg,#FBF8F1);border:1px dashed var(--border,#E6DECD);border-radius:10px;font-size:12.5px;color:var(--text-secondary,#5F5E5A);line-height:1.9';
     intro.innerHTML =
       '🖥️ <b>班主任工作台 · 桌面版 v' + D.version + '</b>（单机版）——这是安装在 Windows 上的独立应用，<b>全部数据仅保存在这台电脑上</b>，不经任何服务器。' + (D.baseWeb ? '功能与网页版 ' + D.baseWeb + ' 一致（网页版的云同步在桌面版中不适用，已移除）。' : '') + '<br>' +
-      '🔄 <b>自动更新</b>：发现新版会在左下角弹窗询问，选择「立即更新」后台下载，完成后重启应用即完成安装；也可随时点下方「🔄 检查更新」手动检查。<br>' +
+      '🔄 <b>自动更新</b>：发现新版会在左下角弹窗询问，选择「立即更新」后台下载，完成后重启应用即完成安装。<br>' +
       '<span style="color:var(--text-muted,#8C8577)">' + COPYRIGHT + ' · 转发分享请保留开发者署名</span>';
     var rows = about.querySelectorAll(':scope > div');
-    if (rows.length) rows[0].parentNode.insertBefore(intro, rows[0].nextSibling);
+    var badgeRow = null;
+    for (var ri = 0; ri < rows.length; ri++) {
+      if (rows[ri].querySelector('span') && rows[ri].textContent.indexOf('🏷️') >= 0) { badgeRow = rows[ri]; break; }
+    }
+    if (badgeRow) badgeRow.parentNode.insertBefore(intro, badgeRow.nextSibling);
     else about.appendChild(intro);
 
-    // 应用内更新（仅桌面且有更新桥时渲染）
+    // 应用内更新逻辑（仅桌面且有更新桥时接线）
     if (!window.__CM_UPDATER) return;
-    var row = el('div', 'cmDeskUpd');
-    row.style.cssText = 'margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap';
-    var btn = el('button', 'btn btn-outline btn-sm', '🔄 检查更新');
-    var status = el('span', 'cmDeskUpdStatus');
-    status.style.cssText = 'font-size:12px;color:var(--text-muted)';
-    status.textContent = '当前版本 v' + D.version;
-    row.appendChild(btn); row.appendChild(status);
-    about.appendChild(row);
 
     function setStatus(txt, color) { status.textContent = txt; status.style.color = color || 'var(--text-muted)'; }
     var handling = false;
