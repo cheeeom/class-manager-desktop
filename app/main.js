@@ -1,6 +1,6 @@
 /* 班主任工作台 · 桌面版 —— Electron 主进程
    原则：本地内容、无远程加载、contextIsolation 开、nodeIntegration 关、禁 ServiceWorker。 */
-const { app, BrowserWindow, shell, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -89,6 +89,18 @@ function createWindow() {
 }
 
 app.whenReady().then(function () {
+  // 更新器一律直连（老板拍板 2026-10-07）：不走任何代理。
+  // 背景：v1.0.5 曾把代理持久化到 userData/updater-proxy.json，换网络后指向死代理
+  //   → 检查更新报 net::ERR_CONNECTION_TIMED_OUT（连代理超时，不是直连不通）。
+  // 本应用只加载本地 file:// 页面，默认会话强制直连对 UI 零影响；外链走系统浏览器不受影响。
+  try {
+    const leftoverProxy = path.join(app.getPath('userData'), 'updater-proxy.json');
+    if (fs.existsSync(leftoverProxy)) {
+      fs.unlinkSync(leftoverProxy);
+      console.log('[updater] 已清理 v1.0.5 代理残留 updater-proxy.json');
+    }
+    session.defaultSession.setProxy({ mode: 'direct' });
+  } catch (e) { console.log('[updater] direct-mode init skipped: ' + e.message); }
   setupUpdater();
   createWindow();
 
@@ -105,6 +117,9 @@ app.whenReady().then(function () {
       console.log('[CM_SMOKE] window=' + (ok ? 'ok' : 'missing'));
       console.log('[CM_SMOKE] userData=' + app.getPath('userData'));
       console.log('[CM_SMOKE] version=' + app.getVersion());
+      session.defaultSession.resolveProxy('https://api.github.com/').then(function (via) {
+        console.log('[CM_SMOKE] updaterRoute=' + via.trim());
+      });
       if (ok) {
         win.webContents.executeJavaScript(
           '(async function(){' +

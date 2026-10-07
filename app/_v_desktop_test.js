@@ -159,6 +159,8 @@ t('⑤主进程安全基线', () => {
   has(m, "'cm-upd-download'", '下载 IPC 通道（弹窗选「立即更新」用）');
   has(m, "require('electron-updater')", '更新器接线');
   has(m, "if (!app.isPackaged) return null", '开发模式跳过更新器');
+  has(m, "setProxy({ mode: 'direct' })", '更新器一律直连，不走任何代理（2026-10-07 拍板）');
+  has(m, 'updater-proxy.json', 'v1.0.5 代理残留启动即清理');
   const pre = fs.readFileSync(path.join(HERE, 'preload.js'), 'utf8');
   has(pre, 'contextBridge', '桥接方式暴露');
   has(pre, '__CM_UPDATER', '更新器受控桥');
