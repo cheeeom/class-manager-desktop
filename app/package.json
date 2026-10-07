@@ -1,7 +1,7 @@
 {
   "name": "class-manager-desktop",
   "productName": "班主任工作台",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "班主任工作台 · 桌面版（数据全本地）",
   "author": "chee",
   "copyright": "© 2026 chee · 班主任工作台 · 保留所有权利",
@@ -44,9 +44,9 @@
       "icon": "icon/icon.png"
     },
     "nsis": {
-      "oneClick": true,
+      "oneClick": false,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": false,
+      "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "班主任工作台",
