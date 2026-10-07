@@ -19,8 +19,8 @@ app.whenReady().then(function () {
   win.webContents.once('did-finish-load', async function () {
     const steps = [
       ['prep', 'localStorage.setItem("cm_onboarded","1");localStorage.setItem("cm_nopwd","1");location.reload();1'],
-      ['wait', null],
-      ['desk', 'JSON.stringify({desk:!!window.__CM_DESKTOP,layer:!!window.__CM_DESK_LAYER__,ver:(window.__CM_DESKTOP||{}).version})'],
+      ['wait1', null],
+      ['desk', 'JSON.stringify({desk:!!window.__CM_DESKTOP,layer:!!window.__CM_DESK_LAYER__,ver:(window.__CM_DESKTOP||{}).version,loginCard:!!document.querySelector(".cmDesk-login-card"),enterBtn:!!document.getElementById("cmDeskEnter")})'],
       ['enter', 'typeof enterApp==="function" ? (enterApp("探针"),1) : 0'],
       ['wait', null],
       ['nav', 'typeof navigateTo==="function" ? (navigateTo("settings"),1) : (window.navigateTo?(window.navigateTo("settings"),1):0)'],
@@ -31,13 +31,28 @@ app.whenReady().then(function () {
       ['wait', null]
     ];
     try {
+      win.show();
+      await new Promise(r => setTimeout(r, 600));
       for (const [name, js] of steps) {
-        if (js === null) { await new Promise(r => setTimeout(r, 1200)); console.log('[PROBE] ' + name + ' ok'); continue; }
+        if (js === null) {
+          await new Promise(r => setTimeout(r, 1200));
+          console.log('[PROBE] ' + name + ' ok');
+          if (name === 'wait1') {
+            const img0 = await win.webContents.capturePage();
+            fs.writeFileSync(path.join(__dirname, 'out', '_probe_login.png'), img0.toPNG());
+            console.log('[PROBE] login-shot=out/_probe_login.png');
+          }
+          continue;
+        }
         try {
           const out = await win.webContents.executeJavaScript(js);
-          console.log('[PROBE] ' + name + ' = ' + out);
+          console.log('[PROBE] ' + name + ' = ' + String(out).slice(0, 220));
         } catch (e) {
           console.log('[PROBE] ' + name + ' FAIL: ' + String(e && (e.message || e)).slice(0, 200));
+        }
+        if (name === 'wait1') {
+          const img0b = await win.webContents.capturePage();
+          fs.writeFileSync(path.join(__dirname, 'out', '_probe_login2.png'), img0b.toPNG());
         }
       }
       win.show();

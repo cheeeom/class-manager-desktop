@@ -61,6 +61,8 @@ t('③注入层契约：零密码模式', () => {
   has(p, 'userLoginPwdSet() ?', '登录判定分流');
   has(p, '零密码模式', '零密码文案');
   has(p, '直接进入', '无密码登录面板按钮');
+  has(p, 'cmDesk-login-card', '零密码面板自包含样式类');
+  notHas(p, 'class="login-card"', '禁复用网页版 .login-card（760px 横排双栏，套用即炸布局）');
   has(p, '跳过（不设密码）', '向导内跳过入口');
   ok(/isSixDigits/.test(p), '6位校验');
   ok(/weakPattern/.test(p), '弱口令提示');

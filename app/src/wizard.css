@@ -39,6 +39,25 @@
 .cmDesk-row{display:flex;gap:10px;margin-top:14px}
 .cmDesk-row .btn{flex:1}
 .cmDesk-err{margin-top:8px;font-size:12px;color:var(--danger,#B42318)}
+
+/* ---------- 零密码登录面板（自包含：网页版 .login-card 是 760px 横排双栏，绝不可复用） ---------- */
+.cmDesk-login-card{
+  width:min(420px,92vw);
+  background:var(--card-bg,#FFFDF7);
+  border:1px solid var(--border,#E6DECD);
+  border-radius:16px;
+  box-shadow:0 24px 64px rgba(43,38,28,0.22);
+  padding:32px 28px 22px;
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+}
+.cmDesk-login-title{
+  font-family:var(--font-display,'Noto Serif SC',serif);
+  font-size:21px;color:var(--text,#2B2B33);
+  margin:14px 0 6px;
+}
+.cmDesk-login-sub{font-size:12.5px;color:var(--text-muted,#8C8577);margin-bottom:18px}
+.cmDesk-login-card #cmDeskEnter{width:100%;height:48px;font-size:16px}
+.cmDesk-login-card .cmDesk-copy{width:100%}
 /* 向导里的键盘沿用应用 .key/.login-keypad 样式，仅限宽 */
 .cmDesk-wcard .login-keypad{max-width:300px;margin:10px auto}
 .cmDesk-wcard .login-pwd-display{display:flex;gap:12px;justify-content:center;margin:10px 0 4px}

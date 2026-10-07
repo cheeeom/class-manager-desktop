@@ -459,19 +459,19 @@
     }
   }
 
-  /* ---------- 5. 无密码登录面板 ---------- */
+  /* ---------- 5. 无密码登录面板（自包含样式，禁用网页版 .login-card 横排双栏布局） ---------- */
   function patchLogin() {
     var overlay = document.getElementById('loginOverlay');
     if (!overlay) return;
     if (!userLoginPwdSet() && lsGet(LS_NOPWD) === '1') {
       overlay.innerHTML =
-        '<div class="login-card" style="max-width:420px">' +
-        '<div class="cmDesk-logo" style="margin:0 auto 16px">班</div>' +
-        '<h2 style="font-family:var(--font-display);text-align:center;margin-bottom:6px">班主任工作台</h2>' +
-        '<div style="text-align:center;color:var(--text-muted);font-size:12.5px;margin-bottom:18px">🔓 无密码模式 · 数据仅保存在本机</div>' +
-        '<button class="btn btn-primary key-ok" id="cmDeskEnter" style="width:100%;height:48px;font-size:16px">直接进入</button>' +
-        '<div style="text-align:center;margin-top:14px;font-size:12px;color:var(--text-muted)">想加密码？设置 → 🔐 安全</div>' +
-        '<div class="cmDesk-copy" style="margin-top:16px">© 2026 <b>chee</b> · 班主任工作台 · 保留所有权利</div>' +
+        '<div class="cmDesk-login-card">' +
+        '<div class="cmDesk-logo">班</div>' +
+        '<h2 class="cmDesk-login-title">班主任工作台</h2>' +
+        '<div class="cmDesk-login-sub">🔓 无密码模式 · 数据仅保存在本机</div>' +
+        '<button class="btn btn-primary" id="cmDeskEnter">直接进入</button>' +
+        '<div class="cmDesk-login-sub" style="margin-top:14px">想加密码？设置 → 🔐 安全</div>' +
+        '<div class="cmDesk-copy">© 2026 <b>chee</b> · 班主任工作台 · 保留所有权利</div>' +
         '</div>';
       var btn = overlay.querySelector('#cmDeskEnter');
       if (btn) btn.onclick = function () { if (typeof window.enterApp === 'function') window.enterApp('欢迎回来！'); };
