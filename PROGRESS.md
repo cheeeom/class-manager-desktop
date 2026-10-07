@@ -13,6 +13,7 @@
 
 ### P0（v1.0.7 待发布）
 - [x] 启动背景换 AI 海报（ImageGen 生成，PIL 裁 AI 生成角标 → login-bg-a/b.jpg 163/118KB；build.js 复制进 dist；暗色叠压暗层；测试断言更新）
+- [x] **更新器一律直连**（老板 2026-10-07 拍板：直连就行不上代理）：默认会话 `setProxy({mode:'direct'})`（electron-updater 走 electron.net→默认会话，UI 只加载本地 file:// 零影响）+ 启动清理 v1.0.5 残留 `userData/updater-proxy.json`（死代理 = ERR_CONNECTION_TIMED_OUT 根因）；冒烟新增 `updaterRoute=DIRECT` 实证
 - [x] 老板选稿：**A 全景山峦**（2026-10-07 拍板）→ 待推送发 v1.0.7
 - [x] 海报背景嵌入工作台：`body` 同图 `background-blend-mode:soft-light`（随皮肤/暗色自适应，卡片底下透纹理）
 - [x] 进入动画改**交叉淡化**：`enterWithTransition` 先 `enterApp` 渲染工作台（遮罩仍不透明盖住左上导航渲染帧卡）→ 遮罩回顶 0.6s 淡出+scale(1.045)；探针改点按 `#cmDeskEnter` 并补拍过渡中间帧（`_probe_transition.png` 实测工作台已在遮罩下就绪）
