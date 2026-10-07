@@ -10,6 +10,7 @@ const crypto = require('crypto');
 
 const ROOT = process.env.CM_WEB_ROOT || path.join(__dirname, '..', '..', 'class-manager'); // 线上网页版仓库（本地 clone 路径，可用 CM_WEB_ROOT 覆盖）
 const HERE = __dirname;
+const deskVer = JSON.parse(fs.readFileSync(path.join(HERE, 'package.json'), 'utf8')).version; // 桌面版版本号：三处版本位 + 关于卡均以此为准
 const sha256 = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
 
 function die(msg) { console.error('✗ ' + msg); process.exit(1); }
@@ -18,11 +19,18 @@ function log(s) { console.log(s); }
 /* ---------- 0. root 完整性：构建不得在 root 被改动的状态下进行 ---------- */
 const rootPath = path.join(ROOT, 'index.html');
 const rootBuf = fs.readFileSync(rootPath);
-let headSha = null;
+let headContent = null;
 try {
-  headSha = require('child_process').execSync('git show HEAD:index.html', { cwd: ROOT, maxBuffer: 32 * 1024 * 1024 }).toString();
+  if (process.env.CM_HEAD_FILE) {
+    // 逃生舱口：沙箱等 Node 无法 spawn 子进程的环境，用 CM_HEAD_FILE 指向 bash 预取的 HEAD 内容
+    //   git -C <网页版仓> show HEAD:index.html > <文件>
+    headContent = fs.readFileSync(process.env.CM_HEAD_FILE, 'utf8');
+    log('· HEAD 内容来自 CM_HEAD_FILE（跳过 git spawn）');
+  } else {
+    headContent = require('child_process').execSync('git show HEAD:index.html', { cwd: ROOT, maxBuffer: 32 * 1024 * 1024 }).toString();
+  }
 } catch (e) { die('取 git HEAD:index.html 失败：' + e.message); }
-if (sha256(rootBuf) !== sha256(Buffer.from(headSha, 'utf8'))) {
+if (sha256(rootBuf) !== sha256(Buffer.from(headContent, 'utf8'))) {
   die('根 index.html 与 git HEAD 不一致（线上文件被改动？）——先提交或还原，再构建桌面版');
 }
 log('✓ root index.html 与 git HEAD 一致（线上零改动保证）');
@@ -38,9 +46,10 @@ const patches = [
    '/* desktop: ServiceWorker 已禁用（桌面版自带完整资源，无需缓存层） */', 1, '禁SW'],
   ['<link rel="manifest" href="./manifest.json">', '', 1, '去manifest'],
   ['<link rel="apple-touch-icon" href="./icon_192.png">', '', 1, '去apple-icon'],
-  ['<div class="login-version">' + rootVersion + '</div>', '<div class="login-version">' + rootVersion + ' 桌面版</div>', 1, '登录版本标'],
-  ['<div class="sidebar-footer">' + rootVersion + ' · 班主任工作台</div>', '<div class="sidebar-footer">' + rootVersion + ' 桌面版 · 班主任工作台</div>', 1, '侧栏版本标'],
-  ['🏷️ ' + rootVersion + '</span>', '🏷️ ' + rootVersion + ' 桌面版</span>', 1, '设置徽标'],
+  ['<div class="login-version">' + rootVersion + '</div>', '<div class="login-version">v' + deskVer + ' 桌面版</div>', 1, '登录版本标'],
+  ['<div class="sidebar-footer">' + rootVersion + ' · 班主任工作台</div>', '<div class="sidebar-footer">v' + deskVer + ' 桌面版 · 班主任工作台</div>', 1, '侧栏版本标'],
+  ['🏷️ ' + rootVersion + '</span>', '🏷️ 桌面版 v' + deskVer + '</span>', 1, '设置徽标'],
+  ['📝 近版更新速览（' + rootVersion + '）', '📝 网页版近版更新速览（' + rootVersion + '）', 1, '速览标网页版'],
   ['</body>', '<link rel="stylesheet" href="./wizard.css">\n<script src="./app.patch.js"></script>\n</body>', 1, '注入桌面层']
 ];
 for (const [oldS, newS, cnt, tag] of patches) {
@@ -67,7 +76,10 @@ log('✓ dist 就绪: ' + dist);
 /* ---------- 3. dist 标记断言 ---------- */
 const distHtml = fs.readFileSync(path.join(dist, 'index.html'), 'utf8');
 const must = [
-  ['wizard.css', 1], ['app.patch.js', 1], ['ServiceWorker 已禁用', 1], ['桌面版', 3]
+  ['wizard.css', 1], ['app.patch.js', 1], ['ServiceWorker 已禁用', 1], ['桌面版', 3],
+  ['login-version">v' + deskVer + ' 桌面版', 1],
+  ['sidebar-footer">v' + deskVer + ' 桌面版', 1],
+  ['🏷️ 桌面版 v' + deskVer + '</span>', 1]
 ];
 for (const [needle, minCnt] of must) {
   const n = distHtml.split(needle).length - 1;

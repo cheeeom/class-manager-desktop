@@ -8,12 +8,13 @@
 ```
 cd app
 node build.js                # 从同级 class-manager 仓读线上 index.html → 注入 → dist（自动校验 root sha）
-node _v_desktop_test.js      # 桌面断言（含 root 零改动、向导按钮绑定回归）
+node _v_desktop_test.js      # 桌面断言（12 项：root 零改动/三处版本位=桌面版号/向导绑定/更新弹窗/按钮排版）
 python _npmrc_proxy_toggle.py off
-node _build_retry.js         # 出安装包 → out/ClassManager-Setup.exe（EBUSY 自动退避重试）
+node _build_retry.js         # 出安装包 → out/class-manager-desktop-Setup-X.Y.Z.exe（EBUSY 自动退避重试）
 python _npmrc_proxy_toggle.py on
-set CM_SMOKE=1 && out\win-unpacked\班主任工作台.exe   # 冒烟：交互探针（必须翻到第 2 步）+ console-error 计零
+set CM_SMOKE=1 && out\win-unpacked\班主任工作台.exe   # 冒烟：交互探针（必须翻到第 2 步）+ console-error 计零 + 截图
 ```
+（可选视觉复核：`env -u ELECTRON_RUN_AS_NODE electron.exe _probe_settings.js` 拍设置页+toast 样品截图；`out/_smoke.png` 看向导按钮排版。）
 
 ## 审阅 → 推送（两段式）
 1. **本地预览**：把 `out\ClassManager-Setup.exe` 直接发给老板（或让他本机跑上面命令），覆盖安装审阅——数据保留。
@@ -35,6 +36,8 @@ gh release create vX.Y.Z "out\class-manager-desktop-Setup-X.Y.Z.exe" "out\latest
 - registry 用官方 `https://registry.npmmirror.com` 超时就直连 `https://registry.npmjs.org`。
 - EBUSY：`_build_retry.js` 自带清理+退避；旧 release 路径被系统句柄钉死时换输出目录（现为 `out/`）。
 - cmd 内联多行 node -e 会静默失败——一律写脚本文件。
+- **沙箱/AI 工具环境**：Node 可能起不了子进程（spawnSync EBUSY）→ build.js 与 _v_desktop_test.js 支持 `CM_HEAD_FILE` 逃生舱口：`git -C ..\class-manager show HEAD:index.html > %TEMP%\_root_head.html` 后 `set CM_HEAD_FILE=该文件` 再跑。
+- **ELECTRON_RUN_AS_NODE 陷阱**：部分 AI 工具环境设了此变量，electron.exe 会退化成纯 Node（`--version` 输出的是 Node 版本号即中招）→ 先 `set ELECTRON_RUN_AS_NODE=` 卸掉再跑冒烟/探针。探针窗口必须 `sandbox:false` + preload，否则注入层不启动（preload 沙箱内 require 不了 package.json）。
 
 ## 应用内自动更新（v1.0.2 起内置，老板已拍板）
 electron-updater + GitHub Releases 作源：启动 30 秒后静默检查一次 + 设置→关于「🔄 检查更新」手动检查；发现新版后台下载，下载完提示「重启应用即完成安装」（或正常退出时自动装）。未签名应用：更新下载完成后 quitAndInstall 走静默参数，一般不再触发 SmartScreen；若遇拦截属正常。

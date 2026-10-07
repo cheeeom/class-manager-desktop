@@ -29,13 +29,71 @@
   function userLoginPwdSet() { return !!lsGet(K_LOGIN); }
   function userAdminPwdSet() { return !!lsGet(K_ADMIN) || lsGet(USER_SET_ADMIN) === '1'; }
   var COPYRIGHT = '© 2026 chee · 班主任工作台 · 保留所有权利';
+  var cmUpdDeclined = false;   // 本次会话内用户点过「暂不」→ 不再自动弹窗（手动检查仍会弹）
+  var cmUpdManual = false;
+  var cmUpdReadyToasted = false;
 
-  /* ---------- 1. 云同步界面裁剪（本地版无意义） ---------- */
+  /* ---------- 左下角更新弹窗（用户选择：立即更新 / 暂不；就绪后：重启安装 / 稍后） ---------- */
+  function cmUpdCloseToast() {
+    var t = document.getElementById('cmDeskUpdToast');
+    if (t) t.remove();
+  }
+  function cmUpdToast(ev) {
+    var old = document.getElementById('cmDeskUpdToast');
+    if (old && old.getAttribute('data-state') === ev.state && ev.state === 'downloading') {
+      // 下载中：只刷新进度
+      var d = old.querySelector('.cmUpdD');
+      if (d) d.textContent = '正在下载新版本… ' + ev.percent + '%（' + ev.mb + ' MB）';
+      var bar = old.querySelector('.cmUpdBar i');
+      if (bar) bar.style.width = ev.percent + '%';
+      return;
+    }
+    cmUpdCloseToast();
+    var box = el('div', 'cmDeskUpdToast');
+    box.id = 'cmDeskUpdToast';
+    box.setAttribute('data-state', ev.state);
+    var html = '';
+    if (ev.state === 'available') {
+      html = '<div class="t">🚀 发现新版本 v' + ev.version + '</div>' +
+        '<div class="d">新版约 78MB，下载完成后重启应用即可完成安装。<br>你也可以继续使用当前版本，之后可在 设置 → 关于本系统 手动检查。</div>' +
+        '<div class="r"><button class="btn btn-outline" id="cmUpdLater">暂不更新</button><button class="btn btn-primary" id="cmUpdNow">立即更新</button></div>';
+    } else if (ev.state === 'downloading') {
+      html = '<div class="t">⬇️ 正在下载新版本</div>' +
+        '<div class="d cmUpdD">正在下载新版本… ' + ev.percent + '%（' + ev.mb + ' MB）</div>' +
+        '<div class="cmUpdBar"><i style="width:' + ev.percent + '%"></i></div>' +
+        '<div class="r"><button class="btn btn-outline" id="cmUpdHide">收起</button></div>';
+    } else if (ev.state === 'ready') {
+      html = '<div class="t">✅ 新版 v' + ev.version + ' 已就绪</div>' +
+        '<div class="d">重启应用即完成安装；也可以继续使用，正常退出应用时会自动安装。</div>' +
+        '<div class="r"><button class="btn btn-outline" id="cmUpdLater2">稍后</button><button class="btn btn-primary" id="cmUpdInstall">立即重启安装</button></div>';
+    } else if (ev.state === 'error') {
+      html = '<div class="t">⚠️ 更新未完成</div>' +
+        '<div class="d">' + (ev.message || '网络问题，稍后再试。') + '</div>' +
+        '<div class="r"><button class="btn btn-outline" id="cmUpdHide">关闭</button></div>';
+    }
+    box.innerHTML = html;
+    document.body.appendChild(box);
+    var bind = function (id, fn) { var b = box.querySelector('#' + id); if (b) b.onclick = fn; };
+    bind('cmUpdNow', function () {
+      box.setAttribute('data-state', 'downloading');
+      box.querySelector('.r').innerHTML = '<div class="d cmUpdD">正在连接更新源…</div><div class="cmUpdBar"><i style="width:2%"></i></div>';
+      window.__CM_UPDATER.download();
+    });
+    bind('cmUpdLater', function () { cmUpdDeclined = true; cmUpdCloseToast(); });
+    bind('cmUpdHide', function () { cmUpdCloseToast(); });
+    bind('cmUpdLater2', function () { cmUpdCloseToast(); });
+    bind('cmUpdInstall', function () { window.__CM_UPDATER.install(); });
+  }
+
+  /* ---------- 1. 云同步界面裁剪 + 网页版专属设置区隐藏（桌面版无对应场景） ---------- */
   function stripCloudUI() {
     try {
       var hs = document.querySelectorAll('.settings-section h3');
       for (var i = 0; i < hs.length; i++) {
-        if (hs[i].textContent.indexOf('云同步') >= 0) {
+        var txt = hs[i].textContent;
+        if (txt.indexOf('云同步') >= 0 ||
+            txt.indexOf('修改登录密码') >= 0 ||      // 桌面版：改密统一走「🔐 安全（桌面版）」卡
+            txt.indexOf('跨电脑使用指南') >= 0) {    // 桌面版：数据在本机，无"新设备登录"场景
           var sec = hs[i].closest('.settings-section');
           if (sec) sec.style.display = 'none';
         }
@@ -44,6 +102,24 @@
       for (var j = 0; j < btns.length; j++) btns[j].style.display = 'none';
       var tks = document.querySelectorAll('button[onclick*="configSyncPwd"], button[onclick*="doPushToCloud"], button[onclick*="autoSyncFromCloud"]');
       for (var k = 0; k < tks.length; k++) tks[k].style.display = 'none';
+      // 「登录密码仅限本机登录」是网页版多设备场景产物，桌面版无意义（整个区已隐藏，此处双保险）
+      var chk = document.getElementById('pwdLocalOnlyChk');
+      if (chk && chk.closest('label')) chk.closest('label').style.display = 'none';
+      // 危险操作提示改为桌面版口径（原文提及"从云端恢复/同步清空云端"，桌面版无云端）
+      for (var m = 0; m < hs.length; m++) {
+        if (hs[m].textContent.indexOf('危险操作') >= 0) {
+          var dsec = hs[m].closest('.settings-section');
+          if (dsec) {
+            var divs = dsec.querySelectorAll('div');
+            for (var n = 0; n < divs.length; n++) {
+              if (divs[n].textContent.indexOf('从云端恢复」会用') >= 0) {
+                divs[n].innerHTML = '「清空数据」清空<b>本机全部数据</b>，且不可撤销。<br>执行前建议先「💾 导出数据」留一份备份（桌面版数据仅在本机，无云端副本）。';
+              }
+            }
+          }
+          break;
+        }
+      }
     } catch (e) {}
   }
 
@@ -168,7 +244,7 @@
       '</div>' +
       '<div class="cmDesk-copy">© 2026 <b>chee</b> · 班主任工作台 · 保留所有权利<br>' +
       '<span style="color:var(--text-muted)">本软件版权归开发者所有，转发分享请完整保留开发者署名与本声明。</span></div>',
-      '<button class="btn btn-primary" id="cmWizNext">开始配置 →</button>' +
+      '<button class="btn btn-primary" id="cmWizNext"><span>开始配置</span><span class="arr">→</span></button>' +
       '<button class="btn btn-outline" id="cmWizSkipAll">跳过向导</button>');
     w.foot.querySelector('#cmWizNext').onclick = function () { stepLoginPwd(); };
     w.foot.querySelector('#cmWizSkipAll').onclick = function () { finishWizard(); };
@@ -182,9 +258,9 @@
       '<div style="text-align:center"><div id="cmDeskDotsWrap"></div></div>' +
       '<div id="cmDeskPad"></div>' +
       '<div id="cmDeskMsg" style="height:20px;font-size:12px;color:var(--danger);text-align:center"></div>',
-      '<button class="btn btn-primary" id="cmWizNext">下一步 →</button>' +
+      '<button class="btn btn-primary" id="cmWizNext"><span>下一步</span><span class="arr">→</span></button>' +
       '<button class="btn btn-outline" id="cmWizSkipPwd">跳过（不设密码）</button>' +
-      '<button class="btn btn-outline" id="cmWizBack">← 上一步</button>');
+      '<button class="btn btn-outline" id="cmWizBack"><span class="arr">←</span><span>上一步</span></button>');
     var wrap = w.body.querySelector('#cmDeskDotsWrap');
     var padWrap = w.body.querySelector('#cmDeskPad');
     var msg = w.body.querySelector('#cmDeskMsg');
@@ -212,7 +288,7 @@
         '<div style="text-align:center"><div id="cmDeskDotsWrap2"></div></div><div id="cmDeskPad2"></div>' +
         '<div id="cmDeskMsg2" style="height:20px;font-size:12px;color:var(--danger);text-align:center"></div>',
         '<button class="btn btn-primary" id="cmWizOk">完成密码设置</button>' +
-        '<button class="btn btn-outline" id="cmWizBack2">← 重输</button>');
+        '<button class="btn btn-outline" id="cmWizBack2"><span class="arr">←</span><span>重输</span></button>');
       var wrap2 = w2.body.querySelector('#cmDeskDotsWrap2');
       var pad2 = w2.body.querySelector('#cmDeskPad2');
       var msg2 = w2.body.querySelector('#cmDeskMsg2');
@@ -241,9 +317,9 @@
       '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px">用于敏感操作确认（如「清空数据」）。可跳过——未设置时，清空数据需输入「清空」二字确认。</div>' +
       '<div style="text-align:center"><div id="cmDeskDotsWrap"></div></div><div id="cmDeskPad"></div>' +
       '<div id="cmDeskMsg" style="height:20px;font-size:12px;color:var(--danger);text-align:center"></div>',
-      '<button class="btn btn-primary" id="cmWizNext">下一步 →</button>' +
+      '<button class="btn btn-primary" id="cmWizNext"><span>下一步</span><span class="arr">→</span></button>' +
       '<button class="btn btn-outline" id="cmWizSkipPwd">跳过（不设管理员密码）</button>' +
-      '<button class="btn btn-outline" id="cmWizBack">← 上一步</button>');
+      '<button class="btn btn-outline" id="cmWizBack"><span class="arr">←</span><span>上一步</span></button>');
     var wrap = w.body.querySelector('#cmDeskDotsWrap');
     var padWrap = w.body.querySelector('#cmDeskPad');
     var msg = w.body.querySelector('#cmDeskMsg');
@@ -265,7 +341,7 @@
         '<div style="text-align:center"><div id="cmDeskDotsWrap2"></div></div><div id="cmDeskPad2"></div>' +
         '<div id="cmDeskMsg2" style="height:20px;font-size:12px;color:var(--danger);text-align:center"></div>',
         '<button class="btn btn-primary" id="cmWizOk">完成设置</button>' +
-        '<button class="btn btn-outline" id="cmWizBack2">← 重输</button>');
+        '<button class="btn btn-outline" id="cmWizBack2"><span class="arr">←</span><span>重输</span></button>');
       var wrap2 = w2.body.querySelector('#cmDeskDotsWrap2');
       var pad2 = w2.body.querySelector('#cmDeskPad2');
       var msg2 = w2.body.querySelector('#cmDeskMsg2');
@@ -295,9 +371,9 @@
       '<h2 style="font-family:var(--font-display)">班级名称</h2>' +
       '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">显示在首页与导出件上，可以留空以后在设置里改。</div>' +
       '<input class="cmDesk-input" id="cmWizClassName" placeholder="如：三年级2班 / 2026级幼儿保育1班" maxlength="30">',
-      '<button class="btn btn-primary" id="cmWizNext">下一步 →</button>' +
+      '<button class="btn btn-primary" id="cmWizNext"><span>下一步</span><span class="arr">→</span></button>' +
       '<button class="btn btn-outline" id="cmWizSkip">跳过</button>' +
-      '<button class="btn btn-outline" id="cmWizBack">← 上一步</button>');
+      '<button class="btn btn-outline" id="cmWizBack"><span class="arr">←</span><span>上一步</span></button>');
     var input = w.body.querySelector('#cmWizClassName');
     function saveAndGo() {
       var name = (input.value || '').trim();
@@ -323,9 +399,9 @@
       '<div style="font-size:13px;color:var(--text-secondary);line-height:2;margin-bottom:12px">' +
       '如果你在用<b>网页版</b>，先在网页版「设置 → 导出数据」得到备份 JSON，在这里一键导入。<br>' +
       '全新使用可跳过此步。</div>',
-      '<button class="btn btn-primary" id="cmWizImport">📁 选择备份文件导入</button>' +
+      '<button class="btn btn-primary" id="cmWizImport"><span class="ico">📁</span><span>选择备份文件导入</span></button>' +
       '<button class="btn btn-outline" id="cmWizSkip">跳过</button>' +
-      '<button class="btn btn-outline" id="cmWizBack">← 上一步</button>');
+      '<button class="btn btn-outline" id="cmWizBack"><span class="arr">←</span><span>上一步</span></button>');
     w.foot.querySelector('#cmWizImport').onclick = function () {
       var fn = appFn('importData');
       if (fn) fn();
@@ -350,7 +426,7 @@
     });
     grid += '</div>';
     var w = wizardShell('第 6 步 · 共 6 步', '<h2 style="font-family:var(--font-display)">30 秒认识工作台</h2>' + grid,
-      '<button class="btn btn-primary" id="cmWizNext">完成 →</button>');
+      '<button class="btn btn-primary" id="cmWizNext"><span>完成</span><span class="arr">→</span></button>');
     w.foot.querySelector('#cmWizNext').onclick = function () { stepFinish(); };
   }
 
@@ -364,7 +440,7 @@
       '<p>💾 建议：定期在「设置 → 导出数据」留一份备份。</p>' +
       '</div>' +
       '<div class="cmDesk-copy">© 2026 <b>chee</b> · 班主任工作台（桌面版 v' + D.version + '） · 保留所有权利</div>',
-      '<button class="btn btn-primary" id="cmWizDone">进入工作台 →</button>');
+      '<button class="btn btn-primary" id="cmWizDone"><span>进入工作台</span><span class="arr">→</span></button>');
     w.foot.querySelector('#cmWizDone').onclick = function () { finishWizard(); };
   }
 
@@ -455,15 +531,20 @@
     };
   }
 
-  /* ---------- 7. 关于卡版权增强 + 应用内更新 ---------- */
+  /* ---------- 7. 关于卡桌面版化（介绍重写 + 应用内更新） ---------- */
   function enhanceAbout() {
     var about = document.getElementById('settingsAbout');
     if (!about || about.querySelector('.cmDeskAbout')) return;
-    var line = el('div', 'cmDeskAbout');
-    line.style.cssText = 'margin-top:8px;font-size:12px;color:var(--text-muted);line-height:1.9';
-    line.innerHTML = '🖥️ 桌面版 v' + D.version + (D.baseWeb ? '（基于网页版 ' + D.baseWeb + ' 构建）' : '') +
-      ' · 数据仅保存在本机<br>' + COPYRIGHT + ' · 转发分享请保留开发者署名';
-    about.appendChild(line);
+    // 桌面版介绍卡：插在版本徽标行之后、网页版速览之前
+    var intro = el('div', 'cmDeskAbout');
+    intro.style.cssText = 'margin:10px 0 12px;padding:10px 12px;background:var(--row-bg,#FBF8F1);border:1px dashed var(--border,#E6DECD);border-radius:10px;font-size:12.5px;color:var(--text-secondary,#5F5E5A);line-height:1.9';
+    intro.innerHTML =
+      '🖥️ <b>班主任工作台 · 桌面版 v' + D.version + '</b>（单机版）——这是安装在 Windows 上的独立应用，<b>全部数据仅保存在这台电脑上</b>，不经任何服务器。' + (D.baseWeb ? '功能与网页版 ' + D.baseWeb + ' 一致（网页版的云同步在桌面版中不适用，已移除）。' : '') + '<br>' +
+      '🔄 <b>自动更新</b>：发现新版会在左下角弹窗询问，选择「立即更新」后台下载，完成后重启应用即完成安装；也可随时点下方「🔄 检查更新」手动检查。<br>' +
+      '<span style="color:var(--text-muted,#8C8577)">' + COPYRIGHT + ' · 转发分享请保留开发者署名</span>';
+    var rows = about.querySelectorAll(':scope > div');
+    if (rows.length) rows[0].parentNode.insertBefore(intro, rows[0].nextSibling);
+    else about.appendChild(intro);
 
     // 应用内更新（仅桌面且有更新桥时渲染）
     if (!window.__CM_UPDATER) return;
@@ -478,40 +559,48 @@
 
     function setStatus(txt, color) { status.textContent = txt; status.style.color = color || 'var(--text-muted)'; }
     var handling = false;
-    function checkNow() {
+    function checkNow(manual) {
       if (handling) return;
       handling = true;
+      cmUpdManual = !!manual;
       setStatus('正在检查…');
       window.__CM_UPDATER.check().then(function (r) {
         handling = false;
         if (!r || !r.ok) { setStatus('检查失败：' + ((r && r.message) || '网络不通，稍后再试'), 'var(--danger)'); return; }
-        // 其余状态由事件流驱动（available/downloading/ready/none）
-        if (r.version && r.version === D.version) setStatus('已是最新版本 v' + D.version);
+        if (r.version && r.version === D.version) { setStatus('已是最新版本 v' + D.version); cmUpdCloseToast(); }
       }).catch(function (e) {
         handling = false;
         setStatus('检查失败：' + String(e && e.message || e).slice(0, 60), 'var(--danger)');
       });
     }
-    btn.onclick = checkNow;
+    btn.onclick = function () { checkNow(true); };
 
     window.__CM_UPDATER.onEvent(function (ev) {
       if (!ev) return;
       if (ev.state === 'checking') setStatus('正在检查…');
-      else if (ev.state === 'available') setStatus('发现新版 v' + ev.version + '，正在后台下载…');
-      else if (ev.state === 'none') setStatus('已是最新版本 v' + D.version);
-      else if (ev.state === 'downloading') setStatus('正在下载新版… ' + ev.percent + '%（' + ev.mb + ' MB）');
-      else if (ev.state === 'ready') {
+      else if (ev.state === 'available') {
+        setStatus('发现新版 v' + ev.version + '，等待选择');
+        if (cmUpdManual || !cmUpdDeclined) cmUpdToast({ state: 'available', version: ev.version });
+      } else if (ev.state === 'none') {
+        setStatus('已是最新版本 v' + D.version); cmUpdCloseToast();
+      } else if (ev.state === 'downloading') {
+        setStatus('正在下载新版… ' + ev.percent + '%（' + ev.mb + ' MB）');
+        cmUpdToast({ state: 'downloading', percent: ev.percent, mb: ev.mb });
+      } else if (ev.state === 'ready') {
         setStatus('✅ 新版 v' + ev.version + ' 已就绪：重启应用即完成安装', 'var(--success)');
-        btn.textContent = '🔄 立即重启安装';
-        btn.onclick = function () { window.__CM_UPDATER.install(); };
-        if (typeof window.showToast === 'function') window.showToast('新版本已就绪，重启应用即完成安装', 'success');
+        cmUpdToast({ state: 'ready', version: ev.version });
+        if (!cmUpdReadyToasted && typeof window.showToast === 'function') {
+          cmUpdReadyToasted = true;
+          window.showToast('新版本已就绪，重启应用即完成安装', 'success');
+        }
       } else if (ev.state === 'error') {
         setStatus('更新出错：' + (ev.message || '网络问题，稍后再试'), 'var(--danger)');
+        cmUpdToast({ state: 'error', message: ev.message });
       }
     });
 
     // 启动静默检查（一次，30 秒后——避开启动高峰与弱网首屏）
-    setTimeout(function () { checkNow(); }, 30000);
+    setTimeout(function () { checkNow(false); }, 30000);
   }
 
   /* ---------- 启动 ---------- */

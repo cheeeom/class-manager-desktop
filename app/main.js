@@ -15,7 +15,7 @@ function setupUpdater() {
   if (!app.isPackaged) return null;
   try {
     const { autoUpdater: au } = require('electron-updater');
-    au.autoDownload = true;
+    au.autoDownload = false;              // 发现新版先问用户（左下角弹窗），选「立即更新」才下载
     au.autoInstallOnAppQuit = true;      // 下载完成后用户正常退出应用时自动安装
     au.logger = null;                     // 不往 console 刷 error（冒烟计零原则）
     autoUpdater = au;
@@ -32,6 +32,10 @@ function setupUpdater() {
 
     ipcMain.handle('cm-upd-check', async () => {
       try { const r = await au.checkForUpdates(); return { ok: true, version: r && r.update && r.update.version }; }
+      catch (e) { return { ok: false, message: String(e && e.message || e).slice(0, 140) }; }
+    });
+    ipcMain.handle('cm-upd-download', async () => {
+      try { await au.downloadUpdate(); return { ok: true }; }
       catch (e) { return { ok: false, message: String(e && e.message || e).slice(0, 140) }; }
     });
     ipcMain.handle('cm-upd-install', () => { try { au.quitAndInstall(); } catch (e) {} });
@@ -120,13 +124,21 @@ app.whenReady().then(function () {
         ).then(function (s) {
           console.log('[CM_SMOKE] page=' + s);
           const r = JSON.parse(s);
-          const baseOk = r.ready === 'complete' && r.desktopFlag === true && r.loginOverlay && r.appShell && /桌面版/.test(r.versionTag || '');
+          const wantTag = 'v' + app.getVersion() + ' 桌面版';
+          const baseOk = r.ready === 'complete' && r.desktopFlag === true && r.loginOverlay && r.appShell && r.versionTag === wantTag;
           const wizardOk = r.wizardShown === true && r.nextBtn === true && r.stepAdvanced === true;
           const pass = baseOk && wizardOk && consoleErrors.length === 0;
           console.log('[CM_SMOKE] wizardInteractive=' + wizardOk);
           console.log('[CM_SMOKE] consoleErrors=' + JSON.stringify(consoleErrors));
           console.log('[CM_SMOKE] verdict=' + (pass ? 'PASS' : 'FAIL'));
-          app.exit(pass ? 0 : 1);
+          // 截图存档（按钮排版人工复核用）
+          win.webContents.capturePage().then(function (img) {
+            const out = process.env.CM_SMOKE_SHOT || path.join(__dirname, 'out', '_smoke.png');
+            try { require('fs').mkdirSync(path.dirname(out), { recursive: true }); } catch (e) {}
+            require('fs').writeFileSync(out, img.toPNG());
+            console.log('[CM_SMOKE] shot=' + out);
+            app.exit(pass ? 0 : 1);
+          }).catch(function () { app.exit(pass ? 0 : 1); });
         }).catch(function (e) {
           console.log('[CM_SMOKE] page-probe-error=' + e.message);
           app.exit(1);

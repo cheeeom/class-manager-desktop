@@ -9,9 +9,10 @@ contextBridge.exposeInMainWorld('__CM_DESKTOP', {
   copyright: pkg.copyright || ''
 });
 
-/* 更新器：页面侧只能发起检查/安装、订阅事件，无其它能力 */
+/* 更新器：页面侧只能发起检查/下载/安装、订阅事件，无其它能力 */
 contextBridge.exposeInMainWorld('__CM_UPDATER', {
   check: function () { return ipcRenderer.invoke('cm-upd-check'); },
+  download: function () { return ipcRenderer.invoke('cm-upd-download'); },
   install: function () { return ipcRenderer.invoke('cm-upd-install'); },
   onEvent: function (cb) {
     ipcRenderer.on('cm-upd-event', function (e, payload) { try { cb(payload); } catch (err) {} });
