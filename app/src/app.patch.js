@@ -122,6 +122,9 @@
   var wizState = { step: 0, loginP1: '', loginP2: '', adminP1: '', adminP2: '', loginSkip: false, adminSkip: false };
 
   function wizardShell(title, bodyHtml, footHtml) {
+    // 换步前清掉所有现存向导遮罩（防堆叠：半透明层叠加会逐层变暗，document 查询也会命中旧标题）
+    var olds = document.querySelectorAll('.cmDesk-wizard');
+    for (var i = 0; i < olds.length; i++) olds[i].remove();
     var mask = el('div', 'cmDesk-wizard');
     var card = el('div', 'cmDesk-wcard');
     card.appendChild(el('div', 'cmDesk-wstep', title));
@@ -167,8 +170,8 @@
       '<span style="color:var(--text-muted)">本软件版权归开发者所有，转发分享请完整保留开发者署名与本声明。</span></div>',
       '<button class="btn btn-primary" id="cmWizNext">开始配置 →</button>' +
       '<button class="btn btn-outline" id="cmWizSkipAll">跳过向导</button>');
-    w.body.querySelector('#cmWizNext').onclick = function () { stepLoginPwd(); };
-    w.body.querySelector('#cmWizSkipAll').onclick = function () { finishWizard(); };
+    w.foot.querySelector('#cmWizNext').onclick = function () { stepLoginPwd(); };
+    w.foot.querySelector('#cmWizSkipAll').onclick = function () { finishWizard(); };
   }
 
   function stepLoginPwd() {

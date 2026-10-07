@@ -46,7 +46,13 @@ app.whenReady().then(function () {
   createWindow();
 
   // 冒烟模式：CM_SMOKE=1 时启动后自检并退出（本机验证用）
+  // 探针含交互验证：模拟点击「开始配置」必须能翻到第 2 步（v1.0.1 起，防"按钮死"回归）；
+  // console-error 级消息视为失败（捕获向导/应用启动异常）。
   if (process.env.CM_SMOKE) {
+    const consoleErrors = [];
+    win.webContents.on('console-message', function (e, level, message) {
+      if (level >= 3) consoleErrors.push(String(message).slice(0, 200));
+    });
     setTimeout(function () {
       const ok = win && !win.isDestroyed();
       console.log('[CM_SMOKE] window=' + (ok ? 'ok' : 'missing'));
@@ -54,19 +60,35 @@ app.whenReady().then(function () {
       console.log('[CM_SMOKE] version=' + app.getVersion());
       if (ok) {
         win.webContents.executeJavaScript(
-          'JSON.stringify({' +
-          'ready: document.readyState,' +
-          'title: document.title,' +
-          'desktopFlag: !!window.__CM_DESKTOP,' +
-          'loginOverlay: !!document.getElementById("loginOverlay"),' +
-          'appShell: !!document.querySelector(".app"),' +
-          'versionTag: (document.querySelector(".login-version")||{}).textContent,' +
-          'wizardOrLogin: (!!document.querySelector(".cmDesk-wizard")) || (!!document.querySelector("#cmDeskEnter"))' +
-          '})'
+          '(async function(){' +
+          '  const r = {};' +
+          '  r.ready = document.readyState;' +
+          '  r.title = document.title;' +
+          '  r.desktopFlag = !!window.__CM_DESKTOP;' +
+          '  r.loginOverlay = !!document.getElementById("loginOverlay");' +
+          '  r.appShell = !!document.querySelector(".app");' +
+          '  r.versionTag = (document.querySelector(".login-version")||{}).textContent;' +
+          '  const wiz = document.querySelector(".cmDesk-wizard");' +
+          '  r.wizardShown = !!wiz;' +
+          '  const next = document.getElementById("cmWizNext");' +
+          '  r.nextBtn = !!next;' +
+          '  if (next) {' +
+          '    next.click();' +
+          '    await new Promise(function(res){ setTimeout(res, 400); });' +
+          '    const step = document.querySelector(".cmDesk-wstep");' +
+          '    r.stepAfterClick = step ? step.textContent : null;' +
+          '    r.stepAdvanced = !!(step && step.textContent.indexOf("第 2 步") >= 0);' +
+          '  }' +
+          '  return JSON.stringify(r);' +
+          '})()'
         ).then(function (s) {
           console.log('[CM_SMOKE] page=' + s);
           const r = JSON.parse(s);
-          const pass = r.ready === 'complete' && r.desktopFlag === true && r.loginOverlay && r.appShell && /桌面版/.test(r.versionTag || '');
+          const baseOk = r.ready === 'complete' && r.desktopFlag === true && r.loginOverlay && r.appShell && /桌面版/.test(r.versionTag || '');
+          const wizardOk = r.wizardShown === true && r.nextBtn === true && r.stepAdvanced === true;
+          const pass = baseOk && wizardOk && consoleErrors.length === 0;
+          console.log('[CM_SMOKE] wizardInteractive=' + wizardOk);
+          console.log('[CM_SMOKE] consoleErrors=' + JSON.stringify(consoleErrors));
           console.log('[CM_SMOKE] verdict=' + (pass ? 'PASS' : 'FAIL'));
           app.exit(pass ? 0 : 1);
         }).catch(function (e) {

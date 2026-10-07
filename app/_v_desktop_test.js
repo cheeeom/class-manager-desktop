@@ -75,6 +75,20 @@ t('③c 注入层契约：云同步裁剪与设置卡', () => {
   has(p, '设置 → 🔐 安全', '后续设密码入口指引');
 });
 
+t('③d 向导按钮绑定回归：foot 区按钮一律 w.foot.querySelector（v1.0.1 首屏按钮死因）', () => {
+  const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
+  // 首屏两个按钮的绑定必须存在且走 foot
+  has(p, "w.foot.querySelector('#cmWizNext').onclick", '开始配置绑定');
+  has(p, "w.foot.querySelector('#cmWizSkipAll').onclick", '跳过向导绑定');
+  notHas(p, "w.body.querySelector('#cmWizNext')", '首屏按钮不许从 body 找（foot 渲染区）');
+  notHas(p, "w.body.querySelector('#cmWizSkipAll')", '同上（跳过按钮）');
+  // 全文件扫：所有 w.body.querySelector('#…') 的 id 必须不是 foot 按钮命名（cmWizNext/Skip/Done/Back/Ok/SkipAll/SkipPwd/Import 系）
+  const FOOT_IDS = ['cmWizNext', 'cmWizSkipAll', 'cmWizSkipPwd', 'cmWizBack', 'cmWizBack2', 'cmWizOk', 'cmWizDone', 'cmWizSkip', 'cmWizImport'];
+  for (const m of p.matchAll(/w\.body\.querySelector\('#([A-Za-z0-9_]+)'\)/g)) {
+    ok(FOOT_IDS.indexOf(m[1]) < 0, 'foot 按钮 ' + m[1] + ' 被写成了 w.body.querySelector（首屏按钮死 bug 重演）');
+  }
+});
+
 t('④版权合规：安装包元数据 + 向导首尾 + 关于卡', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(HERE, 'package.json'), 'utf8'));
   has(pkg.copyright || '', '© 2026 chee', '安装包版权字段');
