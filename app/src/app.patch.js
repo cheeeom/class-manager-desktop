@@ -454,8 +454,30 @@
       // 正常登录页（密码已设置）
       if (typeof window.showToast === 'function') window.showToast('初始设置完成', 'success');
     } else {
-      // 零密码模式直接进入
-      if (typeof window.enterApp === 'function') window.enterApp('初始设置完成（零密码模式）');
+      // 零密码模式：平滑过渡进入
+      enterWithTransition('初始设置完成（零密码模式）');
+    }
+  }
+
+  /* ---------- 进入工作台平滑过渡：登录层淡出上浮 → 工作台淡入 ---------- */
+  function enterWithTransition(msg) {
+    var overlay = document.getElementById('loginOverlay');
+    var shell = document.querySelector('.app');
+    var afterEnter = function () {
+      if (shell) { shell.classList.add('cmDesk-appin'); setTimeout(function () { shell.classList.remove('cmDesk-appin'); }, 700); }
+    };
+    if (overlay && !overlay.classList.contains('hidden')) {
+      overlay.style.transition = 'opacity .45s ease, transform .45s ease';
+      overlay.style.opacity = '0';
+      overlay.style.transform = 'scale(1.03)';
+      setTimeout(function () {
+        if (typeof window.enterApp === 'function') window.enterApp(msg);
+        overlay.style.transition = ''; overlay.style.opacity = ''; overlay.style.transform = '';
+        afterEnter();
+      }, 430);
+    } else {
+      if (typeof window.enterApp === 'function') window.enterApp(msg);
+      afterEnter();
     }
   }
 
@@ -474,7 +496,7 @@
         '<div class="cmDesk-copy">© 2026 <b>chee</b> · 班主任工作台 · 保留所有权利</div>' +
         '</div>';
       var btn = overlay.querySelector('#cmDeskEnter');
-      if (btn) btn.onclick = function () { if (typeof window.enterApp === 'function') window.enterApp('欢迎回来！'); };
+      if (btn) btn.onclick = function () { enterWithTransition('欢迎回来！'); };
     }
   }
 
@@ -550,40 +572,6 @@
       var ah3 = about.querySelector('h3');
       if (ah3) ah3.parentNode.insertBefore(row, ah3.nextSibling);
       else about.appendChild(row);
-
-      /* 更新代理行：国内网络直连 GitHub 常 ERR_TIMED_OUT，允许用户为更新器指定代理 */
-      var prow = el('div', 'cmDeskUpdProxyRow');
-      prow.style.cssText = 'margin:0 0 4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap';
-      var plabel = el('span', '', '🌐 更新代理');
-      plabel.style.cssText = 'font-size:12.5px;color:var(--text-secondary,#5F5E5A);white-space:nowrap';
-      var pinput = el('input', 'cmDesk-input');
-      pinput.type = 'text';
-      pinput.placeholder = '留空直连；走代理填如 192.168.8.104:9890';
-      pinput.style.cssText = 'flex:1;min-width:180px;font-size:12.5px;padding:6px 10px';
-      var psave = el('button', 'btn btn-outline btn-sm', '保存');
-      var pstate = el('span', '', '');
-      pstate.style.cssText = 'font-size:12px;color:var(--text-muted,#8C8577)';
-      prow.appendChild(plabel); prow.appendChild(pinput); prow.appendChild(psave); prow.appendChild(pstate);
-      if (ah3) ah3.parentNode.insertBefore(prow, row.nextSibling); else about.appendChild(prow);
-      window.__CM_UPDATER.getProxy().then(function (r) {
-        pinput.value = (r && r.proxy) || '';
-        pstate.textContent = r && r.proxy ? '当前走代理' : '当前直连';
-      });
-      psave.onclick = function () {
-        psave.disabled = true; pstate.textContent = '保存中…';
-        window.__CM_UPDATER.setProxy(pinput.value).then(function (r) {
-          psave.disabled = false;
-          if (r && r.ok) {
-            pinput.value = r.proxy || '';
-            pstate.textContent = r.proxy ? '当前走代理' : '当前直连';
-            if (window.showToast) window.showToast(r.proxy ? '更新代理已保存，检查/下载将走代理' : '已清除更新代理（直连）', 'success');
-            setStatus('代理已更新，可重新检查');
-          } else {
-            pstate.textContent = '';
-            if (window.showToast) window.showToast('代理无效：' + ((r && r.message) || ''), 'error');
-          }
-        });
-      };
     }
 
     /* 桌面版介绍卡：插在版本徽标行之后、网页版速览之前 */
@@ -613,12 +601,7 @@
       setStatus('正在检查…');
       window.__CM_UPDATER.check().then(function (r) {
         handling = false;
-        if (!r || !r.ok) {
-          var em = (r && r.message) || '网络不通，稍后再试';
-          setStatus('检查失败：' + em + (/ERR_|TIMEOUT|ETIMEDOUT|ENOTFOUND|ECONN/i.test(em) ? ' · 直连 GitHub 超时？在下方「🌐 更新代理」填代理后重试' : ''), 'var(--danger)');
-          cmUpdCloseToast();
-          return;
-        }
+        if (!r || !r.ok) { setStatus('检查失败：' + ((r && r.message) || '网络不通，稍后再试'), 'var(--danger)'); cmUpdCloseToast(); return; }
         if (r.version && r.version === D.version) { setStatus('已是最新版本 v' + D.version); cmUpdCloseToast(); }
       }).catch(function (e) {
         handling = false;

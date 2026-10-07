@@ -90,8 +90,7 @@ t('③c 注入层契约：云同步裁剪与设置卡', () => {
 
 t('③e 注入层契约：更新弹窗与设置页桌面化', () => {
   const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
-  const m = fs.readFileSync(path.join(HERE, 'main.js'), 'utf8');
-  const pre = fs.readFileSync(path.join(HERE, 'preload.js'), 'utf8');
+  const css = fs.readFileSync(path.join(HERE, 'src', 'wizard.css'), 'utf8');
   has(p, 'cmUpdToast', '更新弹窗函数');
   has(p, '__CM_UPDATER.download', '弹窗「立即更新」走下载桥');
   has(p, 'cmUpdDeclined', '「暂不」后本会话不再自动弹');
@@ -99,13 +98,12 @@ t('③e 注入层契约：更新弹窗与设置页桌面化', () => {
   has(p, '自动更新', '关于卡更新说明');
   has(p, "ah3.parentNode.insertBefore(row, ah3.nextSibling)", '检查更新栏 = 关于卡第一栏（紧随标题）');
   ok(p.indexOf("btn = el('button', 'btn btn-primary', '🔄 检查更新')") >= 0, '检查更新按钮主色加大（非小号 outline）');
-  has(p, '更新代理', '更新代理设置行（国内直连 GitHub 常超时）');
-  has(p, '直连 GitHub 超时', '检查失败时的代理引导提示');
-  has(pre, 'setProxy', 'preload 暴露更新代理桥');
-  has(m, "'cm-upd-setproxy'", '代理保存 IPC 通道');
-  has(m, 'updater-proxy.json', '代理持久化到 userData');
-  has(m, 'if (savedProxy) applyProxy(savedProxy)', '启动时恢复已存代理');
-  const css = fs.readFileSync(path.join(HERE, 'src', 'wizard.css'), 'utf8');
+  notHas(p, '更新代理', '更新代理功能已移除（v1.0.6 老板拍板）');
+  has(p, 'enterWithTransition', '进入工作台平滑过渡');
+  has(css, 'cmDeskAppIn', '工作台淡入动画');
+  has(css, '.login-overlay', '启动界面背景覆盖');
+  ok(css.indexOf('data:image/svg+xml') >= 0 && css.indexOf('html.dark .login-overlay') >= 0, '纸墨远山背景明暗两套');
+  ok(/\.cmDesk-login-card #cmDeskEnter\{[^}]*justify-content:center/.test(css), '直接进入按钮文字居中');
   has(css, '.cmDeskUpdToast', '弹窗样式（定位/卡片）');
   has(css, '.cmUpdBar', '下载进度条样式');
   has(css, 'left:20px;bottom:20px', '弹窗固定在左下角');
