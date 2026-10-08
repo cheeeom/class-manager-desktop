@@ -741,6 +741,12 @@
     var sn = document.getElementById('settingsReleaseNotes');
     if (sn && sn.parentElement) sn.parentElement.remove();
 
+    /* 打赏入口（自愿，不捆绑任何功能）：素材就位才渲染，两样都没有 → 界面零痕迹。
+       启用方式（不换代码）：
+       · CM_DONATE.afdian 填爱发电主页链接 → 「去爱发电」按钮出现（系统浏览器打开）
+       · dist 放入 donate-wechat.png（build.js 自动拷贝）→ 「微信扫码赞赏」按钮出现（弹扫码层） */
+    buildDonateRow(about);
+
     // 应用内更新逻辑（仅桌面且有更新桥时接线）
     if (!window.__CM_UPDATER) return;
 
@@ -790,6 +796,62 @@
 
     // 启动静默检查（一次，30 秒后——避开启动高峰与弱网首屏）
     setTimeout(function () { checkNow(false); }, 30000);
+  }
+
+  /* ---------- 打赏入口（爱发电链接 + 微信收款码弹层） ----------
+     原则：自愿、不捆绑、零痕迹 —— 素材缺哪个就藏哪个按钮，全缺则整行不渲染。
+     外链走 window.open → 主进程 setWindowOpenHandler → 系统浏览器（桌面守卫既有语义）。 ---------- */
+  var CM_DONATE = { afdian: '', wechatImg: 'donate-wechat.png' };
+
+  function cmDonateModal() {
+    var old = document.getElementById('cmDeskDonateModal');
+    if (old) { old.remove(); return; }
+    var m = el('div', 'cmDesk-modal-overlay');
+    m.id = 'cmDeskDonateModal';
+    m.innerHTML =
+      '<div class="cmDesk-donate-card">' +
+      '<button class="cmDesk-donate-close" id="cmDonateClose" aria-label="关闭">×</button>' +
+      '<h3>🧧 微信扫码赞赏</h3>' +
+      '<img class="cmDesk-donate-qr" src="' + CM_DONATE.wechatImg + '" alt="微信收款码"' +
+      ' onerror="this.style.display=\'none\';var t=document.getElementById(\'cmDonateMiss\');if(t)t.style.display=\'block\';">' +
+      '<p id="cmDonateMiss" style="display:none;font-size:12.5px">收款码没找到？到 设置 → 关于本系统 反馈一下，马上修。</p>' +
+      '<p>金额随意，心意收下。所有功能永远免费——这笔钱只影响作者今晚吃不吃鸡腿。</p>' +
+      '</div>';
+    document.body.appendChild(m);
+    m.addEventListener('click', function (e) {
+      if (e.target === m || e.target.id === 'cmDonateClose') m.remove();
+    });
+  }
+
+  function buildDonateRow(about) {
+    var hasAfdian = !!CM_DONATE.afdian;
+    var hasWechat = !!CM_DONATE.wechatImg;
+    if (!hasAfdian && !hasWechat) return;
+    var row = el('div', 'cmDeskDonate');
+    row.innerHTML =
+      '<div class="cmDeskDonate-t">☕ 觉得好用，请作者喝杯奶茶（自愿 · 功能不加钱也不减）</div>' +
+      '<div class="cmDeskDonate-r"></div>';
+    var r = row.querySelector('.cmDeskDonate-r');
+    if (hasAfdian) {
+      var a = document.createElement('a');
+      a.className = 'btn btn-outline btn-sm';
+      a.href = CM_DONATE.afdian;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.innerHTML = '<span>💚 去爱发电</span><span class="arr">→</span>';
+      r.appendChild(a);
+    }
+    if (hasWechat) {
+      var b = document.createElement('button');
+      b.className = 'btn btn-outline btn-sm';
+      b.id = 'cmDonateWechat';
+      b.innerHTML = '<span>🧧 微信扫码赞赏</span>';
+      b.onclick = cmDonateModal;
+      r.appendChild(b);
+    }
+    var intro = about.querySelector('.cmDeskAbout');
+    if (intro) intro.parentNode.insertBefore(row, intro.nextSibling);
+    else about.appendChild(row);
   }
 
   /* ---------- 启动 ---------- */

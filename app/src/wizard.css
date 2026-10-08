@@ -124,3 +124,14 @@ body{
 .cmDesk-gbtns{display:flex;gap:8px;justify-content:flex-end}
 .cmDesk-gbtns .btn-sm{padding:6px 14px;font-size:12.5px}
 .cmDesk-guide-hl{outline:2px solid var(--primary,#a63a2b)!important;outline-offset:2px;border-radius:10px;background:rgba(166,58,43,.07)!important}
+
+/* ---------- 关于卡 · 打赏入口（自愿/零痕迹） ---------- */
+.cmDeskDonate{margin:10px 0 12px;padding:10px 12px;background:var(--row-bg,#FBF8F1);border:1px dashed var(--border,#E6DECD);border-radius:10px}
+.cmDeskDonate-t{font-size:12.5px;color:var(--text-secondary,#5F5E5A);margin-bottom:8px}
+.cmDeskDonate-r{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.cmDesk-modal-overlay{position:fixed;inset:0;z-index:2147483400;background:rgba(43,35,24,.45);display:flex;align-items:center;justify-content:center;animation:cmDeskGuideIn .2s ease}
+.cmDesk-donate-card{position:relative;background:var(--card-bg,#FFFDF7);border:1px solid var(--border,#E6DECD);border-radius:16px;box-shadow:0 24px 64px rgba(60,40,20,.28);padding:22px 26px;max-width:320px;text-align:center}
+.cmDesk-donate-card h3{font-family:var(--font-display);font-size:16px;color:var(--primary,#A63A2B);margin-bottom:14px}
+.cmDesk-donate-qr{display:block;width:200px;height:200px;margin:0 auto 12px;border:1px solid var(--border,#E6DECD);border-radius:12px;background:#fff;object-fit:contain}
+.cmDesk-donate-card p{font-size:12.5px;color:var(--text-secondary,#5F5E5A);line-height:1.8;margin:0}
+.cmDesk-donate-close{position:absolute;top:8px;right:12px;border:0;background:none;font-size:22px;line-height:1;color:var(--text-muted,#8C8577);cursor:pointer;padding:4px}

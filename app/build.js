@@ -74,6 +74,9 @@ for (const f of ['src/app.patch.js', 'src/wizard.css']) {
 // 登录页背景海报（AI 生成，已裁水印）
 const bgAsset = path.join(HERE, 'src', 'img', 'login-bg-a.jpg');
 if (fs.existsSync(bgAsset)) fs.copyFileSync(bgAsset, path.join(dist, 'login-bg.jpg'));
+// 微信赞赏收款码（可选资产：app/src/img/donate-wechat.png 存在才带上，缺省不渲染打赏按钮）
+const donateAsset = path.join(HERE, 'src', 'img', 'donate-wechat.png');
+if (fs.existsSync(donateAsset)) fs.copyFileSync(donateAsset, path.join(dist, 'donate-wechat.png'));
 // 本地运行资产：pdf 库（成绩/课表导入用；存在则带）
 for (const f of ['pdf.min.js', 'pdf.worker.min.js']) {
   const p = path.join(ROOT, f);
