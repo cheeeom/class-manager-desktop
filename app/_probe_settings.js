@@ -26,11 +26,15 @@ app.whenReady().then(function () {
       ['wait', null],
       ['nav', 'typeof navigateTo==="function" ? (navigateTo("settings"),1) : (window.navigateTo?(window.navigateTo("settings"),1):0)'],
       ['wait', null],
-      ['inspect', '(function(){var r={};var secs=document.querySelectorAll(".settings-section");r.total=secs.length;r.hidden=0;r.shown=[];for(var i=0;i<secs.length;i++){var h=secs[i].querySelector("h3");var vis=getComputedStyle(secs[i]).display!=="none";if(!vis)r.hidden++;else if(h)r.shown.push(h.textContent.trim().slice(0,10));}r.aboutIntro=!!document.querySelector("#settingsAbout .cmDeskAbout");r.secCard=!!document.getElementById("cmDeskSecurity");var cb=document.querySelector(\'button[onclick*="restoreFromCloud"]\');r.cloudBtn=cb?getComputedStyle(cb).display:"none-el";return JSON.stringify(r);})()'],
+      ['inspect', '(function(){var r={};var secs=document.querySelectorAll(".settings-section");r.total=secs.length;r.hidden=0;r.shown=[];for(var i=0;i<secs.length;i++){var h=secs[i].querySelector("h3");var vis=getComputedStyle(secs[i]).display!=="none";if(!vis)r.hidden++;else if(h)r.shown.push(h.textContent.trim().slice(0,10));}r.aboutIntro=!!document.querySelector("#settingsAbout .cmDeskAbout");r.fbCard=!!document.querySelector("#settingsAbout .cmDeskFeedback");r.fbMail=(document.getElementById("cmFbCopy")||{}).textContent||"";r.donateSec=!!document.getElementById("cmDeskDonateSec");r.donateBeforeAbout=(function(){var s=document.getElementById("cmDeskDonateSec"),a=document.getElementById("settingsAbout");if(!s||!a||!s.nextElementSibling)return false;return s.nextElementSibling.id==="settingsAbout"||a.compareDocumentPosition(s)&Node.DOCUMENT_POSITION_FOLLOWING;})();r.secCard=!!document.getElementById("cmDeskSecurity");var cb=document.querySelector(\'button[onclick*="restoreFromCloud"]\');r.cloudBtn=cb?getComputedStyle(cb).display:"none-el";return JSON.stringify(r);})()'],
       ['scroll', 'var c=document.querySelector(".content");if(c)c.scrollTop=c.scrollHeight;1'],
       ['toast', '(function(){var rep=document.createElement("div");rep.className="cmDeskUpdToast";rep.setAttribute("data-state","available");rep.innerHTML=\'<div class="t">🚀 发现新版本 v9.9.9（样式样品）</div><div class="d">新版约 78MB，下载完成后重启应用即可完成安装。<br>你也可以继续使用当前版本。</div><div class="r"><button class="btn btn-outline">暂不更新</button><button class="btn btn-primary">立即更新</button></div>\';document.body.appendChild(rep);var cs=getComputedStyle(rep);var rc=rep.getBoundingClientRect();return JSON.stringify({pos:cs.position,left:cs.left,bottom:cs.bottom,z:cs.zIndex,w:rc.width,h:rc.height,top:rc.top,display:cs.display,cssLoaded:!!document.querySelector(\'link[href*="wizard.css"]\')});})()'],
       ['donate', 'var b=document.getElementById("cmDonateOpen");b?(b.click(),1):0;'],
-      ['wait600', null]
+      ['wait600', null],
+      ['fbclose', '(function(){var c=document.querySelector(".cmDesk-donate-close");if(c)c.click();var o=document.querySelector(".cmDesk-modal-overlay");if(o)o.remove();return 1;})()'],
+      ['fbcopy', 'var b=document.getElementById("cmFbCopy");b?(b.click(),1):0;'],
+      ['fbcheck', '(function(){var f=document.querySelector("#settingsAbout .cmDeskFeedback");var t=document.querySelector(".cmDeskUpdToast");return JSON.stringify({fb:!!f,mailBtn:!!document.getElementById("cmFbMail"),chip:(document.getElementById("cmFbCopy")||{}).textContent,toast:t?t.textContent.slice(0,40):null});})()'],
+      ['waitfb', null]
     ];
     try {
       win.show();
@@ -48,6 +52,11 @@ app.whenReady().then(function () {
             const imgD = await win.webContents.capturePage();
             fs.writeFileSync(path.join(__dirname, 'out', '_probe_donate.png'), imgD.toPNG());
             console.log('[PROBE] donate-shot=out/_probe_donate.png');
+          }
+          if (name === 'waitfb') {
+            const imgF = await win.webContents.capturePage();
+            fs.writeFileSync(path.join(__dirname, 'out', '_probe_feedback.png'), imgF.toPNG());
+            console.log('[PROBE] feedback-shot=out/_probe_feedback.png');
           }
           if (name === 'wait250') {
             const imgT = await win.webContents.capturePage();

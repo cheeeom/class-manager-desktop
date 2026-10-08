@@ -150,3 +150,8 @@ body{
 .cmDesk-nudge-p{margin-bottom:8px;text-align:left}
 @media (max-width:560px){.cmDesk-donate-duo{flex-direction:column;align-items:center}.cmDesk-donate-ch{width:min(240px,80vw)}}
 .cmDesk-donate-actions{margin-top:14px;display:flex;justify-content:center}
+
+/* ---------- 反馈卡（v1.0.11）：邮件直达 + 点邮箱复制 ---------- */
+.cmDeskFeedback{margin:10px 0 12px;padding:10px 12px;background:var(--row-bg,#FBF8F1);border:1px dashed var(--border,#E6DECD);border-radius:10px}
+.cmDeskFbMail{font-size:12.5px;font-weight:700;color:var(--primary,#A63A2B);cursor:pointer;padding:4px 10px;border:1px solid var(--border,#E6DECD);border-radius:8px;background:var(--card-bg,#FFFDF7);-webkit-user-select:all;user-select:all}
+.cmDeskFbMail:hover{border-color:var(--primary,#A63A2B)}

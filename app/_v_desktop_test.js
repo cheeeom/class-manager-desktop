@@ -164,6 +164,14 @@ t('③f 注入层契约：示例体验 + 设置页再裁剪（v1.0.9）', () => 
   notHas(p, 'afdian', '爱发电暂缓（老板拍板）');
   has(build, 'donate-alipay.png', 'build 双码资产拷贝');
   has(p, 'cmDonateLater', '双码弹窗「下次一定」按钮（v1.0.11）');
+  // 独立打赏卡（v1.0.11 老板拍板：拆出关于卡、排其上方、带下次一定、按钮放大）
+  has(p, "getElementById('cmDeskDonateSec')", '独立打赏卡幂等护栏');
+  has(p, 'cmDonateCardSnooze', '下次一定收起标记');
+  has(p, 'CM_NUDGE_DAYS * 86400000', '收起时长与满天提醒同节奏（3 天）');
+  has(p, 'about.parentNode.insertBefore(sec, about)', '独立卡排在「关于本系统」上方');
+  has(p, 'id="cmDonateSnooze"', '独立卡「下次一定」按钮');
+  ok(p.indexOf('padding:10px 30px;font-size:14.5px') >= 0, '打赏作者按钮放大（主色大按钮）');
+  has(p, "btn btn-primary\" id=\"cmDonateOpen\"", '打赏作者改主色大按钮');
 });
 
 t('④版权合规：安装包元数据 + 向导首尾 + 关于卡', () => {
@@ -226,6 +234,26 @@ t('⑥应用内更新：发布配置与页面接线', () => {
   has(p, '发现新版本 v', '弹窗询问文案（先问后下）');
   const rm = fs.readFileSync(path.join(HERE, 'RELEASE.md'), 'utf8');
   has(rm, 'latest.yml', '发布命令含 latest.yml（漏传=更新链失效）');
+});
+
+t('③g 注入层契约：反馈卡邮件直达（v1.0.11）', () => {
+  const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
+  has(p, '846699191@qq.com', '作者邮箱');
+  has(p, 'buildFeedbackRow(about);', '关于卡接线（enhanceAbout 内调用）');
+  has(p, "about.querySelector('.cmDeskFeedback')", '反馈卡幂等护栏');
+  has(p, '__CM_FEEDBACK.mail', '写邮件走受控桥');
+  has(p, 'cmCopyText', '复制邮箱兜底函数');
+  has(p, 'id="cmFbCopy"', '邮箱 chip 可点复制');
+  const m = fs.readFileSync(path.join(HERE, 'main.js'), 'utf8');
+  has(m, "ipcMain.handle('cm-feedback-mail'", '主进程邮件 IPC');
+  has(m, "shell.openExternal('mailto:' + FEEDBACK_MAIL", '收件人在主进程拼死（页面传不进任意 URL）');
+  has(m, 'app.getVersion()', '主题/正文带版本号（定位问题快）');
+  const css = fs.readFileSync(path.join(HERE, 'src', 'wizard.css'), 'utf8');
+  has(css, '.cmDeskFeedback', '反馈卡样式');
+  has(css, '.cmDeskFbMail', '邮箱 chip 样式');
+  const pre = fs.readFileSync(path.join(HERE, 'preload.js'), 'utf8');
+  has(pre, '__CM_FEEDBACK', 'preload 反馈桥');
+  notHas(pre, 'nodeIntegration', 'preload 不开 Node');
 });
 
 console.log('\n通过 ' + pass + ' 项，失败 ' + fail + ' 项');

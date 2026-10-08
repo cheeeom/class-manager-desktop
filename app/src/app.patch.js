@@ -745,6 +745,9 @@
        素材随构建分发，缺资产时按钮自动隐藏（见下方 CM_DONATE 模块注释）。 */
     buildDonateRow(about);
 
+    /* 反馈卡（v1.0.11）：邮件直达作者 + 点邮箱一键复制 */
+    buildFeedbackRow(about);
+
     // 应用内更新逻辑（仅桌面且有更新桥时接线）
     if (!window.__CM_UPDATER) return;
 
@@ -876,21 +879,71 @@
     }, 500);
   }
 
-  /* 常驻卡片：设置 → 关于本系统（介绍卡下方） */
+  /* 常驻卡片（v1.0.11 拆独立卡）：设置页「关于本系统」上方单独成卡。
+     「下次一定」＝ 收起 3 天（与满天提醒同节奏），到期自动回来。 */
+  var CM_DONATE_SNOOZE = 'cmDonateCardSnooze';
   function buildDonateRow(about) {
     var hasAny = !!(CM_DONATE.wechatImg || CM_DONATE.alipayImg);
-    if (!hasAny) return;
-    if (about.querySelector('.cmDeskDonate')) return;
-    var row = el('div', 'cmDeskDonate');
-    row.innerHTML =
-      '<div class="cmDeskDonate-t">☕ <b>请作者喝杯奶茶</b>　<span>自愿 · 无广告无激活码，功能不加钱也不减——但奶茶能让更新写得更快。</span></div>' +
+    if (!hasAny || !about) return;
+    if (document.getElementById('cmDeskDonateSec')) return;
+    var snooze = parseInt(lsGet(CM_DONATE_SNOOZE), 10) || 0;
+    if (snooze && Date.now() - snooze < CM_NUDGE_DAYS * 86400000) return;
+    var sec = el('div', 'settings-section cmDeskDonateSec');
+    sec.id = 'cmDeskDonateSec';
+    sec.innerHTML =
+      '<h3>☕ 请作者喝杯奶茶</h3>' +
+      '<div class="cmDeskDonate-t">自愿 · 无广告无激活码，功能不加钱也不减——但奶茶能让更新写得更快。</div>' +
       '<div class="cmDeskDonate-r">' +
-      '<button class="btn btn-outline btn-sm" id="cmDonateOpen"><span>🧧 打赏作者</span><span class="arr">→</span></button>' +
+      '<button class="btn btn-primary" id="cmDonateOpen" style="padding:10px 30px;font-size:14.5px;position:relative;min-width:150px"><span>🧧 打赏作者</span><span class="arr">→</span></button>' +
+      '<button class="btn btn-outline" id="cmDonateSnooze" style="padding:10px 18px;font-size:13px">下次一定</button>' +
       '<span class="cmDeskDonate-hint">微信 / 支付宝均可</span>' +
       '</div>';
-    row.querySelector('#cmDonateOpen').onclick = cmDonateModal;
-    var intro = about.querySelector('.cmDeskAbout');
-    if (intro) intro.parentNode.insertBefore(row, intro.nextSibling);
+    sec.querySelector('#cmDonateOpen').onclick = cmDonateModal;
+    sec.querySelector('#cmDonateSnooze').onclick = function () {
+      lsSet(CM_DONATE_SNOOZE, String(Date.now()));
+      sec.remove();
+      if (window.showToast) window.showToast('好的，' + CM_NUDGE_DAYS + ' 天内不再打扰～', 'success');
+    };
+    about.parentNode.insertBefore(sec, about);
+  }
+
+  /* ---------- 反馈卡（v1.0.11）：设置 → 关于本系统，邮件直达作者 ---------- */
+  var CM_MAIL = '846699191@qq.com';
+  function cmCopyFallback(txt) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = txt; ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta); ta.select();
+      var done = document.execCommand('copy');
+      ta.remove(); return done;
+    } catch (e) { return false; }
+  }
+  function cmCopyText(txt) {
+    var ok = function () { if (window.showToast) window.showToast('邮箱已复制', 'success'); };
+    var bad = function () { if (window.showToast) window.showToast('复制失败，请手动记录邮箱', 'error'); };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(ok, function () { cmCopyFallback(txt) ? ok() : bad(); });
+      } else { cmCopyFallback(txt) ? ok() : bad(); }
+    } catch (e) { cmCopyFallback(txt) ? ok() : bad(); }
+  }
+  function buildFeedbackRow(about) {
+    if (about.querySelector('.cmDeskFeedback')) return;
+    var row = el('div', 'cmDeskFeedback');
+    row.innerHTML =
+      '<div class="cmDeskDonate-t">✉️ <b>反馈与建议</b>　<span>遇到问题、有想法，直接发邮件给作者——看到就会回。</span></div>' +
+      '<div class="cmDeskDonate-r">' +
+      '<button class="btn btn-outline btn-sm" id="cmFbMail"><span>✉ 写邮件给作者</span><span class="arr">→</span></button>' +
+      '<span class="cmDeskFbMail" id="cmFbCopy" title="点击复制邮箱">' + CM_MAIL + '</span>' +
+      '</div>';
+    row.querySelector('#cmFbMail').onclick = function () {
+      if (window.__CM_FEEDBACK && window.__CM_FEEDBACK.mail) {
+        window.__CM_FEEDBACK.mail();          // 桌面：唤起系统邮件客户端（收件人主进程定死）
+      } else { cmCopyText(CM_MAIL); }         // 非桌面环境兜底：复制邮箱
+    };
+    row.querySelector('#cmFbCopy').onclick = function () { cmCopyText(CM_MAIL); };
+    var anchor = about.querySelector('.cmDeskDonate') || about.querySelector('.cmDeskAbout');
+    if (anchor) anchor.parentNode.insertBefore(row, anchor.nextSibling);
     else about.appendChild(row);
   }
 

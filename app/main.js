@@ -103,6 +103,17 @@ function setupUpdater() {
   }
 }
 
+/* ---------- 反馈邮件（v1.0.11）：设置页反馈卡 → 唤起系统邮件客户端 ----------
+   收件人/主题在主进程拼死，页面侧传不进任意 URL（受控桥原则）。 */
+const FEEDBACK_MAIL = '846699191@qq.com';
+ipcMain.handle('cm-feedback-mail', function () {
+  const subject = encodeURIComponent('班主任工作台 · 桌面版反馈（v' + app.getVersion() + '）');
+  const body = encodeURIComponent('作者您好：\n\n\n\n—— 来自班主任工作台桌面版 v' + app.getVersion() + ' / ' + process.platform);
+  return shell.openExternal('mailto:' + FEEDBACK_MAIL + '?subject=' + subject + '&body=' + body)
+    .then(function () { return { ok: true }; })
+    .catch(function (e) { return { ok: false, message: String(e && e.message || e).slice(0, 140) }; });
+});
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1280,

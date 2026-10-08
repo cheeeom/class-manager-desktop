@@ -18,3 +18,8 @@ contextBridge.exposeInMainWorld('__CM_UPDATER', {
     ipcRenderer.on('cm-upd-event', function (e, payload) { try { cb(payload); } catch (err) {} });
   }
 });
+
+/* 反馈邮件：页面侧只能唤起系统邮件客户端（收件人与主题在主进程定死） */
+contextBridge.exposeInMainWorld('__CM_FEEDBACK', {
+  mail: function () { return ipcRenderer.invoke('cm-feedback-mail'); }
+});
