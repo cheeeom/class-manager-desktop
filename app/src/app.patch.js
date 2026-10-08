@@ -801,11 +801,12 @@
 
   /* ---------- 打赏入口（微信 + 支付宝双渠道，自愿/零捆绑） ----------
      三处触点：①关于卡常驻「请作者喝杯奶茶」卡片 → 双渠道选择弹窗
-              ②使用满 3 天首次进入工作台弹一次诙谐提醒（cmDonateNudge 只弹一次）
+              ②使用满 3 天起，每满 3 天弹一轮诙谐提醒（cmDonateNudgeAt 记上次弹出时间；
+                弹窗「下次一定」只关本轮弹窗，下次启动到点再弹）
               ③（落地页另有同款，独立实现）
      渠道徽标色：微信 07C160 / 支付宝 1677FF。爱发电暂缓（老板拍板）。 ---------- */
   var CM_DONATE = { wechatImg: 'donate-wechat.png', alipayImg: 'donate-alipay.png' };
-  var CM_NUDGE_FLAG = 'cmDonateNudge';
+  var CM_NUDGE_AT = 'cmDonateNudgeAt';
   var CM_NUDGE_DAYS = 3;
 
   /* 双渠道选择弹窗：两张码并排，注明渠道让用户挑着扫 */
@@ -834,12 +835,15 @@
     if (later) later.onclick = function () { m.remove(); };
   }
 
-  /* 满天弹窗：一个班主任的小声叭叭（只弹一次，点「下次一定」后再不弹） */
+  /* 满天弹窗：一个班主任的小声叭叭（每满 3 天一轮；「下次一定」只关本轮弹窗） */
   function cmNudgeMaybe() {
-    if (lsGet(CM_NUDGE_FLAG) === '1') return;
     var t0 = parseInt(lsGet(LS_ONBOARD), 10);
     if (!t0 || Date.now() - t0 < CM_NUDGE_DAYS * 86400000) return;
-    lsSet(CM_NUDGE_FLAG, '1');   // 无论后续选哪边，本轮生命周期只打扰这一次
+    var last = parseInt(lsGet(CM_NUDGE_AT), 10) || 0;
+    if (last && Date.now() - last < CM_NUDGE_DAYS * 86400000) return;
+    /* 旧版（v1.0.10/11）一次性标记迁移：视为「刚提醒过」，3 天后进入周期提醒 */
+    if (lsGet('cmDonateNudge') === '1') { lsSet(CM_NUDGE_AT, String(Date.now())); lsSet('cmDonateNudge', ''); return; }
+    lsSet(CM_NUDGE_AT, String(Date.now()));   // 无论后续选哪边，本轮已打扰，隔 3 天再来
     var old = document.getElementById('cmDeskNudge');
     if (old) old.remove();
     var m = el('div', 'cmDesk-modal-overlay');
@@ -867,7 +871,6 @@
     var tries = 0;
     var t = setInterval(function () {
       tries++;
-      if (lsGet(CM_NUDGE_FLAG) === '1') { clearInterval(t); return; }
       var ov = document.getElementById('loginOverlay');
       var overlayGone = !ov || ov.classList.contains('hidden');
       var appEl = document.querySelector('.app');
@@ -879,15 +882,12 @@
     }, 500);
   }
 
-  /* 常驻卡片（v1.0.11 拆独立卡）：设置页「关于本系统」上方单独成卡。
-     「下次一定」＝ 收起 3 天（与满天提醒同节奏），到期自动回来。 */
-  var CM_DONATE_SNOOZE = 'cmDonateCardSnooze';
+  /* 常驻卡片（v1.0.12 定稿）：设置页「关于本系统」上方单独成卡，常驻不消失。
+     周期提醒由满天弹窗负责（每 3 天一轮），卡片本身不打扰。 */
   function buildDonateRow(about) {
     var hasAny = !!(CM_DONATE.wechatImg || CM_DONATE.alipayImg);
     if (!hasAny || !about) return;
     if (document.getElementById('cmDeskDonateSec')) return;
-    var snooze = parseInt(lsGet(CM_DONATE_SNOOZE), 10) || 0;
-    if (snooze && Date.now() - snooze < CM_NUDGE_DAYS * 86400000) return;
     var sec = el('div', 'settings-section cmDeskDonateSec');
     sec.id = 'cmDeskDonateSec';
     sec.innerHTML =
@@ -895,15 +895,9 @@
       '<div class="cmDeskDonate-t">自愿 · 无广告无激活码，功能不加钱也不减——但奶茶能让更新写得更快。</div>' +
       '<div class="cmDeskDonate-r">' +
       '<button class="btn btn-primary" id="cmDonateOpen" style="padding:10px 30px;font-size:14.5px;position:relative;min-width:150px"><span>🧧 打赏作者</span><span class="arr">→</span></button>' +
-      '<button class="btn btn-outline" id="cmDonateSnooze" style="padding:10px 18px;font-size:13px">下次一定</button>' +
       '<span class="cmDeskDonate-hint">微信 / 支付宝均可</span>' +
       '</div>';
     sec.querySelector('#cmDonateOpen').onclick = cmDonateModal;
-    sec.querySelector('#cmDonateSnooze').onclick = function () {
-      lsSet(CM_DONATE_SNOOZE, String(Date.now()));
-      sec.remove();
-      if (window.showToast) window.showToast('好的，' + CM_NUDGE_DAYS + ' 天内不再打扰～', 'success');
-    };
     about.parentNode.insertBefore(sec, about);
   }
 

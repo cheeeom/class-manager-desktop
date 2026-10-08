@@ -157,19 +157,20 @@ t('③f 注入层契约：示例体验 + 设置页再裁剪（v1.0.9）', () => 
   has(p, "CM_DONATE = { wechatImg: 'donate-wechat.png', alipayImg: 'donate-alipay.png' }", '双码资产接线');
   has(p, '#07C160', '微信渠道徽标色');
   has(p, '#1677FF', '支付宝渠道徽标色');
-  has(p, 'function cmNudgeMaybe', '满 3 天诙谐提醒（只弹一次）');
-  has(p, "CM_NUDGE_DAYS = 3", '提醒阈值 3 天');
-  has(p, "lsSet(CM_NUDGE_FLAG, '1')", '弹过即记，永不再扰');
+  has(p, 'function cmNudgeMaybe', '满 3 天诙谐提醒（周期制）');
+  has(p, "CM_NUDGE_DAYS = 3", '提醒周期 3 天');
+  has(p, "lsSet(CM_NUDGE_AT, String(Date.now()))", '记上次弹出时间（每满 3 天再来一轮）');
+  notHas(p, "lsSet(CM_NUDGE_FLAG, '1')", '一次性永不再扰已废（v1.0.12 老板拍板改周期提醒）');
+  has(p, "id=\"cmNudgeLater\"", '满天弹窗保留「下次一定」（仅关本轮弹窗）');
   has(p, 'if (lsGet(CM_TOUR_FLAG) === \'1\')', '示例体验期间不弹（避让）');
   notHas(p, 'afdian', '爱发电暂缓（老板拍板）');
   has(build, 'donate-alipay.png', 'build 双码资产拷贝');
   has(p, 'cmDonateLater', '双码弹窗「下次一定」按钮（v1.0.11）');
   // 独立打赏卡（v1.0.11 老板拍板：拆出关于卡、排其上方、带下次一定、按钮放大）
   has(p, "getElementById('cmDeskDonateSec')", '独立打赏卡幂等护栏');
-  has(p, 'cmDonateCardSnooze', '下次一定收起标记');
-  has(p, 'CM_NUDGE_DAYS * 86400000', '收起时长与满天提醒同节奏（3 天）');
+  notHas(p, 'cmDonateSnooze', '打赏卡常驻不消失（无下次一定按钮，v1.0.12）');
+  has(p, 'CM_NUDGE_DAYS * 86400000', '满天弹窗周期 = 3 天');
   has(p, 'about.parentNode.insertBefore(sec, about)', '独立卡排在「关于本系统」上方');
-  has(p, 'id="cmDonateSnooze"', '独立卡「下次一定」按钮');
   ok(p.indexOf('padding:10px 30px;font-size:14.5px') >= 0, '打赏作者按钮放大（主色大按钮）');
   has(p, "btn btn-primary\" id=\"cmDonateOpen\"", '打赏作者改主色大按钮');
 });
