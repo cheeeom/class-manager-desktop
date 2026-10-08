@@ -163,6 +163,7 @@ t('③f 注入层契约：示例体验 + 设置页再裁剪（v1.0.9）', () => 
   has(p, 'if (lsGet(CM_TOUR_FLAG) === \'1\')', '示例体验期间不弹（避让）');
   notHas(p, 'afdian', '爱发电暂缓（老板拍板）');
   has(build, 'donate-alipay.png', 'build 双码资产拷贝');
+  has(p, 'cmDonateLater', '双码弹窗「下次一定」按钮（v1.0.11）');
 });
 
 t('④版权合规：安装包元数据 + 向导首尾 + 关于卡', () => {

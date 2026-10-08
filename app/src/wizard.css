@@ -149,3 +149,4 @@ body{
 .cmDesk-nudge h3{margin-bottom:12px}
 .cmDesk-nudge-p{margin-bottom:8px;text-align:left}
 @media (max-width:560px){.cmDesk-donate-duo{flex-direction:column;align-items:center}.cmDesk-donate-ch{width:min(240px,80vw)}}
+.cmDesk-donate-actions{margin-top:14px;display:flex;justify-content:center}

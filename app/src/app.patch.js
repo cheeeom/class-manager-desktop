@@ -821,11 +821,14 @@
       '<figure class="cmDesk-donate-ch"><img src="' + CM_DONATE.alipayImg + '" alt="支付宝收款码"><figcaption><i style="background:#1677FF"></i>支付宝</figcaption></figure>' +
       '</div>' +
       '<p class="cmDesk-donate-note">所有功能永远免费——这笔钱只影响作者期末夜的伙食质量。</p>' +
+      '<div class="cmDesk-donate-actions"><button class="btn btn-outline btn-sm" id="cmDonateLater">下次一定</button></div>' +
       '</div>';
     document.body.appendChild(m);
     m.addEventListener('click', function (e) {
       if (e.target === m || e.target.id === 'cmDonateClose') m.remove();
     });
+    var later = m.querySelector('#cmDonateLater');
+    if (later) later.onclick = function () { m.remove(); };
   }
 
   /* 满天弹窗：一个班主任的小声叭叭（只弹一次，点「下次一定」后再不弹） */

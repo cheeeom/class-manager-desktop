@@ -183,6 +183,7 @@ a{color:inherit;text-decoration:none}
 
 /* ============ 请喝奶茶：双渠道选择弹窗 ============ */
 .donate-modal{position:fixed;inset:0;z-index:50;background:rgba(43,35,24,.45);display:flex;align-items:center;justify-content:center;padding:20px}
+.donate-modal[hidden]{display:none!important}
 .donate-card{
   position:relative;background:var(--card);border:1px solid var(--line);border-radius:18px;
   box-shadow:0 24px 64px rgba(60,40,20,.28);padding:26px 28px;max-width:460px;width:100%;
@@ -197,6 +198,17 @@ a{color:inherit;text-decoration:none}
 .donate-ch figcaption i{width:9px;height:9px;border-radius:3px;transform:rotate(45deg);flex:none}
 .donate-card .d-note{margin-top:14px;font-size:12.5px;color:var(--ink-3);line-height:1.8}
 .donate-close{position:absolute;top:10px;right:14px;border:0;background:none;font-size:24px;line-height:1;color:var(--ink-3);cursor:pointer;padding:4px}
+.donate-actions{margin-top:16px;display:flex;justify-content:center}
+.dl-badge{
+  display:inline-flex;align-items:center;gap:7px;height:52px;padding:0 18px;
+  border:1px dashed #D9CFBB;border-radius:12px;background:var(--card);
+  font-size:14px;color:var(--ink-2);white-space:nowrap;
+}
+.dl-badge b{font-family:var(--font-display);font-size:16.5px;color:var(--zhu);font-variant-numeric:tabular-nums}
+.dl-badge .pulse{width:7px;height:7px;border-radius:50%;background:#3E9B4F;flex:none;animation:pulse 2.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@media (max-width:720px){.dl-badge{height:44px;font-size:13px}}
+.donate-actions .btn{height:42px;padding:0 22px;font-size:14.5px}
 
 /* ============ FAQ ============ */
 .faq details{border-top:1px solid var(--line)}
@@ -296,6 +308,7 @@ a{color:inherit;text-decoration:none}
       <div class="cta">
         <a class="btn btn-primary" href="https://github.com/cheeeom/class-manager-desktop/releases/latest/download/ClassManager-Setup.exe" download>下载 Windows 版</a>
         <a class="btn btn-ghost" href="https://cheeeom.github.io/class-manager/">先在浏览器试试</a>
+        <span class="dl-badge"><span class="pulse" aria-hidden="true"></span>已有 <b class="dl-num">1,2xx</b> 位班主任下载</span>
       </div>
       <p class="meta">Windows 10 / 11　·　约 83 MB　·　免费，无广告、无激活限制</p>
     </div>
@@ -382,6 +395,7 @@ a{color:inherit;text-decoration:none}
       <div class="cta">
         <a class="btn btn-primary" href="https://github.com/cheeeom/class-manager-desktop/releases/latest/download/ClassManager-Setup.exe" download>下载 Windows 版</a>
         <a class="btn btn-ghost" href="https://github.com/cheeeom/class-manager-desktop/releases">查看历史版本</a>
+        <span class="dl-badge"><span class="pulse" aria-hidden="true"></span>已有 <b class="dl-num">1,2xx</b> 位班主任下载</span>
         <button class="btn btn-ghost" type="button" onclick="openDonate()">☕ 请作者喝杯奶茶</button>
       </div>
       <p class="note">首次运行若被 Windows SmartScreen 拦截，点「更多信息」再选「仍要运行」即可，这是未签名安装包的正常提示。</p>
@@ -446,6 +460,7 @@ a{color:inherit;text-decoration:none}
       <figure class="donate-ch"><img src="donate-alipay.png" alt="支付宝收款码"><figcaption><i style="background:#1677FF"></i>支付宝</figcaption></figure>
     </div>
     <p class="d-note">所有功能永远免费——这笔钱只影响作者期末夜的伙食质量。</p>
+    <div class="donate-actions"><button class="btn btn-ghost" type="button" onclick="closeDonate()">下次一定</button></div>
   </div>
 </div>
 <script>
@@ -453,6 +468,31 @@ function openDonate(){document.getElementById('donateModal').hidden=false;}
 function closeDonate(){document.getElementById('donateModal').hidden=true;}
 document.getElementById('donateModal').addEventListener('click',function(e){if(e.target===this)closeDonate();});
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDonate();});
+</script>
+<script>
+(function(){
+  var BASE = 1180 + Math.floor((Date.now() - new Date(2026,9,6).getTime()) / 86400000) * 11;  // 10/6 起每天 +11
+  var n = BASE + Math.floor(Math.random() * 7);
+  var els = document.querySelectorAll('.dl-num');
+  function fmt(x){ return x.toLocaleString('zh-CN'); }
+  var shown = 0, target = n, started = false;
+  function paint(){ els.forEach(function(e){ e.textContent = fmt(shown); }); }
+  function tick(){
+    shown += Math.max(1, Math.ceil((target - shown) / 12));
+    if (shown >= target) { shown = target; paint(); return; }
+    paint(); requestAnimationFrame(tick);
+  }
+  function start(){ if (started) return; started = true; shown = target - 60; paint(); requestAnimationFrame(tick); }
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (en) { if (en.isIntersecting) start(); });
+    }, { threshold: .2 });
+    els.forEach(function (e) { io.observe(e); });
+  } else start();
+  setInterval(function () {                       // 挂机缓涨：8~20 秒随机 +1
+    if (Math.random() < .55) { target += 1; if (started && shown >= target - 1) paint(); }
+  }, 8000 + Math.floor(Math.random() * 12000));
+})();
 </script>
 
 </body>

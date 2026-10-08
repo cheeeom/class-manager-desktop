@@ -25,11 +25,19 @@ app.whenReady().then(function () {
       await new Promise(r => setTimeout(r, 700));
       fs.writeFileSync(path.join(__dirname, 'out', '_landing_dl.png'),
         (await win.webContents.capturePage()).toPNG());
-      // 打赏弹窗
+      // 打赏弹窗：初始必须不显示（hidden 修复回归）
+      const init = await win.webContents.executeJavaScript(
+        'JSON.stringify({hidden:document.getElementById("donateModal").hidden,display:getComputedStyle(document.getElementById("donateModal")).display})');
+      console.log('[LANDING] init=' + init);
       await win.webContents.executeJavaScript('document.querySelector(".dl .cta .btn-ghost[type=button]").click();1');
       await new Promise(r => setTimeout(r, 600));
       fs.writeFileSync(path.join(__dirname, 'out', '_landing_donate.png'),
         (await win.webContents.capturePage()).toPNG());
+      // 「下次一定」关闭
+      const later = await win.webContents.executeJavaScript(
+        'var b=document.querySelector(".donate-actions .btn");b?(b.click(),1):0;' +
+        ';JSON.stringify({closed:document.getElementById("donateModal").hidden,num:document.querySelector(".dl-num").textContent})');
+      console.log('[LANDING] later=' + later);
       console.log('[LANDING] shots ok');
       app.exit(0);
     } catch (e) { console.log('[LANDING] fatal ' + (e && e.message)); app.exit(1); }
