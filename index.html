@@ -181,6 +181,23 @@ a{color:inherit;text-decoration:none}
 .promises .p-sub{display:block;font-size:13px;color:var(--ink-3);margin-top:3px}
 .dl .v-stamp{right:clamp(20px,4vw,44px);bottom:26px}
 
+/* ============ 请喝奶茶：双渠道选择弹窗 ============ */
+.donate-modal{position:fixed;inset:0;z-index:50;background:rgba(43,35,24,.45);display:flex;align-items:center;justify-content:center;padding:20px}
+.donate-card{
+  position:relative;background:var(--card);border:1px solid var(--line);border-radius:18px;
+  box-shadow:0 24px 64px rgba(60,40,20,.28);padding:26px 28px;max-width:460px;width:100%;
+  text-align:center;animation:rise .25s ease-out both;
+}
+.donate-card h3{font-family:var(--font-display);font-size:19px;color:var(--zhu);letter-spacing:.03em}
+.donate-card .d-lead{margin-top:8px;font-size:14px;color:var(--ink-2)}
+.donate-duo{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+.donate-ch{width:176px;margin:0;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px 12px 10px}
+.donate-ch img{display:block;width:100%;aspect-ratio:1/1;object-fit:contain;background:#fff;border-radius:10px;border:1px solid var(--line)}
+.donate-ch figcaption{margin-top:9px;font-size:13.5px;font-weight:700;color:var(--ink);display:flex;align-items:center;justify-content:center;gap:7px}
+.donate-ch figcaption i{width:9px;height:9px;border-radius:3px;transform:rotate(45deg);flex:none}
+.donate-card .d-note{margin-top:14px;font-size:12.5px;color:var(--ink-3);line-height:1.8}
+.donate-close{position:absolute;top:10px;right:14px;border:0;background:none;font-size:24px;line-height:1;color:var(--ink-3);cursor:pointer;padding:4px}
+
 /* ============ FAQ ============ */
 .faq details{border-top:1px solid var(--line)}
 .faq details:last-child{border-bottom:1px solid var(--line)}
@@ -365,6 +382,7 @@ a{color:inherit;text-decoration:none}
       <div class="cta">
         <a class="btn btn-primary" href="https://github.com/cheeeom/class-manager-desktop/releases/latest/download/ClassManager-Setup.exe" download>下载 Windows 版</a>
         <a class="btn btn-ghost" href="https://github.com/cheeeom/class-manager-desktop/releases">查看历史版本</a>
+        <button class="btn btn-ghost" type="button" onclick="openDonate()">☕ 请作者喝杯奶茶</button>
       </div>
       <p class="note">首次运行若被 Windows SmartScreen 拦截，点「更多信息」再选「仍要运行」即可，这是未签名安装包的正常提示。</p>
     </div>
@@ -414,8 +432,28 @@ a{color:inherit;text-decoration:none}
       <a href="https://github.com/cheeeom/class-manager-desktop/issues">提交反馈</a>
     </div>
   </div>
-  <div class="wrap"><p class="f-copy">© 2026 班主任工作台 · 独立开发，免费分享</p></div>
+  <div class="wrap"><p class="f-copy">© 2026 班主任工作台 · 独立开发，免费分享 · <a href="#top" onclick="openDonate();return false" style="color:var(--zhu)">☕ 请作者喝杯奶茶</a></p></div>
 </footer>
+
+<!-- 请喝奶茶：双渠道选择弹窗（微信 / 支付宝） -->
+<div class="donate-modal" id="donateModal" hidden>
+  <div class="donate-card" role="dialog" aria-label="请作者喝杯奶茶">
+    <button class="donate-close" type="button" onclick="closeDonate()" aria-label="关闭">×</button>
+    <h3>☕ 请作者喝杯奶茶</h3>
+    <p class="d-lead">微信还是支付宝，您挑顺手的扫。金额随意，心意收下。</p>
+    <div class="donate-duo">
+      <figure class="donate-ch"><img src="donate-wechat.png" alt="微信收款码"><figcaption><i style="background:#07C160"></i>微信支付</figcaption></figure>
+      <figure class="donate-ch"><img src="donate-alipay.png" alt="支付宝收款码"><figcaption><i style="background:#1677FF"></i>支付宝</figcaption></figure>
+    </div>
+    <p class="d-note">所有功能永远免费——这笔钱只影响作者期末夜的伙食质量。</p>
+  </div>
+</div>
+<script>
+function openDonate(){document.getElementById('donateModal').hidden=false;}
+function closeDonate(){document.getElementById('donateModal').hidden=true;}
+document.getElementById('donateModal').addEventListener('click',function(e){if(e.target===this)closeDonate();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDonate();});
+</script>
 
 </body>
 </html>

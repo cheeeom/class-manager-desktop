@@ -151,12 +151,18 @@ t('③f 注入层契约：示例体验 + 设置页再裁剪（v1.0.9）', () => 
   has(build, 'placeholder="如：高2026级一班"', '班级全称输入提示（老板示例：高2026级一班）');
   has(build, '三名学生可进入班委协作', '班委协作说明已重写（去版本号标签）');
   has(build, '登记 / 续假 / 销假 / 删除均不可用', '班委协作说明：请假页只读口径修正');
-  // 打赏入口（自愿/零痕迹）：素材缺省不渲染，资产到位即启用
-  has(p, 'function buildDonateRow', '打赏行构建（素材缺省整行不渲染）');
-  has(p, 'function cmDonateModal', '微信收款码弹层');
-  has(p, "CM_DONATE = { afdian: '', wechatImg: 'donate-wechat.png' }", '打赏配置：爱发电链接缺省 + 收款码可选资产');
-  has(p, "if (!hasAfdian && !hasWechat) return;", '零痕迹保证：两样都没有整行不渲染');
-  has(build, 'donate-wechat.png', 'build 可选拷贝收款码资产');
+  // 打赏入口（自愿/零捆绑）：微信+支付宝双渠道，设置常驻卡 + 满 3 天一次性提醒
+  has(p, 'function buildDonateRow', '关于卡常驻打赏卡');
+  has(p, 'function cmDonateModal', '双渠道选择弹窗（微信/支付宝并排标注）');
+  has(p, "CM_DONATE = { wechatImg: 'donate-wechat.png', alipayImg: 'donate-alipay.png' }", '双码资产接线');
+  has(p, '#07C160', '微信渠道徽标色');
+  has(p, '#1677FF', '支付宝渠道徽标色');
+  has(p, 'function cmNudgeMaybe', '满 3 天诙谐提醒（只弹一次）');
+  has(p, "CM_NUDGE_DAYS = 3", '提醒阈值 3 天');
+  has(p, "lsSet(CM_NUDGE_FLAG, '1')", '弹过即记，永不再扰');
+  has(p, 'if (lsGet(CM_TOUR_FLAG) === \'1\')', '示例体验期间不弹（避让）');
+  notHas(p, 'afdian', '爱发电暂缓（老板拍板）');
+  has(build, 'donate-alipay.png', 'build 双码资产拷贝');
 });
 
 t('④版权合规：安装包元数据 + 向导首尾 + 关于卡', () => {

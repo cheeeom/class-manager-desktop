@@ -25,6 +25,11 @@ app.whenReady().then(function () {
       await new Promise(r => setTimeout(r, 700));
       fs.writeFileSync(path.join(__dirname, 'out', '_landing_dl.png'),
         (await win.webContents.capturePage()).toPNG());
+      // 打赏弹窗
+      await win.webContents.executeJavaScript('document.querySelector(".dl .cta .btn-ghost[type=button]").click();1');
+      await new Promise(r => setTimeout(r, 600));
+      fs.writeFileSync(path.join(__dirname, 'out', '_landing_donate.png'),
+        (await win.webContents.capturePage()).toPNG());
       console.log('[LANDING] shots ok');
       app.exit(0);
     } catch (e) { console.log('[LANDING] fatal ' + (e && e.message)); app.exit(1); }

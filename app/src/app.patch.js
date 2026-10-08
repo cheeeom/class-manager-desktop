@@ -741,10 +741,8 @@
     var sn = document.getElementById('settingsReleaseNotes');
     if (sn && sn.parentElement) sn.parentElement.remove();
 
-    /* 打赏入口（自愿，不捆绑任何功能）：素材就位才渲染，两样都没有 → 界面零痕迹。
-       启用方式（不换代码）：
-       · CM_DONATE.afdian 填爱发电主页链接 → 「去爱发电」按钮出现（系统浏览器打开）
-       · dist 放入 donate-wechat.png（build.js 自动拷贝）→ 「微信扫码赞赏」按钮出现（弹扫码层） */
+    /* 打赏入口（v1.0.10）：微信 + 支付宝双渠道，关于卡常驻卡 + 满 3 天一次性提醒。
+       素材随构建分发，缺资产时按钮自动隐藏（见下方 CM_DONATE 模块注释）。 */
     buildDonateRow(about);
 
     // 应用内更新逻辑（仅桌面且有更新桥时接线）
@@ -798,11 +796,16 @@
     setTimeout(function () { checkNow(false); }, 30000);
   }
 
-  /* ---------- 打赏入口（爱发电链接 + 微信收款码弹层） ----------
-     原则：自愿、不捆绑、零痕迹 —— 素材缺哪个就藏哪个按钮，全缺则整行不渲染。
-     外链走 window.open → 主进程 setWindowOpenHandler → 系统浏览器（桌面守卫既有语义）。 ---------- */
-  var CM_DONATE = { afdian: '', wechatImg: 'donate-wechat.png' };
+  /* ---------- 打赏入口（微信 + 支付宝双渠道，自愿/零捆绑） ----------
+     三处触点：①关于卡常驻「请作者喝杯奶茶」卡片 → 双渠道选择弹窗
+              ②使用满 3 天首次进入工作台弹一次诙谐提醒（cmDonateNudge 只弹一次）
+              ③（落地页另有同款，独立实现）
+     渠道徽标色：微信 07C160 / 支付宝 1677FF。爱发电暂缓（老板拍板）。 ---------- */
+  var CM_DONATE = { wechatImg: 'donate-wechat.png', alipayImg: 'donate-alipay.png' };
+  var CM_NUDGE_FLAG = 'cmDonateNudge';
+  var CM_NUDGE_DAYS = 3;
 
+  /* 双渠道选择弹窗：两张码并排，注明渠道让用户挑着扫 */
   function cmDonateModal() {
     var old = document.getElementById('cmDeskDonateModal');
     if (old) { old.remove(); return; }
@@ -811,11 +814,13 @@
     m.innerHTML =
       '<div class="cmDesk-donate-card">' +
       '<button class="cmDesk-donate-close" id="cmDonateClose" aria-label="关闭">×</button>' +
-      '<h3>🧧 微信扫码赞赏</h3>' +
-      '<img class="cmDesk-donate-qr" src="' + CM_DONATE.wechatImg + '" alt="微信收款码"' +
-      ' onerror="this.style.display=\'none\';var t=document.getElementById(\'cmDonateMiss\');if(t)t.style.display=\'block\';">' +
-      '<p id="cmDonateMiss" style="display:none;font-size:12.5px">收款码没找到？到 设置 → 关于本系统 反馈一下，马上修。</p>' +
-      '<p>金额随意，心意收下。所有功能永远免费——这笔钱只影响作者今晚吃不吃鸡腿。</p>' +
+      '<h3>🧧 请作者喝杯奶茶</h3>' +
+      '<p class="cmDesk-donate-lead">微信还是支付宝，您挑顺手的扫。金额随意，心意收下。</p>' +
+      '<div class="cmDesk-donate-duo">' +
+      '<figure class="cmDesk-donate-ch"><img src="' + CM_DONATE.wechatImg + '" alt="微信收款码"><figcaption><i style="background:#07C160"></i>微信支付</figcaption></figure>' +
+      '<figure class="cmDesk-donate-ch"><img src="' + CM_DONATE.alipayImg + '" alt="支付宝收款码"><figcaption><i style="background:#1677FF"></i>支付宝</figcaption></figure>' +
+      '</div>' +
+      '<p class="cmDesk-donate-note">所有功能永远免费——这笔钱只影响作者期末夜的伙食质量。</p>' +
       '</div>';
     document.body.appendChild(m);
     m.addEventListener('click', function (e) {
@@ -823,32 +828,64 @@
     });
   }
 
+  /* 满天弹窗：一个班主任的小声叭叭（只弹一次，点「下次一定」后再不弹） */
+  function cmNudgeMaybe() {
+    if (lsGet(CM_NUDGE_FLAG) === '1') return;
+    var t0 = parseInt(lsGet(LS_ONBOARD), 10);
+    if (!t0 || Date.now() - t0 < CM_NUDGE_DAYS * 86400000) return;
+    lsSet(CM_NUDGE_FLAG, '1');   // 无论后续选哪边，本轮生命周期只打扰这一次
+    var old = document.getElementById('cmDeskNudge');
+    if (old) old.remove();
+    var m = el('div', 'cmDesk-modal-overlay');
+    m.id = 'cmDeskNudge';
+    m.innerHTML =
+      '<div class="cmDesk-donate-card cmDesk-nudge">' +
+      '<h3>📖 一个班主任的小声叭叭</h3>' +
+      '<p class="cmDesk-nudge-p">这个工具没有广告、没有激活码，也不打算找你办会员。</p>' +
+      '<p class="cmDesk-nudge-p">它值多少钱，取决于它替你省了多少操心。如果某个期末夜，是它陪你熬过来的——</p>' +
+      '<p class="cmDesk-nudge-p">可以考虑请作者喝杯奶茶。不请也完全没事，功能一分不减，作者照写不误，就是鸡腿会少一根。</p>' +
+      '<div class="cmDesk-gbtns" style="justify-content:center;margin-top:14px">' +
+      '<button class="btn btn-outline btn-sm" id="cmNudgeLater">下次一定</button>' +
+      '<button class="btn btn-primary btn-sm" id="cmNudgeYes"><span>🧧 请作者喝一杯</span></button>' +
+      '</div>' +
+      '</div>';
+    document.body.appendChild(m);
+    var close = function () { m.remove(); };
+    m.querySelector('#cmNudgeLater').onclick = close;
+    m.querySelector('#cmNudgeYes').onclick = function () { close(); cmDonateModal(); };
+    m.addEventListener('click', function (e) { if (e.target === m) close(); });
+  }
+
+  /* 等工作台可见再弹（顺带避开新手示例体验期间） */
+  function cmNudgeWatch() {
+    var tries = 0;
+    var t = setInterval(function () {
+      tries++;
+      if (lsGet(CM_NUDGE_FLAG) === '1') { clearInterval(t); return; }
+      var ov = document.getElementById('loginOverlay');
+      var overlayGone = !ov || ov.classList.contains('hidden');
+      var appEl = document.querySelector('.app');
+      var busy = lsGet('cmSampleTour') === '1' || document.getElementById('cmDeskNudge');
+      if (overlayGone && appEl && appEl.offsetParent !== null && !busy) {
+        clearInterval(t);
+        setTimeout(cmNudgeMaybe, 8000);   // 进来先干活，8 秒后再小声说话
+      } else if (tries > 480) { clearInterval(t); }
+    }, 500);
+  }
+
+  /* 常驻卡片：设置 → 关于本系统（介绍卡下方） */
   function buildDonateRow(about) {
-    var hasAfdian = !!CM_DONATE.afdian;
-    var hasWechat = !!CM_DONATE.wechatImg;
-    if (!hasAfdian && !hasWechat) return;
+    var hasAny = !!(CM_DONATE.wechatImg || CM_DONATE.alipayImg);
+    if (!hasAny) return;
+    if (about.querySelector('.cmDeskDonate')) return;
     var row = el('div', 'cmDeskDonate');
     row.innerHTML =
-      '<div class="cmDeskDonate-t">☕ 觉得好用，请作者喝杯奶茶（自愿 · 功能不加钱也不减）</div>' +
-      '<div class="cmDeskDonate-r"></div>';
-    var r = row.querySelector('.cmDeskDonate-r');
-    if (hasAfdian) {
-      var a = document.createElement('a');
-      a.className = 'btn btn-outline btn-sm';
-      a.href = CM_DONATE.afdian;
-      a.target = '_blank';
-      a.rel = 'noopener';
-      a.innerHTML = '<span>💚 去爱发电</span><span class="arr">→</span>';
-      r.appendChild(a);
-    }
-    if (hasWechat) {
-      var b = document.createElement('button');
-      b.className = 'btn btn-outline btn-sm';
-      b.id = 'cmDonateWechat';
-      b.innerHTML = '<span>🧧 微信扫码赞赏</span>';
-      b.onclick = cmDonateModal;
-      r.appendChild(b);
-    }
+      '<div class="cmDeskDonate-t">☕ <b>请作者喝杯奶茶</b>　<span>自愿 · 无广告无激活码，功能不加钱也不减——但奶茶能让更新写得更快。</span></div>' +
+      '<div class="cmDeskDonate-r">' +
+      '<button class="btn btn-outline btn-sm" id="cmDonateOpen"><span>🧧 打赏作者</span><span class="arr">→</span></button>' +
+      '<span class="cmDeskDonate-hint">微信 / 支付宝均可</span>' +
+      '</div>';
+    row.querySelector('#cmDonateOpen').onclick = cmDonateModal;
     var intro = about.querySelector('.cmDeskAbout');
     if (intro) intro.parentNode.insertBefore(row, intro.nextSibling);
     else about.appendChild(row);
@@ -858,6 +895,7 @@
   function boot() {
     // 上次会话示例体验未走完（中途关应用）→ 幂等清扫，绝不把示例数据留给正式使用
     if (lsGet(CM_TOUR_FLAG) === '1') cmSampleCleanup(true);
+    cmNudgeWatch();
     stripCloudUI();
     wrapDangerousFns();
     enhanceAbout();
