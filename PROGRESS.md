@@ -5,10 +5,19 @@
 ## 一、当前状态速览
 
 - **线上 Release**：**v1.0.12 = Latest**（三件套齐 + 镜像 latest.yml 服 1.0.12 + exe 206 实测）；v1.0.0…v1.0.11 在档。
-- **测试**：`_v_desktop_test.js` **15/15 全绿**（+⑦ Pro 契约段）；Pro 全链探针五步全绿；打包冒烟 **PASS**（v1.1.0 / wizard 交互 / feed=gh-proxy 镜像）。
-- **进行中**：**Pro 买断制 M4 付费墙+激活体系已完成编码**（v1.1.0 已打包**未发布**——M3 学期报告引擎未做，等老板验收 M4 后再定发布节奏）。落地页 Pro 专区已上线（远端 047c5652）。
+- **测试**：`_v_desktop_test.js` **16/16 全绿**（+⑦ Pro 契约 +⑧ M3 报告契约）；Pro 全链探针五步全绿；M3 报告探针全 PASS（引导框/个人/班级/PDF 落盘 80KB）；打包冒烟 **PASS**（v1.1.0）。
+- **进行中**：**Pro 买断制 M4 + M3 均已完成编码，v1.1.0 已打包**（BUILD-OK + 冒烟 PASS）——**未发布 Release**，等老板验收/下令发布。落地页 Pro 专区 + 商品链接已上线（远端 fe2c2be7）。
 
 ## 二、待办队列
+
+### Pro M3（已完成归档：学期报告引擎，2026-10-09）
+- [x] 数据地基（Explore 代理核实）：流水 `state.operations`（op{studentId,amount,coin,reason,time}，撤销=`state:'revoked'`，统计必走 `liveOps`）；请假 `state.leaves`（type sick/personal/official + duration）；成绩 `state.exams`（subjects + scores{studentId:{科目:分}}）；学期起点 `loadPubSetting('semesterStart')` 回退 9/1-3/1 自动推断（与公示页同口径）
+- [x] 报告面板（设置页入口卡「🎓 学期报告引擎」+ Pro 闸）：个人报告（学号/寝室/职位 + 期初基线/当前学分/净变化/学分币/加减分次数 + 大类分布条形图（reason 反查 REASON_CATALOG_FLAT）+ 请假统计 + 最近考试（总分/班级均分/名次）+ 老师寄语（localStorage 持久））；班级报告（人数/流水/请假汇总 + TOP10 净变榜 + 零扣分名单 + 考试概览）
+- [x] 双导出：canvas 自绘长图（750 宽朱砂品牌色，复用页面 pngExport）+ PDF（`__CM_PRO.reportPdf` → pro.core 隐藏窗口 printToPDF，A4 自包含 HTML，拒 `<script>` 注入）
+- [x] 🔴 **canvas 大坑（截图抓到）**：先画内容后赋 `canvas.height` 会**重置 context 抹掉全部绘制**（探针 nonBlank 只测到脚部色条误报通过）→ 修法 `cmCrop`（临时画布画完 drawImage 裁到定高画布）；探针非空判定同步改严（inkPx>3000 偏离背景像素计数）
+- [x] 探针 `_probe_report.js` 五步全 PASS：①未激活弹引导框 ②真码激活 ③个人画布 inkPx=23331 ④班级画布 inkPx=15462 ⑤PDF 落盘 80,743B；测试 16/16（+⑧ M3 契约段）
+- [x] 真公钥 `CM_PRO_PUB`（64hex，KeyGen）与爱发电商品链接（`afdian.com/item/e4cf19…`）已内置并上线（落地页线上验收 ✓，远端 fe2c2be7）
+- ⏳ 待老板：用 KeyGen 真码对打包版实测激活（打包版公钥=真钥，dev 逃生舱已封）；下令发布 v1.1.0 Release
 
 ### Pro M4（已完成编码，v1.1.0 已打包未发布：付费墙 + 激活体系）
 - [x] 激活码体系：申请码 `b64url(JSON{v:1,dev:16hex,eh:8hex})`；规范串 `CM1|tier|sn|eh|dev|ts`；激活码 `CMPRO1.` + `b64url(JSON{...,sig})`；Ed25519 签验（noble-ed25519 v2.1.0 → `app/src/ed25519.cjs` CJS 化）
