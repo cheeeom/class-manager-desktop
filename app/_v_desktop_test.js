@@ -274,7 +274,7 @@ t('⑦ 注入层契约：Pro 买断体系（v1.1.0）', () => {
   has(p, 'function cmProModal', 'Pro 引导弹窗');
   has(p, 'cmProReqCode', '申请码生成（设备指纹+邮箱哈希）');
   has(p, 'custom_order_id=', '购买链接携带申请码（自动发货对单用）');
-  has(p, 'afdian.com/a/', '爱发电购买入口（afdian.com 新域名）');
+  has(p, 'afdian.com/item/', '爱发电商品页购买入口（afdian.com 新域名）');
   has(p, "id=\"cmProClaim\"", '「我已付款自动取码」按钮');
   has(p, "id=\"cmProGo\"", '手动贴码激活');
   has(p, '846699191@qq.com', '失败兜底联系邮箱');
@@ -291,7 +291,7 @@ t('⑦ 注入层契约：Pro 买断体系（v1.1.0）', () => {
   has(core, "ipcMain.handle('cm-pro-status'", '状态 IPC（重验签）');
   has(core, "ipcMain.handle('cm-pro-activate'", '激活 IPC');
   has(core, "ipcMain.handle('cm-pro-claim'", '自动取码 IPC');
-  has(m, "CM_PRO_PUB = ''", '公钥常量占位（上线前 KeyGen 替换）');
+  ok(/const CM_PRO_PUB = '[0-9a-f]{64}'/.test(m), '真公钥已内置（64 hex）');
   has(m, 'proCore.register(', '主进程注册 Pro handlers');
   ok(m.indexOf("process.env.CM_PRO_PUB_DEV") >= 0, '测试公钥逃生舱口存在');
   ok(/!app\.isPackaged && process\.env\.CM_PRO_PUB_DEV/.test(m), '公钥测试覆盖仅限非打包环境');

@@ -118,7 +118,7 @@ ipcMain.handle('cm-feedback-mail', function () {
    验签/激活/取码实现全部在 src/pro.core.cjs（探针共用同一实现，测的是真代码）。
    CM_PRO_PUB 上线前用 KeyGen 生成的真公钥替换；测试可用 CM_PRO_PUB_DEV 覆盖（仅非打包环境生效）。 */
 const proCore = require('./src/pro.core.cjs');
-const CM_PRO_PUB = '';
+const CM_PRO_PUB = '4e4f3a71ab421ffa3aad6681143b0b6b0d25bb1297e19ac27883eebfbd66fbc5';   // KeyGen 生成（2026-10-09 老板提供）
 const CM_PRO_CLAIM_API = '';   // 自动取码云函数地址（部署后填；未填=自动取码关闭，走手动发码）
 let proPubCache = '';
 function proPub() {

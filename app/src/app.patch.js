@@ -947,7 +947,7 @@
      原则：导出按钮 UI 不变，点击才拦；每会话每功能只弹一次引导框；
      验签在主进程（__CM_PRO 桥），渲染层只做展示与状态缓存。 */
   var CM_PRO_LS = 'cmProCache';
-  var CM_PRO_BUY_URL = 'https://afdian.com/a/cheeeom';   // ⚠️ 老板开店后替换（与落地页一致）
+  var CM_PRO_BUY_URL = 'https://afdian.com/item/e4cf1936c3d611f19ca752540025c377';   // 爱发电 Pro 商品页（2026-10-09 老板开店后替换）
   var CM_PRO_SESSION = {};                                // 本会话已弹过的功能
   function cmProCache() {
     try { return JSON.parse(lsGet(CM_PRO_LS) || '{}'); } catch (e) { return {}; }
