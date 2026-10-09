@@ -395,6 +395,23 @@ t('⑩ 页面级 Pro 锁', function () {
   has(p, "cmWrapPro('exportWeeklyReport', '学分周报导出')", '学分周报导出已挂 gate');
 });
 
+/* ⑪ v1.2.3：激活心跳（退款自动上锁） */
+t('⑪ 激活心跳与退款上锁', function () {
+  const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
+  const core = fs.readFileSync(path.join(HERE, 'src', 'pro.core.cjs'), 'utf8');
+  const pre = fs.readFileSync(path.join(HERE, 'preload.js'), 'utf8');
+  has(core, "ipcMain.handle('cm-pro-heartbeat'", '主进程心跳 IPC');
+  has(core, 'reqCode', '激活时持久化申请码（心跳凭据）');
+  has(core, "replace('?req=', '?mode=check&req=')", '心跳 URL 换 check 分支');
+  has(core, 'unlinkSync', '吊销 = 删激活文件上锁');
+  has(core, 'alive === false', '吊销判定');
+  has(pre, 'heartbeat:', 'preload 心跳桥');
+  has(p, 'function cmProHeartbeat', '渲染层心跳调度');
+  has(p, 'function cmProRevoke', '吊销后恢复锁态');
+  has(p, 'setTimeout(cmProHeartbeat, 20000)', '启动 20s 后静默复查');
+  has(p, 'cmProRefresh()', '吊销后刷新激活缓存');
+});
+
 console.log('\n通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 console.log(`结果：${pass} 通过，${fail} 失败`);
 if (fail) { console.log('\n失败项：'); failures.forEach(f => console.log('  · ' + f)); }

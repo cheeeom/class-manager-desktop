@@ -41,7 +41,7 @@ function register(deps) {
       const l = proParse(payload && payload.lic);
       const r = await proCheck(l, req && req.dev, pub());
       if (!r.ok) return { ok: false, why: r.why === '设备不符' ? '这个激活码不是签给本机的（换机请联系作者免费重置）' : '激活码无效（' + r.why + '）' };
-      fs.writeFileSync(proFile(), JSON.stringify({ lic: l, dev: r.dev, activatedAt: Date.now() }, null, 1));
+      fs.writeFileSync(proFile(), JSON.stringify({ lic: l, dev: r.dev, activatedAt: Date.now(), reqCode: typeof (payload && payload.req) === 'string' ? payload.req : '' }, null, 1));
       return { ok: true, tier: r.tier, sn: r.sn, eh: r.eh };
     } catch (e) { return { ok: false, why: String(e && e.message || e).slice(0, 100) }; }
   });
@@ -58,6 +58,30 @@ function register(deps) {
       const j = JSON.parse(acc);
       return j && j.ok ? { ok: true, lic: j.lic } : { ok: false, why: (j && j.why) || 'NOT_FOUND' };
     } catch (e2) { return { ok: false, why: 'NET' }; }
+  });
+  /* 激活心跳（v1.2.3）：启动后静默复查订单健康度，退款/异常订单 → 删激活文件 = 上锁。
+     无 reqCode（老激活/手动特批）或断网 → checked:false 跳过，宁宽勿错。 */
+  ipcMain.handle('cm-pro-heartbeat', async function () {
+    try {
+      const f = proFile();
+      if (!fs.existsSync(f)) return { checked: false };
+      const st = JSON.parse(fs.readFileSync(f, 'utf8'));
+      if (!st.reqCode || !claimApi || claimApi.indexOf('?req=') < 0) return { checked: false };
+      const url = claimApi.replace('?req=', '?mode=check&req=') + encodeURIComponent(st.reqCode);
+      const acc = await new Promise(function (resolve, reject) {
+        const rq = net.request(url);
+        let buf = '';
+        rq.on('response', function (res) { res.on('data', (c) => { buf += c; }); res.on('end', () => resolve(buf)); });
+        rq.on('error', reject);
+        rq.end();
+      });
+      const j = JSON.parse(acc);
+      if (j && j.ok && j.alive === false) {
+        try { fs.unlinkSync(f); } catch (e2) {}
+        return { revoked: true, why: j.why || 'REFUNDED' };
+      }
+      return { revoked: false, checked: true };
+    } catch (e) { return { checked: false, why: 'NET' }; }
   });
   /* 剪贴板（v1.2.0）：file:// 下 navigator.clipboard 不可靠，主进程 clipboard 直写/直读 */
   const { clipboard: CLIP } = require('electron');

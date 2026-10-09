@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld('__CM_PRO', {
   status: function () { return ipcRenderer.invoke('cm-pro-status'); },
   activate: function (payload) { return ipcRenderer.invoke('cm-pro-activate', payload); },
   claim: function (reqCode) { return ipcRenderer.invoke('cm-pro-claim', reqCode); },
+  heartbeat: function () { return ipcRenderer.invoke('cm-pro-heartbeat'); },
   reportPdf: function (html, name) { return ipcRenderer.invoke('cm-pro-report-pdf', { html: html, name: name }); }
 });
 

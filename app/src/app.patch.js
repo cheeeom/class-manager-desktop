@@ -1032,6 +1032,30 @@
     };
     document.body.appendChild(pill);
   }
+  /* 激活心跳（v1.2.3）：启动后静默复查订单，退款 → 删激活文件（主进程）+ 本地恢复锁态。
+     断网/无码 → 主进程返回 checked:false，静默跳过，宁宽勿错。 */
+  function cmProRevoke() {
+    cmProRefresh().then(function () {
+      if (window.showToast) window.showToast('Pro 激活已失效（订单退款或异常），已恢复基础版', 'error');
+      var cur = null;
+      Object.keys(CM_PRO_PAGES).forEach(function (k) {
+        var p = document.getElementById('page-' + k);
+        if (p && p.classList.contains('active')) cur = k;
+      });
+      if (cur && !cmProActive() && window.__cmRole !== 'committee') {
+        var info = CM_PRO_PAGES[cur];
+        cmGatePage = cur;
+        cmBlurTarget(true);
+        cmProModal(info[0], { intro: info[1], gatePage: cur });
+      }
+    });
+  }
+  function cmProHeartbeat() {
+    if (!window.__CM_PRO || !window.__CM_PRO.heartbeat) return;
+    window.__CM_PRO.heartbeat().then(function (r) {
+      if (r && r.revoked) cmProRevoke();
+    }).catch(function () {});
+  }
   function wrapNavigatePro() {
     var origNav = window.navigateTo;
     if (typeof origNav !== 'function' || wrapNavigatePro._done) return;
@@ -1632,6 +1656,7 @@
     silenceCloudPush();
     wrapNavigatePro();
     buildNavPro();
+    setTimeout(cmProHeartbeat, 20000);   // 激活心跳：启动 20s 后静默复查（v1.2.3）
     enhanceAbout();
     buildSecurityCard();
     if (!lsGet(LS_ONBOARD)) {
