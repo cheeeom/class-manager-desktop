@@ -332,6 +332,41 @@ t('M3 学期报告引擎契约', function () {
   has(css, '.cmDesk-pro-badge', 'PRO 徽章样式');
 });
 
+/* ⑨ v1.1.1：Pro 扩容 + 导航栏 Pro 化 + 复制修复 + 云同步静音 */
+t('⑨ Pro 扩容与导航栏 Pro 化', function () {
+  const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
+  const core = fs.readFileSync(path.join(HERE, 'src', 'pro.core.cjs'), 'utf8');
+  const pre = fs.readFileSync(path.join(HERE, 'preload.js'), 'utf8');
+  const css = fs.readFileSync(path.join(HERE, 'src', 'wizard.css'), 'utf8');
+  // 复制走主进程 clipboard
+  has(core, "ipcMain.handle('cm-clip-write'", '主进程剪贴板 IPC');
+  has(core, 'CLIP.writeText', 'Electron clipboard 直写');
+  has(pre, '__CM_CLIP', 'preload 剪贴板桥');
+  has(p, 'function cmProCopy', '统一复制函数（桥优先）');
+  has(p, '__CM_CLIP.write', '复制桥优先于 navigator.clipboard');
+  has(p, 'cmProCopy(req,', '申请码复制走统一函数');
+  // Pro 扩容：工作留痕配图 / 学分银行 / 数据分析
+  has(p, "cmWrapPro('wlAddImages', '工作留痕配图')", '工作留痕配图已挂 Pro gate');
+  has(p, "cmWrapPro('cbDoSettleUI', '学分银行')", '学分银行·月度结算已挂 gate');
+  has(p, "cmWrapPro('cbOpenItemDetail', '学分银行')", '学分银行·兑换已挂 gate');
+  has(p, "cmWrapPro('cbUseVoucherUI', '学分银行')", '学分银行·核销已挂 gate');
+  has(p, "cmWrapPro('cbRefundVoucherUI', '学分银行')", '学分银行·退还已挂 gate');
+  has(p, "cmWrapPro('cbOpenItemEditor', '学分银行')", '学分银行·商品编辑已挂 gate');
+  has(p, "cmWrapPro('cbOpenBankProfile', '学分银行')", '学分银行·学生档案已挂 gate');
+  has(p, "cmWrapPro('switchAnalyticsTab', '数据分析')", '数据分析·切 tab 已挂 gate');
+  // 导航栏：PRO 角标 + 学期报告独立入口
+  has(p, 'function buildNavPro', '导航栏 Pro 化函数');
+  has(p, 'cmDesk-navbadge', 'PRO 角标类');
+  has(p, 'cmNavReport', '学期报告导航项');
+  has(p, "it.addEventListener('click', function () { cmReportOpen(); });", '报告导航项直弹报告/引导框');
+  has(css, '.cmDesk-navbadge', '导航 PRO 角标样式');
+  // 设置页入口卡已撤（挪到导航栏）
+  ok(p.indexOf('buildReportCard') < 0, '设置页报告入口卡应已移除');
+  // 云同步静音
+  has(p, 'function silenceCloudPush', '云同步静音函数');
+  has(p, 'window.autoPushToCloud = function', 'autoPushToCloud 已置空（去 token 提示）');
+});
+
 console.log('\n通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 console.log(`结果：${pass} 通过，${fail} 失败`);
 if (fail) { console.log('\n失败项：'); failures.forEach(f => console.log('  · ' + f)); }

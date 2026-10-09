@@ -31,3 +31,8 @@ contextBridge.exposeInMainWorld('__CM_PRO', {
   claim: function (reqCode) { return ipcRenderer.invoke('cm-pro-claim', reqCode); },
   reportPdf: function (html, name) { return ipcRenderer.invoke('cm-pro-report-pdf', { html: html, name: name }); }
 });
+
+/* 剪贴板（v1.1.1）：主进程直写，file:// 下比 navigator.clipboard 可靠 */
+contextBridge.exposeInMainWorld('__CM_CLIP', {
+  write: function (text) { return ipcRenderer.invoke('cm-clip-write', text); }
+});

@@ -917,11 +917,16 @@
   function cmCopyText(txt) {
     var ok = function () { if (window.showToast) window.showToast('邮箱已复制', 'success'); };
     var bad = function () { if (window.showToast) window.showToast('复制失败，请手动记录邮箱', 'error'); };
+    cmProCopy(txt, ok, bad);
+  }
+  /* 统一复制（v1.1.1）：主进程 clipboard 直写（file:// 下 navigator.clipboard 不可靠）→ execCommand 兜底 */
+  function cmProCopy(txt, ok, bad) {
+    var fail = function () { (cmCopyFallback(txt) ? ok : bad)(); };
     try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(txt).then(ok, function () { cmCopyFallback(txt) ? ok() : bad(); });
-      } else { cmCopyFallback(txt) ? ok() : bad(); }
-    } catch (e) { cmCopyFallback(txt) ? ok() : bad(); }
+      if (window.__CM_CLIP && window.__CM_CLIP.write) {
+        window.__CM_CLIP.write(txt).then(function (r) { (r && r.ok) ? ok() : fail(); }, fail);
+      } else fail();
+    } catch (e) { fail(); }
   }
   function buildFeedbackRow(about) {
     if (about.querySelector('.cmDeskFeedback')) return;
@@ -1018,8 +1023,7 @@
     m.querySelector('#cmProLater').onclick = function () { m.remove(); };
     m.addEventListener('click', function (e) { if (e.target === m) m.remove(); });
     m.querySelector('#cmProReqCopy').onclick = function () {
-      var done = function () { if (window.showToast) window.showToast('申请码已复制，下单时粘贴到留言', 'success'); };
-      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(req).then(done, done); else done();
+      cmProCopy(req, function () { if (window.showToast) window.showToast('申请码已复制，下单时粘贴到留言', 'success'); }, function () { if (window.showToast) window.showToast('复制失败，请长按手动复制', 'error'); });
     };
     m.querySelector('#cmProClaim').onclick = function () {
       var msg = m.querySelector('#cmProMsg');
@@ -1494,18 +1498,33 @@
       });
     };
   }
-  /* 设置页入口卡 */
-  function buildReportCard() {
-    var about = document.getElementById('settingsAbout');
-    if (!about || document.getElementById('cmDeskReportCard')) return;
-    var sec = el('div', 'settings-section cmDeskReportSec');
-    sec.id = 'cmDeskReportCard';
-    sec.innerHTML =
-      '<h3>🎓 学期报告引擎</h3>' +
-      '<div class="cmDeskDonate-t">一键生成个人 / 班级学期报告：学分表现 · 请假记录 · 考试成绩，长图与 PDF 双导出。<span class="cmDesk-pro-badge">PRO</span></div>' +
-      '<div class="cmDeskDonate-r"><button class="btn btn-primary btn-sm" id="cmRptEntry">打开报告面板</button></div>';
-    sec.querySelector('#cmRptEntry').onclick = cmReportOpen;
-    about.parentNode.insertBefore(sec, about);
+  /* 导航栏 Pro 化（v1.1.1）：学期报告独立入口 + 学分银行/数据分析 PRO 角标。
+     动态插入的 .nav-item 不会被页面启动时的批量绑定监听 → 自己绑 click。 */
+  function buildNavPro() {
+    var nav = document.getElementById('nav');
+    if (!nav || document.getElementById('cmNavReport')) return;
+    ['bank', 'analytics'].forEach(function (pg) {
+      var item = nav.querySelector('.nav-item[data-page="' + pg + '"]');
+      if (item && !item.querySelector('.cmDesk-navbadge')) {
+        var b = el('span', 'cmDesk-navbadge');
+        b.textContent = 'PRO';
+        item.appendChild(b);
+      }
+    });
+    var settingsItem = nav.querySelector('.nav-item[data-page="settings"]');
+    var it = el('div', 'nav-item cmDesk-navreport');
+    it.id = 'cmNavReport';
+    it.title = '学期报告（Pro）';
+    it.innerHTML = '<span class="nav-icon">🎓</span><span>学期报告</span><span class="cmDesk-navbadge">PRO</span>';
+    it.addEventListener('click', function () { cmReportOpen(); });
+    if (settingsItem) settingsItem.parentNode.insertBefore(it, settingsItem);
+    else nav.appendChild(it);
+  }
+  /* 云同步静音（v1.1.1）：桌面版数据只在本机，autoPushToCloud 的「未配置云同步 Token」提示与桌面改造方向不符 */
+  function silenceCloudPush() {
+    if (typeof window.autoPushToCloud === 'function') {
+      window.autoPushToCloud = function () {};
+    }
   }
 
   /* ---------- 启动 ---------- */
@@ -1518,8 +1537,17 @@
     cmProRefresh();                              // Pro 状态预热（激活缓存供 nudge/gate 判定）
     cmWrapPro('seatExportImage', '座次表导出打印');   // Pro gate（UI 不变，点击才拦）
     cmWrapPro('dutyExportImage', '值日表导出打印');
+    cmWrapPro('wlAddImages', '工作留痕配图');
+    cmWrapPro('cbDoSettleUI', '学分银行');
+    cmWrapPro('cbOpenItemDetail', '学分银行');
+    cmWrapPro('cbUseVoucherUI', '学分银行');
+    cmWrapPro('cbRefundVoucherUI', '学分银行');
+    cmWrapPro('cbOpenItemEditor', '学分银行');
+    cmWrapPro('cbOpenBankProfile', '学分银行');
+    cmWrapPro('switchAnalyticsTab', '数据分析');
+    silenceCloudPush();
+    buildNavPro();
     enhanceAbout();
-    buildReportCard();
     buildSecurityCard();
     if (!lsGet(LS_ONBOARD)) {
       stepWelcome();               // 首启：向导盖在最上层（含登录页之上）

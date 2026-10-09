@@ -65,7 +65,7 @@ app.whenReady().then(async function () {
       STEP = '①未激活点入口';
       await jsx('window.navigateTo("settings");1');
       await wait(600);
-      await jsx('var e=document.getElementById("cmRptEntry");e?e.click():0;1');
+      await jsx('var e=document.getElementById("cmNavReport");e?e.click():0;1');
       await wait(400);
       let r = await jsx('(function(){var m=document.getElementById("cmDeskProModal");return JSON.stringify({modal:!!m,h3:m?(m.querySelector("h3")||{}).textContent:null});})()');
       console.log('[RPT] ①未激活点报告入口 =', r);
@@ -80,7 +80,7 @@ app.whenReady().then(async function () {
       await wait(900);
 
       STEP = '③激活后开面板+个人报告';
-      await jsx('var e=document.getElementById("cmRptEntry");e?e.click():0;1');
+      await jsx('var e=document.getElementById("cmNavReport");e?e.click():0;1');
       await wait(400);
       await jsx('var t=document.getElementById("cmRptCmt");if(t)t.value="继续保持，期末冲一波！";1');
       await jsx('var g=document.getElementById("cmRptGen");g?g.click():0;1');

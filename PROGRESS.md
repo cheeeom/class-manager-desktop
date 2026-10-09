@@ -10,6 +10,19 @@
 
 ## 二、待办队列
 
+### v1.1.1（已完成编码：老板实测七连反馈修复，打包中）
+- [x] **复制申请码不进剪贴板**（老板实测）：file:// 下 navigator.clipboard 不可靠 → 主进程 `cm-clip-write` IPC（Electron clipboard 直写，pro.core 同源）+ `__CM_CLIP` 桥；统一 `cmProCopy`（桥→execCommand 兜底），申请码/邮箱两处复制全接
+- [x] **示例数据弹「未配置云同步 Token」**（老板实测）：`silenceCloudPush()` 把 `autoPushToCloud` 置空——桌面版数据只在本机，云推送提示与桌面改造方向不符
+- [x] **学分银行 → Pro**：页面可看，操作全锁（月度结算/兑换详情/核销/退还/商品编辑/学生银行档案 六闸，label 统一「学分银行」）
+- [x] **数据分析 → Pro**：页面可看，`switchAnalyticsTab` 上锁（初始成绩分析 tab 可看，深度 tab 弹引导框）
+- [x] **导航栏 PRO 角标**：学分银行/数据分析 nav-item 右上角 PRO 小徽章（`.cmDesk-navbadge`，pointer-events:none）
+- [x] **学期报告挪出设置页**：`buildReportCard` 删除 → 导航栏独立项「🎓 学期报告」（设置项上方，PRO 角标；动态插入项自绑 click → 未激活直弹购买引导框 = 所有 Pro 模块点击即弹购买）
+- [x] **工作留痕配图 → Pro**：`cmWrapPro('wlAddImages')`
+- [x] **学生档案导出**：档案页现无导出功能（Explore 核实），个人学期报告即档案导出场景（已 Pro）——回复老板，暂无新闸点
+- [x] **落地页**：「先在浏览器试试」按钮已删；购买链接实测 200（老板点时商品或未生效），App 外链本就走 shell.openExternal 系统浏览器
+- [x] 测试 **17/17**（+⑨ Pro 扩容段）；报告探针五步 PASS（导航入口）+ Pro 探针回归 PASS
+- [x] 版本升 **1.1.1**（预览包独立版本号铁律）
+
 ### Pro M3（已完成归档：学期报告引擎，2026-10-09）
 - [x] 数据地基（Explore 代理核实）：流水 `state.operations`（op{studentId,amount,coin,reason,time}，撤销=`state:'revoked'`，统计必走 `liveOps`）；请假 `state.leaves`（type sick/personal/official + duration）；成绩 `state.exams`（subjects + scores{studentId:{科目:分}}）；学期起点 `loadPubSetting('semesterStart')` 回退 9/1-3/1 自动推断（与公示页同口径）
 - [x] 报告面板（设置页入口卡「🎓 学期报告引擎」+ Pro 闸）：个人报告（学号/寝室/职位 + 期初基线/当前学分/净变化/学分币/加减分次数 + 大类分布条形图（reason 反查 REASON_CATALOG_FLAT）+ 请假统计 + 最近考试（总分/班级均分/名次）+ 老师寄语（localStorage 持久））；班级报告（人数/流水/请假汇总 + TOP10 净变榜 + 零扣分名单 + 考试概览）
