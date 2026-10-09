@@ -428,6 +428,22 @@ t('⑫ 开发者模式', function () {
   has(css, '.cmDesk-devcard', '开发者面板样式');
 });
 
+/* ⑬ v1.2.5：开发者密钥门槛（开启需密钥，关闭免密） */
+t('⑬ 开发者密钥门槛', function () {
+  const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
+  const m = fs.readFileSync(path.join(HERE, 'main.js'), 'utf8');
+  const pre = fs.readFileSync(path.join(HERE, 'preload.js'), 'utf8');
+  has(m, "ipcMain.handle('cm-dev-checkkey'", '主进程密钥校验 IPC');
+  has(m, 'CM_DEV_KEY_HASH', '代码只存 SHA-256 不存明文');
+  has(m, "createHash('sha256')", 'SHA-256 比对');
+  has(pre, '__CM_DEV', 'preload 密钥校验桥');
+  has(p, 'function cmDevKeyPrompt', '密钥输入弹窗');
+  has(p, "id=\"cmDevKeyIn\" type=\"password\"", '密钥输入框（密码态）');
+  has(p, "else cmDevKeyPrompt();", '开启需密钥');
+  ok(/cmDevOn\) \{\s*\/\/ 关闭免密/.test(p) || p.indexOf('关闭免密') >= 0, '关闭免密');
+  has(p, "checkKey(v).then", '异步主进程比对');
+});
+
 console.log('\n通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 console.log(`结果：${pass} 通过，${fail} 失败`);
 if (fail) { console.log('\n失败项：'); failures.forEach(f => console.log('  · ' + f)); }

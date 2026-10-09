@@ -1134,10 +1134,47 @@
     cmDevTapTs = now;
     if (++cmDevTaps >= 5) {
       cmDevTaps = 0;
-      cmDevOn = !cmDevOn;
-      if (window.showToast) window.showToast(cmDevOn ? '🛠 开发者模式已开启（右下角 DEV）' : '开发者模式已关闭', cmDevOn ? 'success' : 'info');
-      cmDevApply();
+      if (cmDevOn) {   // 关闭免密
+        cmDevOn = false; cmDevOverride = null;
+        if (document.getElementById('cmDeskDevCard')) document.getElementById('cmDeskDevCard').remove();
+        if (window.showToast) window.showToast('开发者模式已关闭', 'info');
+        cmDevApply();
+      } else cmDevKeyPrompt();   // 开启需密钥
     }
+  }
+  function cmDevKeyPrompt() {
+    if (document.getElementById('cmDevKeyModal')) return;
+    var ov = el('div', 'cmDesk-modal-overlay'); ov.id = 'cmDevKeyModal';
+    ov.innerHTML =
+      '<div class="cmDesk-modal">' +
+      '<h3>🛠 开发者模式</h3>' +
+      '<div class="cmDesk-pro-intro">此模式用于调试预览（模拟激活双态/重播向导），请输入开发者密钥。密钥遗失请联系作者重置。</div>' +
+      '<input id="cmDevKeyIn" type="password" placeholder="开发者密钥（形如 CMDEV-XXXX-XXXX-XXXX-XXXX）" style="width:100%;font-family:monospace;font-size:12px;padding:9px 11px;border:1px solid var(--border,#E6DECD);border-radius:8px;box-sizing:border-box">' +
+      '<div id="cmDevKeyMsg" style="font-size:12px;color:#B04A3A;min-height:16px;margin-top:6px"></div>' +
+      '<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-outline btn-sm" id="cmDevKeyCancel">取消</button><button class="btn btn-primary btn-sm" id="cmDevKeyGo">验证并开启</button></div>' +
+      '</div>';
+    document.body.appendChild(ov);
+    var done = false;
+    ov.querySelector('#cmDevKeyCancel').onclick = function () { done = true; ov.remove(); };
+    ov.addEventListener('click', function (ev) { if (ev.target === ov && !done) { done = true; ov.remove(); } });
+    function tryGo() {
+      if (done) return;
+      var v = ov.querySelector('#cmDevKeyIn').value.trim();
+      if (!v) { ov.querySelector('#cmDevKeyMsg').textContent = '请输入密钥'; return; }
+      if (!window.__CM_DEV || !window.__CM_DEV.checkKey) { ov.querySelector('#cmDevKeyMsg').textContent = '校验不可用'; return; }
+      window.__CM_DEV.checkKey(v).then(function (ok) {
+        if (done) return;
+        if (ok) {
+          done = true; ov.remove();
+          cmDevOn = true;
+          if (window.showToast) window.showToast('🛠 开发者模式已开启（右下角 DEV）', 'success');
+          cmDevApply();
+        } else ov.querySelector('#cmDevKeyMsg').textContent = '密钥不正确';
+      }).catch(function () { ov.querySelector('#cmDevKeyMsg').textContent = '校验失败，重试'; });
+    }
+    ov.querySelector('#cmDevKeyGo').onclick = tryGo;
+    ov.querySelector('#cmDevKeyIn').addEventListener('keydown', function (ev) { if (ev.key === 'Enter') tryGo(); });
+    setTimeout(function () { var i = ov.querySelector('#cmDevKeyIn'); if (i) i.focus(); }, 60);
   }
   function wrapNavigatePro() {
     var origNav = window.navigateTo;

@@ -34,6 +34,11 @@ contextBridge.exposeInMainWorld('__CM_PRO', {
 });
 
 /* 剪贴板（v1.2.0）：主进程直写直读，file:// 下比 navigator.clipboard 可靠 */
+/* 开发者密钥校验（v1.2.5）：SHA-256 在主进程比对 */
+contextBridge.exposeInMainWorld('__CM_DEV', {
+  checkKey: function (k) { return ipcRenderer.invoke('cm-dev-checkkey', k); }
+});
+
 contextBridge.exposeInMainWorld('__CM_CLIP', {
   write: function (text) { return ipcRenderer.invoke('cm-clip-write', text); },
   read: function () { return ipcRenderer.invoke('cm-clip-read'); }

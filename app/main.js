@@ -3,6 +3,7 @@
 const { app, BrowserWindow, shell, ipcMain, session, net, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 app.setName('班主任工作台');
 
@@ -126,6 +127,13 @@ function proPub() {
   return proPubCache;
 }
 proCore.register({ ipcMain, app, fs, path, net, pub: proPub, claimApi: CM_PRO_CLAIM_API });
+
+/* 开发者密钥门槛（v1.2.5）：明文只存作者桌面备份，代码里只留 SHA-256；关闭开发者模式不走此校验 */
+const CM_DEV_KEY_HASH = '5a751dcd6ba32957381c49c3d81052ba9a82285c017d9bb1d11fcb874f8f1dd7';
+ipcMain.handle('cm-dev-checkkey', function (e, k) {
+  try { return crypto.createHash('sha256').update(String(k || '').trim(), 'utf8').digest('hex') === CM_DEV_KEY_HASH; }
+  catch (e2) { return false; }
+});
 /* Pro handlers（含 M3 学期报告 PDF 导出）全部在 pro.core.cjs —— main 与探针同源测真代码。 */
 
 function createWindow() {
