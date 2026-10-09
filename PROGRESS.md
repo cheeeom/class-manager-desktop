@@ -5,10 +5,18 @@
 ## 一、当前状态速览
 
 - **线上 Release**：**v1.0.12 = Latest**（三件套齐 + 镜像 latest.yml 服 1.0.12 + exe 206 实测）；v1.0.0…v1.0.11 在档。
-- **测试**：`_v_desktop_test.js` **16/16 全绿**（+⑦ Pro 契约 +⑧ M3 报告契约）；Pro 全链探针五步全绿；M3 报告探针全 PASS（引导框/个人/班级/PDF 落盘 80KB）；打包冒烟 **PASS**（v1.1.0）。
-- **进行中**：**Pro 买断制 M4 + M3 均已完成编码，v1.1.0 已打包**（BUILD-OK + 冒烟 PASS）——**未发布 Release**，等老板验收/下令发布。落地页 Pro 专区 + 商品链接已上线（远端 fe2c2be7）。
+- **测试**：`_v_desktop_test.js` **17/18**（+⑨⑩；唯一失败 = root 零改动检查 EBUSY 环境误报，git 侧面确认零改动）；gate 探针六步 + report 探针全 PASS；打包冒烟 **PASS**（v1.2.1，角标/向导/consoleErrors 零）。
+- **进行中**：**v1.2.1 已打包**（自动取码 API 上线）——**未发布 Release**，等老板下令发布。v1.1.0/v1.1.1/v1.2.0 三包均在 out/ 备档。
+- **发货机已上线**（2026-10-09）：腾讯云函数 `cm-pro-shipper`（ap-shanghai，Nodejs12.16 Web 函数），URL `https://1466839507-gqk4mefrq0.ap-shanghai.tencentscf.com/?req=`；4 环境变量全齐（含 PRO_PRIV）；线上实测：格式拒 + 合法 payload → `NOT_FOUND`（爱发电翻页查单链路通）。部署改走 **SCF REST API**（`scripts/_scf_api.py` TC3 签名，密钥 `scripts/_tencent_creds.txt` 严禁入仓）；浏览器代操作在本机不可行（GUI 进程被系统收割，试 3 次全灭）。
 
 ## 二、待办队列
+
+### v1.2.1（已完成：自动取码转正，已打包未发布）
+- [x] `main.js` `CM_PRO_CLAIM_API` 填入云函数 URL →「② 我已付款 · 自动获取激活码」按钮转正（未填时仍显示但点击提示 AUTO_OFF）
+- [x] 发货机部署：云端 zip 只替换根 app.js（端口 9001→9000，腾讯 Web 函数固定转发 9000）+ 删脏 index.html；**scf_bootstrap 重打包必须保留 0o755**
+- [x] ⚠️ 申请码**不带 CMPRO1. 前缀**（前缀只在激活码 lic 上）；云函数格式校验 16-64 位 base64url + `{v:1,dev:16hex,eh:8hex}`
+- [x] build.js spawnSync 修复：`execSync('git show…')` → `execFileSync`（cmd.exe 被系统拦截 EBUSY；Node spawn 在本机不可靠，仍挂时用 CM_HEAD_FILE 逃生舱——**文件必须来自网页版仓** `../class-manager`，不是桌面版仓）
+- [x] 回归：契约 17/18（EBUSY 环境误报）+ gate/report 探针 PASS + 冒烟 PASS（v1.2.1 角标/consoleErrors 零/feed gh-proxy）
 
 ### v1.1.1（已完成编码：老板实测七连反馈修复，打包中）
 - [x] **复制申请码不进剪贴板**（老板实测）：file:// 下 navigator.clipboard 不可靠 → 主进程 `cm-clip-write` IPC（Electron clipboard 直写，pro.core 同源）+ `__CM_CLIP` 桥；统一 `cmProCopy`（桥→execCommand 兜底），申请码/邮箱两处复制全接

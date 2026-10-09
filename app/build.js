@@ -27,7 +27,7 @@ try {
     headContent = fs.readFileSync(process.env.CM_HEAD_FILE, 'utf8');
     log('· HEAD 内容来自 CM_HEAD_FILE（跳过 git spawn）');
   } else {
-    headContent = require('child_process').execSync('git show HEAD:index.html', { cwd: ROOT, maxBuffer: 32 * 1024 * 1024 }).toString();
+    headContent = require('child_process').execFileSync('git', ['show', 'HEAD:index.html'], { cwd: ROOT, maxBuffer: 32 * 1024 * 1024 }).toString();
   }
 } catch (e) { die('取 git HEAD:index.html 失败：' + e.message); }
 if (sha256(rootBuf) !== sha256(Buffer.from(headContent, 'utf8'))) {
