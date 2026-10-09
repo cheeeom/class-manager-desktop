@@ -412,6 +412,22 @@ t('⑪ 激活心跳与退款上锁', function () {
   has(p, 'cmProRefresh()', '吊销后刷新激活缓存');
 });
 
+/* ⑫ v1.2.4：开发者模式（双态模拟 + 向导重播） */
+t('⑫ 开发者模式', function () {
+  const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
+  const css = fs.readFileSync(path.join(HERE, 'src', 'wizard.css'), 'utf8');
+  has(p, 'cmDevOverride !== null) return cmDevOverride === true', '渲染层模拟优先于真实状态');
+  has(p, 'function cmDevTap', '连点入口计数');
+  has(p, "closest('.sidebar-footer')", '侧栏版本文字连点 5 次');
+  has(p, 'cmDevTaps >= 5', '5 次阈值');
+  has(p, 'function cmDevPanel', '浮动开发者面板');
+  has(p, "lsSet(LS_ONBOARD, ''); stepWelcome()", '重播首启向导');
+  has(p, '不改动真实激活数据', '面板注明不碰真实数据');
+  has(p, 'cmDevApply', '模拟后即时套用锁态');
+  has(css, '.cmDesk-devbadge', 'DEV 角标样式');
+  has(css, '.cmDesk-devcard', '开发者面板样式');
+});
+
 console.log('\n通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 console.log(`结果：${pass} 通过，${fail} 失败`);
 if (fail) { console.log('\n失败项：'); failures.forEach(f => console.log('  · ' + f)); }

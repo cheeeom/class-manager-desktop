@@ -199,3 +199,12 @@ body{
 .cmDesk-pro-intro{font-size:12.5px;color:var(--ink,#2B2B33);background:var(--row-bg,#FBF8F1);border:1px solid var(--border,#E6DECD);border-radius:10px;padding:9px 12px;margin-bottom:8px;line-height:1.8;text-align:left}
 .cmDesk-pro-manual{font-size:12px;color:var(--text-secondary,#5F5E5A);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .cmDesk-pro-manual input{flex:1;min-width:150px;font-family:monospace;font-size:11px;padding:7px 9px;border:1px solid var(--border,#E6DECD);border-radius:8px}
+
+/* 开发者模式（v1.2.4）：DEV 角标 + 浮动面板 */
+.cmDesk-devbadge{position:fixed;right:14px;bottom:14px;z-index:10000;background:#3A6EA5;color:#fff;border:0;border-radius:14px;padding:6px 12px;font-size:11.5px;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(20,40,70,.35);opacity:.88}
+.cmDesk-devbadge:hover{opacity:1}
+.cmDesk-devcard{position:fixed;right:14px;bottom:54px;z-index:10001;background:#fff;border:1px solid #C9D4E4;border-radius:14px;padding:14px;width:260px;box-shadow:0 14px 40px rgba(20,40,70,.28)}
+.cmDesk-devcard h4{margin:0 0 10px;font-size:13.5px;color:#26456B}
+.cmDesk-devrow{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.cmDesk-devnote{font-size:11px;color:#7A8899;line-height:1.6}
+.cmDesk-devcard .btn.active{outline:2px solid #3A6EA5;outline-offset:1px}

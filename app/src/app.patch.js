@@ -954,10 +954,16 @@
   var CM_PRO_LS = 'cmProCache';
   var CM_PRO_BUY_URL = 'https://afdian.com/item/e4cf1936c3d611f19ca752540025c377';   // 爱发电 Pro 商品页（2026-10-09 老板开店后替换）
   var CM_PRO_SESSION = {};                                // 本会话已弹过的功能
+  /* 开发者模式（v1.2.4）：渲染层模拟激活/未激活，不碰真实激活文件。
+     入口 = 3 秒内连点侧栏版本文字 5 次；badge 常驻右下角，点开浮动面板。 */
+  var cmDevOn = false, cmDevOverride = null, cmDevTaps = 0, cmDevTapTs = 0;
   function cmProCache() {
     try { return JSON.parse(lsGet(CM_PRO_LS) || '{}'); } catch (e) { return {}; }
   }
-  function cmProActive() { return cmProCache().active === true; }
+  function cmProActive() {
+    if (cmDevOverride !== null) return cmDevOverride === true;   // 开发者模拟优先（仅渲染层）
+    return cmProCache().active === true;
+  }
   function cmProRefresh() {
     if (!window.__CM_PRO) return Promise.resolve({ active: false });
     return window.__CM_PRO.status().then(function (r) {
@@ -1055,6 +1061,83 @@
     window.__CM_PRO.heartbeat().then(function (r) {
       if (r && r.revoked) cmProRevoke();
     }).catch(function () {});
+  }
+  /* ---------- 开发者模式（v1.2.4）---------- */
+  function cmDevCurPage() {
+    var cur = null;
+    Object.keys(CM_PRO_PAGES).forEach(function (k) {
+      var p = document.getElementById('page-' + k);
+      if (p && p.classList.contains('active')) cur = k;
+    });
+    return cur;
+  }
+  function cmDevApply() {
+    var badge = document.getElementById('cmDeskDevBadge');
+    if (cmDevOn) {
+      if (!badge) {
+        badge = el('button', 'cmDesk-devbadge'); badge.id = 'cmDeskDevBadge';
+        badge.textContent = 'DEV';
+        badge.onclick = function () { cmDevPanel(); };
+        document.body.appendChild(badge);
+      }
+      badge.textContent = 'DEV · ' + (cmDevOverride === null ? '真实' : cmDevOverride ? '模拟已激活' : '模拟未激活');
+    } else if (badge) badge.remove();
+    var cur = cmDevCurPage();
+    if (cur) {
+      var locked = (cmDevOverride === false) || (cmDevOverride === null && !cmProCache().active);
+      if (locked && window.__cmRole !== 'committee') {
+        var info = CM_PRO_PAGES[cur];
+        cmGatePage = cur;
+        cmBlurTarget(true);
+        var om = document.getElementById('cmDeskProModal');
+        if (om) om.remove();
+        cmProModal(info[0], { intro: info[1], gatePage: cur });
+      } else {
+        cmPageLockClear();
+        var om2 = document.getElementById('cmDeskProModal');
+        if (om2) om2.remove();
+      }
+    }
+    cmDevRenderPanel();
+  }
+  function cmDevPanel() {
+    var old = document.getElementById('cmDeskDevCard');
+    if (old) { old.remove(); return; }
+    var c = el('div', 'cmDesk-devcard'); c.id = 'cmDeskDevCard';
+    c.innerHTML =
+      '<h4>🛠 开发者模式</h4>' +
+      '<div class="cmDesk-devrow"><button class="btn btn-outline btn-sm" id="cmDevNo">模拟未激活</button>' +
+      '<button class="btn btn-outline btn-sm" id="cmDevYes">模拟已激活</button>' +
+      '<button class="btn btn-outline btn-sm" id="cmDevReal">恢复真实</button></div>' +
+      '<div class="cmDesk-devrow"><button class="btn btn-outline btn-sm" id="cmDevWiz">重播首启向导</button>' +
+      '<button class="btn btn-ghost btn-sm" id="cmDevOff">关闭开发者模式</button></div>' +
+      '<div class="cmDesk-devnote">仅影响本窗口显示，不改动真实激活数据</div>';
+    document.body.appendChild(c);
+    c.querySelector('#cmDevNo').onclick = function () { cmDevOverride = false; cmDevApply(); };
+    c.querySelector('#cmDevYes').onclick = function () { cmDevOverride = true; cmDevApply(); };
+    c.querySelector('#cmDevReal').onclick = function () { cmDevOverride = null; cmDevApply(); };
+    c.querySelector('#cmDevWiz').onclick = function () { c.remove(); lsSet(LS_ONBOARD, ''); stepWelcome(); };
+    c.querySelector('#cmDevOff').onclick = function () { cmDevOn = false; cmDevOverride = null; c.remove(); cmDevApply(); };
+    cmDevRenderPanel();
+  }
+  function cmDevRenderPanel() {
+    var c = document.getElementById('cmDeskDevCard');
+    if (!c) return;
+    [['#cmDevNo', cmDevOverride === false], ['#cmDevYes', cmDevOverride === true], ['#cmDevReal', cmDevOverride === null]].forEach(function (it) {
+      var b = c.querySelector(it[0]);
+      if (b) b.classList.toggle('active', it[1]);
+    });
+  }
+  function cmDevTap() {
+    var now = Date.now();
+    if (now - cmDevTapTs > 3000) cmDevTaps = 0;
+    cmDevTapTs = now;
+    if (++cmDevTaps >= 5) {
+      cmDevTaps = 0;
+      cmDevOn = !cmDevOn;
+      if (window.showToast) window.showToast(cmDevOn ? '🛠 开发者模式已开启（右下角 DEV）' : '开发者模式已关闭', cmDevOn ? 'success' : 'info');
+      cmDevApply();
+    }
   }
   function wrapNavigatePro() {
     var origNav = window.navigateTo;
@@ -1657,6 +1740,10 @@
     wrapNavigatePro();
     buildNavPro();
     setTimeout(cmProHeartbeat, 20000);   // 激活心跳：启动 20s 后静默复查（v1.2.3）
+    document.body.addEventListener('click', function (ev) {   // 开发者模式入口：连点侧栏版本文字 5 次
+      var f = ev.target && ev.target.closest ? ev.target.closest('.sidebar-footer') : null;
+      if (f) cmDevTap();
+    });
     enhanceAbout();
     buildSecurityCard();
     if (!lsGet(LS_ONBOARD)) {
