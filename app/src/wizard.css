@@ -170,3 +170,19 @@ body{
 .cmDesk-pro-manual{font-size:12px;color:var(--text-secondary,#5F5E5A);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .cmDesk-pro-manual input{flex:1;min-width:180px;font-family:monospace;font-size:11px;padding:7px 9px;border:1px solid var(--border,#E6DECD);border-radius:8px}
 .cmDesk-pro-msg{font-size:11.5px;color:var(--text-muted,#8C8577);line-height:1.7;margin-top:8px}
+
+/* ---------- M3 学期报告引擎（v1.1.0 Pro） ---------- */
+.cmDesk-pro-badge{display:inline-block;background:var(--primary,#A63A2B);color:#fff;border-radius:9px;padding:1px 9px;font-size:10px;font-weight:bold;vertical-align:2px;margin-left:4px}
+.cmDesk-report-panel{max-width:640px;width:min(640px,94vw);text-align:left}
+.cmDesk-rp-tabs{display:flex;gap:8px;margin-bottom:12px}
+.cmDesk-rp-tab{border:1px solid var(--border,#E6DECD);background:var(--row-bg,#FBF8F1);color:var(--text-secondary,#5F5E5A);border-radius:10px;padding:7px 18px;font-size:13px;cursor:pointer}
+.cmDesk-rp-tab.active{background:var(--primary,#A63A2B);border-color:var(--primary,#A63A2B);color:#fff;font-weight:600}
+.cmDesk-rp-row{margin-bottom:10px}
+.cmDesk-rp-row label{display:block;font-size:12px;color:var(--text-secondary,#5F5E5A);margin-bottom:4px}
+.cmDesk-rp-row select{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border,#E6DECD);border-radius:8px;background:var(--row-bg,#FBF8F1);font-size:13px}
+.cmDesk-rp-row textarea{width:100%;box-sizing:border-box;margin-top:8px;padding:8px 10px;border:1px solid var(--border,#E6DECD);border-radius:8px;font-size:12.5px;resize:vertical;font-family:inherit}
+.cmDesk-rp-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.cmDesk-rp-preview{max-height:52vh;overflow:auto;border:1px solid var(--border,#E6DECD);border-radius:10px;background:var(--row-bg,#FBF8F1);padding:10px}
+.cmDesk-rp-preview canvas{display:block;width:100%;height:auto;border-radius:8px;box-shadow:0 2px 10px rgba(60,40,20,.12)}
+.cmDesk-rp-empty{font-size:12px;color:var(--text-muted,#8C8577);text-align:center;padding:26px 10px}
+.cmDesk-rp-msg{font-size:11.5px;color:var(--text-muted,#8C8577);line-height:1.7;margin-top:8px;word-break:break-all}

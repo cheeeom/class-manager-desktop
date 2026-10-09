@@ -59,6 +59,43 @@ function register(deps) {
       return j && j.ok ? { ok: true, lic: j.lic } : { ok: false, why: (j && j.why) || 'NOT_FOUND' };
     } catch (e2) { return { ok: false, why: 'NET' }; }
   });
+  /* 学期报告 PDF 导出（M3）：隐藏窗口 printToPDF，全程离线。
+     BrowserWindow/dialog 取自 deps 或 electron 本体（探针同源可用）。
+     免对话框逃生舱仅非打包 + CM_PROBE_PDF=1（探针）。 */
+  const { BrowserWindow: BW } = deps.BrowserWindow ? { BrowserWindow: deps.BrowserWindow } : require('electron');
+  const { dialog: DLG } = deps.dialog ? { dialog: deps.dialog } : require('electron');
+  ipcMain.handle('cm-pro-report-pdf', async function (e, payload) {
+    let bw = null;
+    try {
+      const html = String((payload && payload.html) || '');
+      const name = String((payload && payload.name) || '学期报告.pdf').replace(/[\\/:*?"<>|]/g, '_');
+      if (!html || html.length > 2000000) return { ok: false, why: '报告内容为空或过大' };
+      if (/<script/i.test(html)) return { ok: false, why: '报告内容不允许包含脚本' };
+      bw = new BW({ show: false, webPreferences: { offscreen: true } });
+      await bw.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+      const buf = await bw.webContents.printToPDF({
+        printBackground: true, pageSize: 'A4',
+        margins: { top: 0.55, bottom: 0.55, left: 0.5, right: 0.5 }
+      });
+      let filePath = null;
+      if (!app.isPackaged && process.env.CM_PROBE_PDF === '1') {
+        filePath = path.join(app.getPath('temp'), name);
+      } else {
+        const r = await DLG.showSaveDialog(bw, {
+          title: '导出学期报告 PDF', defaultPath: name,
+          filters: [{ name: 'PDF 文档', extensions: ['pdf'] }]
+        });
+        if (r.canceled || !r.filePath) return { ok: false, why: 'canceled' };
+        filePath = r.filePath;
+      }
+      fs.writeFileSync(filePath, buf);
+      return { ok: true, path: filePath };
+    } catch (err) {
+      return { ok: false, why: String((err && err.message) || err).slice(0, 140) };
+    } finally {
+      if (bw && !bw.isDestroyed()) bw.destroy();
+    }
+  });
 }
 
 module.exports = { proParse, proCanon, proCheck, register, ed };

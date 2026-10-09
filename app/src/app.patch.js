@@ -1065,6 +1065,449 @@
     about.parentNode.insertBefore(sec, about);
   }
 
+  /* ---------- M3 学期报告引擎（v1.1.0 Pro 核心）：个人 + 班级，长图 / PDF ----------
+     数据只用网页版 state（流水/请假/成绩），统计一律走 liveOps 过滤撤销；
+     学期起点与公示页同口径（手动设置优先，回退 3/1、9/1 自动推断）；
+     导出两条路：canvas 自绘长图（复用页面 pngExport）+ 主进程 printToPDF。 */
+  var CM_RPT_BG = '#FDFBF7', CM_RPT_BRAND = '#A63A2B', CM_RPT_INK = '#2B2B33',
+      CM_RPT_SUB = '#6B6B75', CM_RPT_LINE = '#E5E0D8';
+  function cmReportSemStart() {
+    var t = 0;
+    try {
+      var v = loadPubSetting('semesterStart');
+      if (v) { var d = new Date(v + 'T00:00:00'); if (!isNaN(d.getTime())) t = d.getTime(); }
+    } catch (e) {}
+    if (!t) {
+      var now = new Date(), y = now.getFullYear(), m = now.getMonth() + 1;
+      var sy = (m >= 9) ? y : (m <= 2 ? y - 1 : y), sm = (m >= 3 && m <= 8) ? 3 : 9;
+      t = new Date(sy, sm - 1, 1).getTime();
+    }
+    return t;
+  }
+  function cmReportSemName() {
+    try { var c = pubRangeCaption('semester'); if (c) return c; } catch (e) {}
+    var now = new Date(), m = now.getMonth() + 1;
+    return now.getFullYear() + ' 年' + ((m >= 3 && m <= 8) ? '春' : '秋') + '学期';
+  }
+  function cmReportDstr(ts) {
+    var d = new Date(ts);
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+  function cmReportCatOf(reason) {
+    try { return REASON_CATALOG_FLAT[reason] || '其他'; } catch (e) { return '其他'; }
+  }
+  function cmReportClassTitle() {
+    try { return (state.className || '').trim(); } catch (e) { return ''; }
+  }
+  function cmReportLiveStudents() {
+    return (state.students || []).filter(function (s) { return !(state.studentDeleted && state.studentDeleted[s.id]); });
+  }
+  function cmReportDormOf(stu) {
+    var tags = stu.tags || [];
+    for (var i = 0; i < tags.length; i++) if (/^\d+栋-?\d+室$/.test(tags[i])) return tags[i];
+    return tags.indexOf('走读') >= 0 ? '走读' : '';
+  }
+  var CM_RPT_POSTS = { banzhang: '班长', fubanzhang: '副班长', jilv: '纪律委员', xuexi: '学习委员', tiyu: '体育委员', shenghuo: '生活委员', wenyi: '文艺委员', xinxi: '信息委员' };
+  function cmReportPostOf(stuId) {
+    try {
+      var cm = state.committee || {};
+      for (var k in cm) if (cm[k] === stuId) return CM_RPT_POSTS[k] || k;
+    } catch (e) {}
+    return '';
+  }
+  function cmReportLatestExam() {
+    var ex = (state.exams || []).slice().filter(function (e) { return e && e.scores; });
+    if (!ex.length) return null;
+    ex.sort(function (a, b) { return (a.date < b.date ? -1 : 1); });
+    return ex[ex.length - 1];
+  }
+  function cmReportExamTotals(exam) {
+    var subs = exam.subjects || [], rows = [];
+    cmReportLiveStudents().forEach(function (s) {
+      var sc = exam.scores[s.id]; if (!sc) return;
+      var t = 0, c = 0;
+      subs.forEach(function (su) { var v = sc[su]; if (typeof v === 'number') { t += v; c++; } });
+      if (c === subs.length && subs.length) rows.push({ id: s.id, name: s.name, total: t });
+    });
+    rows.sort(function (a, b) { return b.total - a.total; });
+    return rows;
+  }
+  /* 个人数据聚合 */
+  function cmReportStuData(stu) {
+    var t0 = cmReportSemStart(), t0s = cmReportDstr(t0);
+    var ops = liveOps(state.operations).filter(function (o) { return o.studentId === stu.id && Number(o.time) >= t0; });
+    var d = { stu: stu, sem: cmReportSemName(), cls: cmReportClassTitle(), add: 0, sub: 0, addCnt: 0, subCnt: 0, coin: 0, cats: [], lv: null, exam: null, rank: 0, examCnt: 0 };
+    var byCat = {};
+    ops.forEach(function (o) {
+      if (o.amount >= 0) { d.add += o.amount; d.addCnt++; } else { d.sub += o.amount; d.subCnt++; }
+      d.coin += Number(o.coin || 0);
+      var c = cmReportCatOf(o.reason);
+      if (!byCat[c]) byCat[c] = { name: c, add: 0, sub: 0, cnt: 0 };
+      byCat[c].cnt++;
+      if (o.amount >= 0) byCat[c].add += o.amount; else byCat[c].sub += o.amount;
+    });
+    d.cats = Object.keys(byCat).map(function (k) { return byCat[k]; })
+      .sort(function (a, b) { return (b.add - b.sub) - (a.add - a.sub) || b.cnt - a.cnt; });
+    var leaves = (state.leaves || []).filter(function (l) { return l.studentId === stu.id && l.startDate && l.startDate >= t0s; });
+    var lv = { total: leaves.length, days: 0, sick: 0, personal: 0, official: 0 };
+    leaves.forEach(function (l) {
+      lv.days += Number(l.duration) || 0;
+      if (l.type === 'sick') lv.sick++; else if (l.type === 'personal') lv.personal++; else if (l.type === 'official') lv.official++;
+    });
+    d.lv = lv;
+    var exam = cmReportLatestExam();
+    if (exam) {
+      var rows = cmReportExamTotals(exam);
+      for (var i = 0; i < rows.length; i++) if (rows[i].id === stu.id) {
+        d.exam = { name: exam.name, date: exam.date, total: rows[i].total, avg: 0, rank: i + 1, cnt: rows.length };
+        break;
+      }
+      if (d.exam) {
+        var sum = 0; rows.forEach(function (r) { sum += r.total; });
+        d.exam.avg = rows.length ? Math.round(sum / rows.length * 10) / 10 : 0;
+      }
+    }
+    return d;
+  }
+  /* 班级数据聚合 */
+  function cmReportClassData() {
+    var t0 = cmReportSemStart(), t0s = cmReportDstr(t0);
+    var ops = liveOps(state.operations).filter(function (o) { return Number(o.time) >= t0; });
+    var d = { sem: cmReportSemName(), cls: cmReportClassTitle(), n: 0, opCnt: ops.length, per: {}, top: [], clean: [], lvTotal: 0, lvDays: 0, exam: null };
+    var stus = cmReportLiveStudents();
+    d.n = stus.length;
+    ops.forEach(function (o) {
+      var p = d.per[o.studentId]; if (!p) p = d.per[o.studentId] = { add: 0, sub: 0 };
+      if (o.amount >= 0) p.add += o.amount; else p.sub += o.amount;
+    });
+    var rows = stus.map(function (s) {
+      var p = d.per[s.id] || { add: 0, sub: 0 };
+      return { name: s.name, sid: s.sid, add: p.add, sub: p.sub, net: p.add + p.sub };
+    });
+    d.top = rows.slice().sort(function (a, b) { return b.net - a.net || b.add - a.add; }).slice(0, 10);
+    d.clean = rows.filter(function (r) { return r.sub === 0; }).slice(0, 20);
+    (state.leaves || []).forEach(function (l) {
+      if (l.startDate && l.startDate >= t0s) { d.lvTotal++; d.lvDays += Number(l.duration) || 0; }
+    });
+    var exam = cmReportLatestExam();
+    if (exam) {
+      var tot = cmReportExamTotals(exam), sum = 0;
+      tot.forEach(function (r) { sum += r.total; });
+      if (tot.length) d.exam = { name: exam.name, date: exam.date, cnt: tot.length, avg: Math.round(sum / tot.length * 10) / 10, max: tot[0].total, min: tot[tot.length - 1].total, first: tot[0].name };
+    }
+    return d;
+  }
+  /* canvas 小工具 */
+  function cmRr(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+  /* canvas 小工具：定高裁切（直接改 height 会重置 context 抹掉全部绘制） */
+  function cmCrop(c, h) {
+    var c2 = document.createElement('canvas');
+    c2.width = 750; c2.height = h;
+    c2.getContext('2d').drawImage(c, 0, 0);
+    return c2;
+  }
+  function cmWrapText(ctx, text, x, y, maxW, lh) {
+    var line = '';
+    for (var i = 0; i < text.length; i++) {
+      if (ctx.measureText(line + text[i]).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = text[i]; }
+      else line += text[i];
+    }
+    if (line) { ctx.fillText(line, x, y); y += lh; }
+    return y;
+  }
+  function cmRptHead(ctx, title, sub, y) {
+    ctx.fillStyle = CM_RPT_BG; ctx.fillRect(0, 0, 750, y);
+    ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 26px sans-serif'; ctx.fillText(title, 40, y - 46);
+    ctx.fillStyle = CM_RPT_SUB; ctx.font = '13px sans-serif'; ctx.fillText(sub, 40, y - 20);
+    ctx.fillStyle = CM_RPT_BRAND; cmRr(ctx, 640, y - 52, 70, 26, 13); ctx.fill();
+    ctx.fillStyle = '#FFF'; ctx.font = 'bold 12px sans-serif'; ctx.fillText('PRO', 657, y - 34);
+    ctx.strokeStyle = CM_RPT_LINE; ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(710, y); ctx.stroke();
+    return y + 26;
+  }
+  function cmRptStat(ctx, x, y, w, label, value, color) {
+    ctx.fillStyle = '#FFFFFF'; cmRr(ctx, x, y, w, 64, 10); ctx.fill();
+    ctx.strokeStyle = CM_RPT_LINE; cmRr(ctx, x, y, w, 64, 10); ctx.stroke();
+    ctx.fillStyle = CM_RPT_SUB; ctx.font = '12px sans-serif'; ctx.fillText(label, x + 14, y + 24);
+    ctx.fillStyle = color || CM_RPT_INK; ctx.font = 'bold 22px sans-serif'; ctx.fillText(value, x + 14, y + 50);
+  }
+  function cmRptFoot(ctx, h) {
+    ctx.strokeStyle = CM_RPT_LINE; ctx.beginPath(); ctx.moveTo(40, h - 52); ctx.lineTo(710, h - 52); ctx.stroke();
+    ctx.fillStyle = CM_RPT_SUB; ctx.font = '11px sans-serif';
+    ctx.fillText('班主任工作台 · ' + cmReportSemName() + '学期报告', 40, h - 30);
+    ctx.fillText('生成于 ' + localDateStr(), 710 - ctx.measureText('生成于 ' + localDateStr()).width, h - 30);
+  }
+  /* 个人报告长图 */
+  function cmReportStuCanvas(d, comment) {
+    var stu = d.stu, y = 0;
+    var c = document.createElement('canvas');
+    var ctx = c.getContext('2d');
+    c.width = 750; c.height = 1400;
+    ctx.fillStyle = CM_RPT_BG; ctx.fillRect(0, 0, 750, c.height);
+    y = cmRptHead(ctx, '学期个人报告', d.sem + (d.cls ? ' · ' + d.cls : ''), 92);
+    ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 30px sans-serif'; ctx.fillText(stu.name, 40, y + 34);
+    ctx.fillStyle = CM_RPT_SUB; ctx.font = '13px sans-serif';
+    var meta = '学号 ' + (stu.sid || '-');
+    if (cmReportDormOf(stu)) meta += ' · ' + cmReportDormOf(stu);
+    if (cmReportPostOf(stu.id)) meta += ' · ' + cmReportPostOf(stu.id);
+    ctx.fillText(meta, 40, y + 58);
+    y += 84;
+    var base = (typeof stu.creditBase === 'number') ? stu.creditBase : null;
+    cmRptStat(ctx, 40, y, 202, '期初基线', base === null ? '-' : String(base), CM_RPT_INK);
+    cmRptStat(ctx, 274, y, 202, '当前学分', String(stu.credit), CM_RPT_BRAND);
+    cmRptStat(ctx, 508, y, 202, '学期净变化', (d.add + d.sub >= 0 ? '+' : '') + (d.add + d.sub), d.add + d.sub >= 0 ? '#2E7D32' : '#B23B3B');
+    y += 84;
+    cmRptStat(ctx, 40, y, 202, '学期加分', '+' + d.add + '（' + d.addCnt + ' 次）', '#2E7D32');
+    cmRptStat(ctx, 274, y, 202, '学期扣分', d.sub + '（' + d.subCnt + ' 次）', '#B23B3B');
+    cmRptStat(ctx, 508, y, 202, '累计学分币', String(d.coin), CM_RPT_INK);
+    y += 106;
+    if (d.cats.length) {
+      ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 16px sans-serif'; ctx.fillText('本学期表现分布', 40, y);
+      y += 18;
+      var maxNet = 1;
+      d.cats.forEach(function (cat) { maxNet = Math.max(maxNet, Math.abs(cat.add + cat.sub)); });
+      d.cats.slice(0, 6).forEach(function (cat) {
+        var net = cat.add + cat.sub;
+        y += 30;
+        ctx.fillStyle = CM_RPT_INK; ctx.font = '13px sans-serif'; ctx.fillText(cat.name, 40, y + 4);
+        var bw = Math.round(Math.abs(net) / maxNet * 380);
+        ctx.fillStyle = net >= 0 ? '#2E7D32' : '#B23B3B';
+        if (bw > 0) { cmRr(ctx, 150, y - 8, Math.max(bw, 6), 14, 7); ctx.fill(); }
+        ctx.fillStyle = CM_RPT_SUB; ctx.font = '12px sans-serif';
+        ctx.fillText((net >= 0 ? '+' : '') + net + ' 分 · ' + cat.cnt + ' 次', 150 + Math.max(bw, 6) + 12, y + 4);
+      });
+      y += 34;
+    }
+    ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 16px sans-serif'; ctx.fillText('请假记录', 40, y);
+    y += 24;
+    ctx.fillStyle = CM_RPT_SUB; ctx.font = '13px sans-serif';
+    ctx.fillText(d.lv.total ? ('病假 ' + d.lv.sick + ' 次 · 事假 ' + d.lv.personal + ' 次 · 公假 ' + d.lv.official + ' 次 · 合计 ' + d.lv.days + ' 天') : '本学期无请假记录', 40, y);
+    y += 40;
+    if (d.exam) {
+      ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 16px sans-serif'; ctx.fillText('最近考试 · ' + d.exam.name, 40, y);
+      y += 24;
+      ctx.fillStyle = CM_RPT_SUB; ctx.font = '13px sans-serif';
+      ctx.fillText('总分 ' + d.exam.total + '（班级均分 ' + d.exam.avg + '，第 ' + d.exam.rank + ' / ' + d.exam.cnt + ' 名）', 40, y);
+      y += 40;
+    }
+    if (comment) {
+      ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 16px sans-serif'; ctx.fillText('老师寄语', 40, y);
+      y += 26;
+      ctx.fillStyle = CM_RPT_INK; ctx.font = '14px sans-serif';
+      y = cmWrapText(ctx, comment, 40, y, 670, 22);
+      y += 14;
+    }
+    cmRptFoot(ctx, y + 76);
+    return cmCrop(c, y + 76);
+  }
+  /* 班级报告长图 */
+  function cmReportClassCanvas(d) {
+    var c = document.createElement('canvas');
+    var ctx = c.getContext('2d');
+    c.width = 750; c.height = 1600;
+    ctx.fillStyle = CM_RPT_BG; ctx.fillRect(0, 0, 750, c.height);
+    var y = cmRptHead(ctx, '学期班级报告', d.sem + (d.cls ? ' · ' + d.cls : ''), 92);
+    cmRptStat(ctx, 40, y, 202, '班级人数', d.n + ' 人', CM_RPT_INK);
+    cmRptStat(ctx, 274, y, 202, '学期流水', d.opCnt + ' 条', CM_RPT_INK);
+    cmRptStat(ctx, 508, y, 202, '请假合计', d.lvDays + ' 天（' + d.lvTotal + ' 次）', CM_RPT_INK);
+    y += 88;
+    ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 16px sans-serif'; ctx.fillText('学分排行 TOP10（按学期净变化）', 40, y);
+    y += 14;
+    ctx.fillStyle = CM_RPT_SUB; ctx.font = '12px sans-serif';
+    ctx.fillText('名次', 40, y + 26); ctx.fillText('姓名', 100, y + 26);
+    ctx.fillText('加分', 220, y + 26); ctx.fillText('扣分', 310, y + 26); ctx.fillText('净变化', 400, y + 26);
+    y += 36;
+    d.top.forEach(function (r, i) {
+      ctx.fillStyle = i < 3 ? CM_RPT_BRAND : CM_RPT_INK; ctx.font = 'bold 13px sans-serif';
+      ctx.fillText(String(i + 1), 40, y + 20);
+      ctx.fillStyle = CM_RPT_INK; ctx.font = '13px sans-serif';
+      ctx.fillText(r.name, 100, y + 20);
+      ctx.fillStyle = '#2E7D32'; ctx.fillText('+' + r.add, 220, y + 20);
+      ctx.fillStyle = r.sub ? '#B23B3B' : CM_RPT_SUB; ctx.fillText(String(r.sub), 310, y + 20);
+      ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 13px sans-serif';
+      ctx.fillText((r.net >= 0 ? '+' : '') + r.net, 400, y + 20);
+      ctx.strokeStyle = CM_RPT_LINE; ctx.beginPath(); ctx.moveTo(40, y + 30); ctx.lineTo(710, y + 30); ctx.stroke();
+      y += 38;
+    });
+    y += 18;
+    if (d.clean.length) {
+      ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 16px sans-serif'; ctx.fillText('零扣分名单（本学期）', 40, y);
+      y += 26;
+      ctx.fillStyle = CM_RPT_INK; ctx.font = '13px sans-serif';
+      y = cmWrapText(ctx, d.clean.map(function (r) { return r.name; }).join(' · '), 40, y, 670, 24);
+    }
+    y += 16;
+    if (d.exam) {
+      ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 16px sans-serif'; ctx.fillText('最近考试 · ' + d.exam.name, 40, y);
+      y += 24;
+      ctx.fillStyle = CM_RPT_SUB; ctx.font = '13px sans-serif';
+      ctx.fillText('参考 ' + d.exam.cnt + ' 人 · 均分 ' + d.exam.avg + ' · 最高 ' + d.exam.max + '（' + d.exam.first + '）· 最低 ' + d.exam.min, 40, y);
+      y += 40;
+    }
+    cmRptFoot(ctx, y + 76);
+    return cmCrop(c, y + 76);
+  }
+  /* PDF HTML（A4 自包含，禁止脚本已由主进程校验） */
+  function cmRptPdfShell(title, bodyHtml) {
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + title + '</title><style>' +
+      'body{font-family:"Microsoft YaHei",sans-serif;color:#2B2B33;margin:0;padding:24px 28px;background:#FDFBF7;font-size:12px;}' +
+      'h1{font-size:22px;margin:0 0 4px;}h2{font-size:14px;margin:18px 0 8px;border-bottom:1px solid #E5E0D8;padding-bottom:6px;}' +
+      '.sub{color:#6B6B75;font-size:11px;}.pro{display:inline-block;background:#A63A2B;color:#fff;border-radius:9px;padding:1px 9px;font-size:9px;font-weight:bold;vertical-align:middle;}' +
+      '.stat{display:inline-block;width:30%;background:#fff;border:1px solid #E5E0D8;border-radius:8px;padding:8px 10px;margin:4px 1% 4px 0;}' +
+      '.stat b{display:block;font-size:17px;margin-top:3px;}.stat span{color:#6B6B75;font-size:10px;}' +
+      'table{width:100%;border-collapse:collapse;}td,th{border-bottom:1px solid #E5E0D8;padding:5px 6px;text-align:left;font-size:12px;}' +
+      '.pos{color:#2E7D32;}.neg{color:#B23B3B;}.foot{margin-top:26px;border-top:1px solid #E5E0D8;padding-top:8px;color:#6B6B75;font-size:10px;}' +
+      '</style></head><body>' + bodyHtml +
+      '<div class="foot">班主任工作台 · ' + cmReportSemName() + '学期报告 · 生成于 ' + localDateStr() + '</div></body></html>';
+  }
+  function cmReportStuPdf(d, comment) {
+    var stu = d.stu, h = '<h1>学期个人报告 <span class="pro">PRO</span></h1>' +
+      '<div class="sub">' + d.sem + (d.cls ? ' · ' + d.cls : '') + '</div><h2>' + stu.name +
+      (stu.sid ? '（学号 ' + stu.sid + '）' : '') + (cmReportDormOf(stu) ? ' · ' + cmReportDormOf(stu) : '') + (cmReportPostOf(stu.id) ? ' · ' + cmReportPostOf(stu.id) : '') + '</h2>' +
+      '<div><span class="stat">期初基线<b>' + ((typeof stu.creditBase === 'number') ? stu.creditBase : '-') + '</b><span>期初基线</span></span>' +
+      '<span class="stat">当前学分<b class="neg">' + stu.credit + '</b><span>当前学分</span></span>' +
+      '<span class="stat">学期净变化<b class="' + (d.add + d.sub >= 0 ? 'pos' : 'neg') + '">' + (d.add + d.sub >= 0 ? '+' : '') + (d.add + d.sub) + '</b><span>学期净变化</span></span>' +
+      '<span class="stat">学期加分<b class="pos">+' + d.add + '</b><span>' + d.addCnt + ' 次</span></span>' +
+      '<span class="stat">学期扣分<b class="neg">' + d.sub + '</b><span>' + d.subCnt + ' 次</span></span>' +
+      '<span class="stat">累计学分币<b>' + d.coin + '</b><span>累计学分币</span></span></div>';
+    if (d.cats.length) {
+      h += '<h2>本学期表现分布</h2><table><tr><th>大类</th><th>加分</th><th>扣分</th><th>净变化</th><th>次数</th></tr>';
+      d.cats.forEach(function (cat) {
+        h += '<tr><td>' + cat.name + '</td><td class="pos">' + (cat.add ? '+' + cat.add : '-') + '</td><td class="neg">' + (cat.sub || '-') + '</td><td><b>' + (cat.add + cat.sub >= 0 ? '+' : '') + (cat.add + cat.sub) + '</b></td><td>' + cat.cnt + '</td></tr>';
+      });
+      h += '</table>';
+    }
+    h += '<h2>请假记录</h2><div>' + (d.lv.total ? '病假 ' + d.lv.sick + ' 次 · 事假 ' + d.lv.personal + ' 次 · 公假 ' + d.lv.official + ' 次 · 合计 ' + d.lv.days + ' 天' : '本学期无请假记录') + '</div>';
+    if (d.exam) h += '<h2>最近考试 · ' + d.exam.name + '</h2><div>总分 <b>' + d.exam.total + '</b>（班级均分 ' + d.exam.avg + '，第 ' + d.exam.rank + ' / ' + d.exam.cnt + ' 名）</div>';
+    if (comment) h += '<h2>老师寄语</h2><div>' + comment.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</div>';
+    return cmRptPdfShell('学期个人报告 · ' + stu.name, h);
+  }
+  function cmReportClassPdf(d) {
+    var h = '<h1>学期班级报告 <span class="pro">PRO</span></h1>' +
+      '<div class="sub">' + d.sem + (d.cls ? ' · ' + d.cls : '') + '</div>' +
+      '<div><span class="stat">班级人数<b>' + d.n + '</b><span>班级人数</span></span>' +
+      '<span class="stat">学期流水<b>' + d.opCnt + '</b><span>条</span></span>' +
+      '<span class="stat">请假合计<b>' + d.lvDays + ' 天</b><span>' + d.lvTotal + ' 次</span></span></div>' +
+      '<h2>学分排行 TOP10（按学期净变化）</h2><table><tr><th>名次</th><th>姓名</th><th>加分</th><th>扣分</th><th>净变化</th></tr>';
+    d.top.forEach(function (r, i) {
+      h += '<tr><td>' + (i + 1) + '</td><td>' + r.name + '</td><td class="pos">+' + r.add + '</td><td class="neg">' + (r.sub || '-') + '</td><td><b>' + (r.net >= 0 ? '+' : '') + r.net + '</b></td></tr>';
+    });
+    h += '</table>';
+    if (d.clean.length) h += '<h2>零扣分名单（本学期）</h2><div>' + d.clean.map(function (r) { return r.name; }).join(' · ') + '</div>';
+    if (d.exam) h += '<h2>最近考试 · ' + d.exam.name + '</h2><div>参考 ' + d.exam.cnt + ' 人 · 均分 ' + d.exam.avg + ' · 最高 ' + d.exam.max + '（' + d.exam.first + '）· 最低 ' + d.exam.min + '</div>';
+    return cmRptPdfShell('学期班级报告', h);
+  }
+  /* 报告面板 */
+  var CM_RPT_LS_CMT = 'cmReportCmt';
+  function cmReportComments() { try { return JSON.parse(lsGet(CM_RPT_LS_CMT) || '{}'); } catch (e) { return {}; } }
+  function cmReportOpen() {
+    if (!cmProActive()) { cmProModal('学期报告引擎'); return; }
+    if (document.getElementById('cmDeskReport')) return;
+    var m = el('div', 'cmDesk-modal-overlay');
+    m.id = 'cmDeskReport';
+    var stus = cmReportLiveStudents().slice().sort(function (a, b) { return (a.sid || '') < (b.sid || '') ? -1 : 1; });
+    var opts = stus.map(function (s) { return '<option value="' + s.id + '">' + (s.sid ? s.sid + ' ' : '') + s.name + '</option>'; }).join('');
+    m.innerHTML =
+      '<div class="cmDesk-donate-card cmDesk-report-panel">' +
+      '<button class="cmDesk-donate-close" id="cmRptClose" aria-label="关闭">×</button>' +
+      '<h3>🎓 学期报告引擎 <span class="cmDesk-pro-badge">PRO</span></h3>' +
+      '<div class="cmDesk-rp-tabs"><button class="cmDesk-rp-tab active" id="cmRptTabStu">个人报告</button><button class="cmDesk-rp-tab" id="cmRptTabCls">班级报告</button></div>' +
+      '<div class="cmDesk-rp-row" id="cmRptStuRow"><label>选择学生</label><select id="cmRptStu">' + opts + '</select>' +
+      '<textarea id="cmRptCmt" rows="2" placeholder="老师寄语（可选，随报告导出，自动保存）"></textarea></div>' +
+      '<div class="cmDesk-rp-actions"><button class="btn btn-primary" id="cmRptGen">生成报告</button>' +
+      '<button class="btn btn-outline" id="cmRptPng" disabled>导出长图 PNG</button>' +
+      '<button class="btn btn-outline" id="cmRptPdf" disabled>导出 PDF</button></div>' +
+      '<div class="cmDesk-rp-preview" id="cmRptPrev"><div class="cmDesk-rp-empty">选择学生或直接生成班级报告，预览将显示在这里。</div></div>' +
+      '<div class="cmDesk-rp-msg" id="cmRptMsg"></div>' +
+      '</div>';
+    document.body.appendChild(m);
+    m.querySelector('#cmRptClose').onclick = function () { m.remove(); };
+    m.addEventListener('click', function (e) { if (e.target === m) m.remove(); });
+    var tabS = m.querySelector('#cmRptTabStu'), tabC = m.querySelector('#cmRptTabCls'),
+        stuRow = m.querySelector('#cmRptStuRow'), mode = 'stu';
+    var lastCanvas = null, lastName = '学期报告';
+    function setTab(t) {
+      mode = t;
+      tabS.classList.toggle('active', t === 'stu');
+      tabC.classList.toggle('active', t === 'cls');
+      stuRow.style.display = t === 'stu' ? '' : 'none';
+    }
+    tabS.onclick = function () { setTab('stu'); };
+    tabC.onclick = function () { setTab('cls'); };
+    var sel = m.querySelector('#cmRptStu'), cmtBox = m.querySelector('#cmRptCmt');
+    var cmts = cmReportComments();
+    sel.onchange = function () {
+      var c = cmts[sel.value]; cmtBox.value = c ? c.t : '';
+    };
+    if (stus.length && cmts[stus[0].id]) cmtBox.value = cmts[stus[0].id].t;
+    var msg = m.querySelector('#cmRptMsg'), prev = m.querySelector('#cmRptPrev'),
+        btnPng = m.querySelector('#cmRptPng'), btnPdf = m.querySelector('#cmRptPdf');
+    m.querySelector('#cmRptGen').onclick = function () {
+      try {
+        if (!cmReportLiveStudents().length) { msg.textContent = '还没有学生数据。'; return; }
+        var canvas;
+        if (mode === 'stu') {
+          var stu = null;
+          cmReportLiveStudents().forEach(function (s) { if (s.id === Number(sel.value)) stu = s; });
+          if (!stu) { msg.textContent = '请选择学生。'; return; }
+          cmts[stu.id] = { t: cmtBox.value.trim(), at: Date.now() };
+          lsSet(CM_RPT_LS_CMT, JSON.stringify(cmts));
+          var d = cmReportStuData(stu);
+          canvas = cmReportStuCanvas(d, cmtBox.value.trim());
+          lastName = '学期个人报告-' + stu.name;
+        } else {
+          var cd = cmReportClassData();
+          canvas = cmReportClassCanvas(cd);
+          lastName = '学期班级报告';
+        }
+        lastCanvas = canvas;
+        prev.innerHTML = '';
+        prev.appendChild(canvas);
+        btnPng.disabled = false; btnPdf.disabled = false;
+        msg.textContent = '';
+      } catch (err) { msg.textContent = '生成失败：' + String((err && err.message) || err).slice(0, 100); }
+    };
+    btnPng.onclick = function () {
+      if (!lastCanvas) return;
+      pngExport(lastCanvas, lastName + '.png', '长图已导出');
+    };
+    btnPdf.onclick = function () {
+      if (!lastCanvas || !window.__CM_PRO || !window.__CM_PRO.reportPdf) return;
+      btnPdf.disabled = true; msg.textContent = '正在生成 PDF…';
+      var html;
+      if (mode === 'stu') {
+        var stu2 = null;
+        cmReportLiveStudents().forEach(function (s) { if (s.id === Number(sel.value)) stu2 = s; });
+        html = cmReportStuPdf(cmReportStuData(stu2), cmtBox.value.trim());
+      } else {
+        html = cmReportClassPdf(cmReportClassData());
+      }
+      window.__CM_PRO.reportPdf(html, lastName + '.pdf').then(function (r) {
+        btnPdf.disabled = false;
+        if (r && r.ok) msg.textContent = '✅ PDF 已保存：' + r.path;
+        else msg.textContent = (r && r.why === 'canceled') ? '' : '❌ PDF 生成失败：' + ((r && r.why) || '未知原因');
+      });
+    };
+  }
+  /* 设置页入口卡 */
+  function buildReportCard() {
+    var about = document.getElementById('settingsAbout');
+    if (!about || document.getElementById('cmDeskReportCard')) return;
+    var sec = el('div', 'settings-section cmDeskReportSec');
+    sec.id = 'cmDeskReportCard';
+    sec.innerHTML =
+      '<h3>🎓 学期报告引擎</h3>' +
+      '<div class="cmDeskDonate-t">一键生成个人 / 班级学期报告：学分表现 · 请假记录 · 考试成绩，长图与 PDF 双导出。<span class="cmDesk-pro-badge">PRO</span></div>' +
+      '<div class="cmDeskDonate-r"><button class="btn btn-primary btn-sm" id="cmRptEntry">打开报告面板</button></div>';
+    sec.querySelector('#cmRptEntry').onclick = cmReportOpen;
+    about.parentNode.insertBefore(sec, about);
+  }
+
   /* ---------- 启动 ---------- */
   function boot() {
     // 上次会话示例体验未走完（中途关应用）→ 幂等清扫，绝不把示例数据留给正式使用
@@ -1076,6 +1519,7 @@
     cmWrapPro('seatExportImage', '座次表导出打印');   // Pro gate（UI 不变，点击才拦）
     cmWrapPro('dutyExportImage', '值日表导出打印');
     enhanceAbout();
+    buildReportCard();
     buildSecurityCard();
     if (!lsGet(LS_ONBOARD)) {
       stepWelcome();               // 首启：向导盖在最上层（含登录页之上）

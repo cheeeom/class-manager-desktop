@@ -1,6 +1,6 @@
 /* 班主任工作台 · 桌面版 —— Electron 主进程
    原则：本地内容、无远程加载、contextIsolation 开、nodeIntegration 关、禁 ServiceWorker。 */
-const { app, BrowserWindow, shell, ipcMain, session, net } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, session, net, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -126,6 +126,7 @@ function proPub() {
   return proPubCache;
 }
 proCore.register({ ipcMain, app, fs, path, net, pub: proPub, claimApi: CM_PRO_CLAIM_API });
+/* Pro handlers（含 M3 学期报告 PDF 导出）全部在 pro.core.cjs —— main 与探针同源测真代码。 */
 
 function createWindow() {
   win = new BrowserWindow({

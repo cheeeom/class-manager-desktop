@@ -291,6 +291,10 @@ t('⑦ 注入层契约：Pro 买断体系（v1.1.0）', () => {
   has(core, "ipcMain.handle('cm-pro-status'", '状态 IPC（重验签）');
   has(core, "ipcMain.handle('cm-pro-activate'", '激活 IPC');
   has(core, "ipcMain.handle('cm-pro-claim'", '自动取码 IPC');
+  has(core, "ipcMain.handle('cm-pro-report-pdf'", '报告 PDF IPC（探针同源）');
+  has(core, 'printToPDF', 'PDF 走 Electron printToPDF（离线）');
+  has(core, '/<script/i.test(html)', 'PDF HTML 拒绝脚本注入');
+  ok(core.indexOf('!app.isPackaged && process.env.CM_PROBE_PDF') >= 0, 'PDF 免对话框逃生舱仅限非打包+环境变量');
   ok(/const CM_PRO_PUB = '[0-9a-f]{64}'/.test(m), '真公钥已内置（64 hex）');
   has(m, 'proCore.register(', '主进程注册 Pro handlers');
   ok(m.indexOf("process.env.CM_PRO_PUB_DEV") >= 0, '测试公钥逃生舱口存在');
@@ -304,6 +308,28 @@ t('⑦ 注入层契约：Pro 买断体系（v1.1.0）', () => {
   has(css, '.cmDesk-pro-price', 'Pro 弹窗样式');
   // 老承诺红线：免费承诺文案仍在
   has(p, '功能不加钱也不减', '老承诺文案仍在（基础版永久免费）');
+});
+
+/* ⑧ M3 学期报告引擎（v1.1.0 Pro 核心） */
+t('M3 学期报告引擎契约', function () {
+  const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
+  const m = fs.readFileSync(path.join(HERE, 'main.js'), 'utf8');
+  const css = fs.readFileSync(path.join(HERE, 'src', 'wizard.css'), 'utf8');
+  const pre = fs.readFileSync(path.join(HERE, 'preload.js'), 'utf8');
+  ok(distHtml, 'dist/index.html 不存在——先跑 node build.js');
+  has(p, 'function cmReportOpen', '报告面板入口');
+  has(p, "if (!cmProActive()) { cmProModal('学期报告引擎'); return; }", '报告入口 Pro 闸（未激活弹引导框）');
+  has(p, 'function cmReportStuData', '个人报告数据聚合');
+  has(p, 'function cmReportClassData', '班级报告数据聚合');
+  has(p, 'liveOps(state.operations)', '统计走流水并过滤撤销（liveOps）');
+  has(p, "loadPubSetting('semesterStart')", '学期起点读公示页手动设置');
+  has(distHtml || '', 'function pngExport', '页面导出基建存在（长图复用页面函数）');
+  has(p, "pngExport(lastCanvas", '长图导出复用页面 pngExport');
+  has(p, 'REASON_CATALOG_FLAT[reason]', '原因反查大类（原因目录）');
+  has(p, "lsGet(CM_RPT_LS_CMT)", '老师寄语本地保存');
+  has(pre, 'reportPdf', 'preload PDF 桥');
+  has(css, '.cmDesk-report-panel', '报告面板样式');
+  has(css, '.cmDesk-pro-badge', 'PRO 徽章样式');
 });
 
 console.log('\n通过 ' + pass + ' 项，失败 ' + fail + ' 项');
