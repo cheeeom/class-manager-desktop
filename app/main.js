@@ -118,7 +118,7 @@ ipcMain.handle('cm-feedback-mail', function () {
    验签/激活/取码实现全部在 src/pro.core.cjs（探针共用同一实现，测的是真代码）。
    CM_PRO_PUB 上线前用 KeyGen 生成的真公钥替换；测试可用 CM_PRO_PUB_DEV 覆盖（仅非打包环境生效）。 */
 const proCore = require('./src/pro.core.cjs');
-const CM_PRO_PUB = '4e4f3a71ab421ffa3aad6681143b0b6b0d25bb1297e19ac27883eebfbd66fbc5';   // KeyGen 生成（2026-10-09 老板提供）
+const CM_PRO_PUB = '3714294d85fa0648489eb1ada65b9c0669c088487f11584a33cb0a7d0b228aa8';   // KeyGen 现行密钥对（2026-10-10 换钥：旧钥 4e4f3a71 的私钥在 KeyGen 页被覆盖丢失，与云函数 PRO_PRIV=3938d60b 配对的本钥为准）
 const CM_PRO_CLAIM_API = 'https://1466839507-gqk4mefrq0.ap-shanghai.tencentscf.com/?req=';   // 腾讯云函数 cm-pro-shipper（2026-10-09 上线，NOT_FOUND=正常）
 let proPubCache = '';
 function proPub() {
