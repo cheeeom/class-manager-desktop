@@ -155,3 +155,18 @@ body{
 .cmDeskFeedback{margin:10px 0 12px;padding:10px 12px;background:var(--row-bg,#FBF8F1);border:1px dashed var(--border,#E6DECD);border-radius:10px}
 .cmDeskFbMail{font-size:12.5px;font-weight:700;color:var(--primary,#A63A2B);cursor:pointer;padding:4px 10px;border:1px solid var(--border,#E6DECD);border-radius:8px;background:var(--card-bg,#FFFDF7);-webkit-user-select:all;user-select:all}
 .cmDeskFbMail:hover{border-color:var(--primary,#A63A2B)}
+
+/* ---------- Pro 引导弹窗 + 已激活卡（v1.1.0） ---------- */
+.cmDesk-pro{max-width:460px;text-align:left}
+.cmDesk-pro h3{margin-bottom:10px}
+.cmDesk-pro-list{font-size:12.5px;color:var(--text-secondary,#5F5E5A);line-height:2;margin-bottom:10px}
+.cmDesk-pro-price{font-size:14px;color:var(--ink,#2B2B33);margin-bottom:12px}
+.cmDesk-pro-price s{color:var(--text-muted,#8C8577);font-size:12.5px}
+.cmDesk-pro-price b{color:var(--primary,#A63A2B);font-size:22px}
+.cmDesk-pro-price span{font-size:11.5px;color:var(--text-muted,#8C8577);margin-left:6px}
+.cmDesk-pro-req span{display:block;font-size:12px;color:var(--text-secondary,#5F5E5A);margin-bottom:4px}
+.cmDesk-pro-req input{width:100%;box-sizing:border-box;font-family:monospace;font-size:11px;padding:7px 9px;border:1px solid var(--border,#E6DECD);border-radius:8px;background:var(--row-bg,#FBF8F1);margin-bottom:6px}
+.cmDesk-pro-act{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.cmDesk-pro-manual{font-size:12px;color:var(--text-secondary,#5F5E5A);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.cmDesk-pro-manual input{flex:1;min-width:180px;font-family:monospace;font-size:11px;padding:7px 9px;border:1px solid var(--border,#E6DECD);border-radius:8px}
+.cmDesk-pro-msg{font-size:11.5px;color:var(--text-muted,#8C8577);line-height:1.7;margin-top:8px}

@@ -837,6 +837,7 @@
 
   /* 满天弹窗：一个班主任的小声叭叭（每满 3 天一轮；「下次一定」只关本轮弹窗） */
   function cmNudgeMaybe() {
+    if (cmProActive()) return;   // 已买断：不再弹赞赏提醒（D 批复）
     var t0 = parseInt(lsGet(LS_ONBOARD), 10);
     if (!t0 || Date.now() - t0 < CM_NUDGE_DAYS * 86400000) return;
     var last = parseInt(lsGet(CM_NUDGE_AT), 10) || 0;
@@ -886,6 +887,7 @@
      周期提醒由满天弹窗负责（每 3 天一轮），卡片本身不打扰。 */
   function buildDonateRow(about) {
     var hasAny = !!(CM_DONATE.wechatImg || CM_DONATE.alipayImg);
+    if (cmProActive()) { if (about) buildProActiveCard(about); return; }   // D1：买断后换「Pro 已激活」卡
     if (!hasAny || !about) return;
     if (document.getElementById('cmDeskDonateSec')) return;
     var sec = el('div', 'settings-section cmDeskDonateSec');
@@ -941,6 +943,128 @@
     else about.appendChild(row);
   }
 
+  /* ---------- Pro 授权（v1.1.0）：gate + 引导弹窗 + 激活 ----------
+     原则：导出按钮 UI 不变，点击才拦；每会话每功能只弹一次引导框；
+     验签在主进程（__CM_PRO 桥），渲染层只做展示与状态缓存。 */
+  var CM_PRO_LS = 'cmProCache';
+  var CM_PRO_BUY_URL = 'https://afdian.com/a/cheeeom';   // ⚠️ 老板开店后替换（与落地页一致）
+  var CM_PRO_SESSION = {};                                // 本会话已弹过的功能
+  function cmProCache() {
+    try { return JSON.parse(lsGet(CM_PRO_LS) || '{}'); } catch (e) { return {}; }
+  }
+  function cmProActive() { return cmProCache().active === true; }
+  function cmProRefresh() {
+    if (!window.__CM_PRO) return Promise.resolve({ active: false });
+    return window.__CM_PRO.status().then(function (r) {
+      var c = { active: !!r.active, tier: r.tier || '', sn: r.sn || 0, eh: r.eh || '' };
+      lsSet(CM_PRO_LS, JSON.stringify(c));
+      return c;
+    });
+  }
+  function cmProReqCode() {
+    var dev = lsGet('cmProDev');
+    if (!dev || !/^[0-9a-f]{16}$/.test(dev)) {
+      var a = new Uint8Array(8);
+      if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(a);
+      else for (var i = 0; i < 8; i++) a[i] = Math.floor(Math.random() * 256);
+      dev = ''; for (var j = 0; j < 8; j++) dev += a[j].toString(16).padStart(2, '0');
+      lsSet('cmProDev', dev);
+    }
+    var h = 0x811c9dc5, src = (lsGet('cmProMail') || '').trim().toLowerCase();
+    for (var k = 0; k < src.length; k++) { h ^= src.charCodeAt(k); h = (h * 0x01000193) >>> 0; }
+    var eh = ('00000000' + h.toString(16)).slice(-8);
+    var b = '';
+    try { b = btoa(JSON.stringify({ v: 1, dev: dev, eh: eh })).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); } catch (e) { b = ''; }
+    return b;
+  }
+  function cmProMaskMail(eh) { return eh && eh !== '00000000' ? 'a***@' + (eh).slice(0, 2) + '（邮箱已加密存档）' : '未留邮箱'; }
+  function cmWrapPro(fnName, label) {
+    var orig = window[fnName];
+    if (typeof orig !== 'function') return;
+    window[fnName] = function () {
+      if (cmProActive()) return orig.apply(this, arguments);
+      cmProModal(label);
+    };
+  }
+  function cmProModal(label) {
+    if (!label) label = '这个功能';
+    if (document.getElementById('cmDeskProModal')) return;
+    CM_PRO_SESSION[label] = 1;
+    var req = cmProReqCode();
+    var m = el('div', 'cmDesk-modal-overlay');
+    m.id = 'cmDeskProModal';
+    m.innerHTML =
+      '<div class="cmDesk-donate-card cmDesk-pro">' +
+      '<button class="cmDesk-donate-close" id="cmProClose" aria-label="关闭">×</button>' +
+      '<h3>✨ ' + label + ' 是 Pro 功能</h3>' +
+      '<div class="cmDesk-pro-list">' +
+      '<div>🎓 学期报告引擎：个人 + 班级报告，PDF / 长图一键导出</div>' +
+      '<div>🖼️ 座次表 · 值日表 · 成绩条，排版打印不发愁</div>' +
+      '<div>📊 数据分析深度版：趋势 · 预警 · 导出</div>' +
+      '<div>🌟 进步之星榜 · 零扣分续航榜 海报导出</div>' +
+      '</div>' +
+      '<div class="cmDesk-pro-price"><s>¥69</s> <b>¥49</b> <span>早鸟限量 100 份 · 一次买断 · 无订阅</span></div>' +
+      '<div class="cmDesk-pro-req"><span>① 复制申请码（已含本机标识）</span><input id="cmProReq" readonly value="' + req + '"><button class="btn btn-outline btn-sm" id="cmProReqCopy">复制</button></div>' +
+      '<div class="cmDesk-pro-act">' +
+      '<a class="btn btn-primary" id="cmProBuy" href="' + CM_PRO_BUY_URL + '?custom_order_id=' + encodeURIComponent(req) + '" target="_blank" rel="noopener">🛒 购买激活（微信 / 支付宝）</a>' +
+      '<button class="btn btn-outline btn-sm" id="cmProClaim">② 我已付款 · 自动获取激活码</button>' +
+      '</div>' +
+      '<div class="cmDesk-pro-manual">或手动贴入作者发给你的激活码：<input id="cmProLic" placeholder="CMPRO1.xxxx…"><button class="btn btn-primary btn-sm" id="cmProGo">激活</button></div>' +
+      '<div class="cmDesk-pro-msg" id="cmProMsg">付款后一般 12 小时内发货；激活全程离线验签，数据不出这台电脑。</div>' +
+      '<div class="cmDesk-donate-actions"><button class="btn btn-outline btn-sm" id="cmProLater">下次再说</button></div>' +
+      '</div>';
+    document.body.appendChild(m);
+    m.querySelector('#cmProClose').onclick = function () { m.remove(); };
+    m.querySelector('#cmProLater').onclick = function () { m.remove(); };
+    m.addEventListener('click', function (e) { if (e.target === m) m.remove(); });
+    m.querySelector('#cmProReqCopy').onclick = function () {
+      var done = function () { if (window.showToast) window.showToast('申请码已复制，下单时粘贴到留言', 'success'); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(req).then(done, done); else done();
+    };
+    m.querySelector('#cmProClaim').onclick = function () {
+      var msg = m.querySelector('#cmProMsg');
+      if (!window.__CM_PRO) { msg.textContent = '自动获取不可用，请手动贴码或联系作者。'; return; }
+      msg.textContent = '正在向作者服务器查询你的激活码…';
+      window.__CM_PRO.claim(req).then(function (r) {
+        if (r && r.ok) { m.querySelector('#cmProLic').value = r.lic; m.querySelector('#cmProGo').click(); }
+        else msg.textContent = r && r.why === 'AUTO_OFF' ? '自动获取即将开通——目前请把申请码发给作者（爱发电留言 / 邮箱），收到激活码贴在下方。' : '暂未查到订单：确认已付款且申请码已填进爱发电留言，稍后再试或联系作者。';
+      });
+    };
+    m.querySelector('#cmProGo').onclick = function () {
+      var msg = m.querySelector('#cmProMsg');
+      var lic = m.querySelector('#cmProLic').value.trim();
+      if (!lic) { msg.textContent = '请先粘贴激活码。'; return; }
+      msg.textContent = '正在验签…';
+      window.__CM_PRO.activate({ req: req, lic: lic }).then(function (r) {
+        if (r && r.ok) {
+          cmProRefresh().then(function () {
+            m.remove();
+            if (window.showToast) window.showToast('🎉 Pro 已激活' + (r.tier === 'early' ? '（早鸟纪念 #' + r.sn + '/100）' : ''), 'success');
+            var old = document.getElementById('cmDeskDonateSec');
+            if (old) old.remove();
+            var about = document.getElementById('settingsAbout');
+            if (about) buildDonateRow(about);
+          });
+        } else {
+          msg.textContent = '❌ ' + ((r && r.why) || '激活失败') + '（连续失败可邮件联系作者：846699191@qq.com）';
+        }
+      });
+    };
+  }
+  /* Pro 已激活卡（D1：替换打赏卡；保底小打赏入口） */
+  function buildProActiveCard(about) {
+    var c = cmProCache();
+    var sec = el('div', 'settings-section cmDeskDonateSec');
+    sec.id = 'cmDeskDonateSec';
+    sec.innerHTML =
+      '<h3>✅ Pro 已激活</h3>' +
+      '<div class="cmDeskDonate-t">授权给 <b>' + cmProMaskMail(c.eh) + '</b>' + (c.tier === 'early' ? ' · 🐦 早鸟纪念 #' + c.sn + '/100' : '') + ' · 一次买断，永久可用</div>' +
+      '<div class="cmDeskDonate-r"><span class="cmDeskDonate-hint">换电脑？每年 3 次免费重置：846699191@qq.com</span>' +
+      '<button class="btn btn-outline btn-sm" id="cmProThanks">☕ 仍想请作者喝一杯</button></div>';
+    sec.querySelector('#cmProThanks').onclick = cmDonateModal;
+    about.parentNode.insertBefore(sec, about);
+  }
+
   /* ---------- 启动 ---------- */
   function boot() {
     // 上次会话示例体验未走完（中途关应用）→ 幂等清扫，绝不把示例数据留给正式使用
@@ -948,6 +1072,9 @@
     cmNudgeWatch();
     stripCloudUI();
     wrapDangerousFns();
+    cmProRefresh();                              // Pro 状态预热（激活缓存供 nudge/gate 判定）
+    cmWrapPro('seatExportImage', '座次表导出打印');   // Pro gate（UI 不变，点击才拦）
+    cmWrapPro('dutyExportImage', '值日表导出打印');
     enhanceAbout();
     buildSecurityCard();
     if (!lsGet(LS_ONBOARD)) {

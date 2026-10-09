@@ -114,6 +114,19 @@ ipcMain.handle('cm-feedback-mail', function () {
     .catch(function (e) { return { ok: false, message: String(e && e.message || e).slice(0, 140) }; });
 });
 
+/* ---------- Pro 授权（v1.1.0）：离线 Ed25519 验签 + 设备绑定 + 双存储 ----------
+   验签/激活/取码实现全部在 src/pro.core.cjs（探针共用同一实现，测的是真代码）。
+   CM_PRO_PUB 上线前用 KeyGen 生成的真公钥替换；测试可用 CM_PRO_PUB_DEV 覆盖（仅非打包环境生效）。 */
+const proCore = require('./src/pro.core.cjs');
+const CM_PRO_PUB = '';
+const CM_PRO_CLAIM_API = '';   // 自动取码云函数地址（部署后填；未填=自动取码关闭，走手动发码）
+let proPubCache = '';
+function proPub() {
+  if (!proPubCache) proPubCache = (!app.isPackaged && process.env.CM_PRO_PUB_DEV) ? process.env.CM_PRO_PUB_DEV : CM_PRO_PUB;
+  return proPubCache;
+}
+proCore.register({ ipcMain, app, fs, path, net, pub: proPub, claimApi: CM_PRO_CLAIM_API });
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1280,

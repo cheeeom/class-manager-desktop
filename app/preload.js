@@ -23,3 +23,10 @@ contextBridge.exposeInMainWorld('__CM_UPDATER', {
 contextBridge.exposeInMainWorld('__CM_FEEDBACK', {
   mail: function () { return ipcRenderer.invoke('cm-feedback-mail'); }
 });
+
+/* Pro 授权（v1.1.0）：验签在主进程，页面侧只能发起状态/激活/取码 */
+contextBridge.exposeInMainWorld('__CM_PRO', {
+  status: function () { return ipcRenderer.invoke('cm-pro-status'); },
+  activate: function (payload) { return ipcRenderer.invoke('cm-pro-activate', payload); },
+  claim: function (reqCode) { return ipcRenderer.invoke('cm-pro-claim', reqCode); }
+});

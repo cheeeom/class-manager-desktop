@@ -1,13 +1,31 @@
 # PROGRESS.md — 班主任工作台 · 桌面版
 
-> 真实进度只认本文件。基准：线上 Latest = **v1.0.12**（远端 main caf135e7；本地 23ee343 内容等价待 fetch 对齐）· baseWeb v3.4.0 · 2026-10-09 00:30。
+> 真实进度只认本文件。基准：线上 Latest = **v1.0.12**（远端 main 047c5652 含落地页 Pro 专区；本地与远端内容等价待 fetch 对齐）· baseWeb v3.4.0 · 2026-10-09 19:30。
 
 ## 一、当前状态速览
 
 - **线上 Release**：**v1.0.12 = Latest**（三件套齐 + 镜像 latest.yml 服 1.0.12 + exe 206 实测）；v1.0.0…v1.0.11 在档。
-- **测试**：`_v_desktop_test.js` **14/14 全绿**；打包冒烟 **PASS**（v1.0.12 / wizard 交互 / feed=gh-proxy 镜像）；设置页/满天弹窗探针复核通过。
+- **测试**：`_v_desktop_test.js` **15/15 全绿**（+⑦ Pro 契约段）；Pro 全链探针五步全绿；打包冒烟 **PASS**（v1.1.0 / wizard 交互 / feed=gh-proxy 镜像）。
+- **进行中**：**Pro 买断制 M4 付费墙+激活体系已完成编码**（v1.1.0 已打包**未发布**——M3 学期报告引擎未做，等老板验收 M4 后再定发布节奏）。落地页 Pro 专区已上线（远端 047c5652）。
 
 ## 二、待办队列
+
+### Pro M4（已完成编码，v1.1.0 已打包未发布：付费墙 + 激活体系）
+- [x] 激活码体系：申请码 `b64url(JSON{v:1,dev:16hex,eh:8hex})`；规范串 `CM1|tier|sn|eh|dev|ts`；激活码 `CMPRO1.` + `b64url(JSON{...,sig})`；Ed25519 签验（noble-ed25519 v2.1.0 → `app/src/ed25519.cjs` CJS 化）
+- [x] Pro 核心共享 `app/src/pro.core.cjs`（main+探针同源）：proParse/proCanon/proCheck + IPC 注册（cm-pro-status 重验签 / cm-pro-activate 设备比对+写 pro.json / cm-pro-claim 自动取码，未配置 API 时优雅降级）；main.js 薄壳 `CM_PRO_PUB` 占位 + `CM_PRO_PUB_DEV` 测试逃生舱（仅 !isPackaged）
+- [x] 渲染层 `app.patch.js`：cmProDev 设备指纹（16hex 随机）/ cmProReqCode 申请码（邮箱 FNV-1a→eh；**b64 正则必须 `/\+/g`**）/ cmWrapPro 导出闸（激活直通、未激活弹引导框）/ cmProModal 引导框（权益清单+申请码复制+购买链接带 `?custom_order_id=`+自动取码+手动贴码）/ buildProActiveCard（D1「✅ Pro 已激活」卡+小打赏入口）
+- [x] 买断后体验：Pro 激活 → 停发满天弹窗（cmNudgeMaybe 首行闸）+ 打赏卡换「Pro 已激活」卡；接线 gate：座次表导出/值日表导出（学期报告 M3 未做）
+- [x] preload 受控桥 `__CM_PRO{status,activate,claim}`；build.js 拷贝清单 + package.json build.files 增 ed25519.cjs/pro.core.cjs
+- [x] 测试 15/15（+⑦ Pro 契约段：gate 接线/CM_PRO_SESSION 一次性/购买链接传申请码/afdian.com 入口/买断停发断言/公钥占位/asar files）；`_probe_pro.js` 全链探针五步全绿（未激活弹框→换机码拒→真码激活换卡→直通→reload 持久）
+- [x] v1.1.0 打包 BUILD-OK + 冒烟 PASS（version=1.1.0 / consoleErrors=[] / verdict=PASS）
+- [x] PRO-DESIGN.md §3.5 自动发货机定稿（爱发电 Webhook RSA 验签 + custom_order_id 传申请码 + 云函数 Ed25519 签码存 KV + App claim；兑换码批次备选）
+- [ ] **等老板**：KeyGen 生成真公钥替换 `CM_PRO_PUB`；爱发电开店后替换占位链接（落地页 `pro-buy`、`CM_PRO_BUY_URL`）；自动取码云函数部署（需 user_id/token）
+- [ ] **发布节奏**：M3 学期报告引擎做完后，Pro 正式随版发布（避免「引导付费但 Pro 功能只有两个导出」的半成品体验）
+
+### Pro M2（已完成归档：落地页 Pro 专区 + KeyGen + 文案）
+- [x] 落地页 Pro 专区上线（免费/Pro 对比卡、早鸟倒数 `PRO_EARLY_SOLD=0`、三步激活、FAQ 3 条、承诺文案改口径）→ 远端 047c5652
+- [x] KeyGen 私用工具 `D:/a/chee777/_pro_keygen.html`（离线 Ed25519 签发+发货记录）+ 契约测试 6/6
+- [x] 爱发电商品文案 `_afdian_商品文案.md`（商品描述/发货话术/上架清单）
 
 ### P0（v1.0.12 已发布归档：赞赏交互定稿）
 - [x] 老板拍板赞赏交互：打赏卡**常驻不消失**（去卡片「下次一定」与 3 天收起 `cmDonateCardSnooze` 整体删除）

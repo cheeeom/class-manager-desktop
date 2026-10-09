@@ -68,7 +68,7 @@ for (const [oldS, newS, cnt, tag] of patches) {
 const dist = path.join(HERE, 'dist');
 fs.mkdirSync(dist, { recursive: true });
 fs.writeFileSync(path.join(dist, 'index.html'), html);
-for (const f of ['src/app.patch.js', 'src/wizard.css']) {
+for (const f of ['src/app.patch.js', 'src/wizard.css', 'src/ed25519.cjs', 'src/pro.core.cjs']) {
   fs.copyFileSync(path.join(HERE, f), path.join(dist, path.basename(f)));
 }
 // 登录页背景海报（AI 生成，已裁水印）

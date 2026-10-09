@@ -163,7 +163,7 @@ t('③f 注入层契约：示例体验 + 设置页再裁剪（v1.0.9）', () => 
   notHas(p, "lsSet(CM_NUDGE_FLAG, '1')", '一次性永不再扰已废（v1.0.12 老板拍板改周期提醒）');
   has(p, "id=\"cmNudgeLater\"", '满天弹窗保留「下次一定」（仅关本轮弹窗）');
   has(p, 'if (lsGet(CM_TOUR_FLAG) === \'1\')', '示例体验期间不弹（避让）');
-  notHas(p, 'afdian', '爱发电暂缓（老板拍板）');
+  // 爱发电以「商品」身份回归（v1.1.0 Pro 买断，见 ⑦）；打赏弹窗本身仍只用收款码图片
   has(build, 'donate-alipay.png', 'build 双码资产拷贝');
   has(p, 'cmDonateLater', '双码弹窗「下次一定」按钮（v1.0.11）');
   // 独立打赏卡（v1.0.11 老板拍板：拆出关于卡、排其上方、带下次一定、按钮放大）
@@ -255,6 +255,55 @@ t('③g 注入层契约：反馈卡邮件直达（v1.0.11）', () => {
   const pre = fs.readFileSync(path.join(HERE, 'preload.js'), 'utf8');
   has(pre, '__CM_FEEDBACK', 'preload 反馈桥');
   notHas(pre, 'nodeIntegration', 'preload 不开 Node');
+});
+
+t('⑦ 注入层契约：Pro 买断体系（v1.1.0）', () => {
+  const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
+  const m = fs.readFileSync(path.join(HERE, 'main.js'), 'utf8');
+  const css = fs.readFileSync(path.join(HERE, 'src', 'wizard.css'), 'utf8');
+  const pre = fs.readFileSync(path.join(HERE, 'preload.js'), 'utf8');
+  const pkg = JSON.parse(fs.readFileSync(path.join(HERE, 'package.json'), 'utf8'));
+  const build = fs.readFileSync(path.join(HERE, 'build.js'), 'utf8');
+  // gate：UI 不变点击才拦 + 每会话每功能一次
+  has(p, 'function cmWrapPro', 'Pro gate 包装器');
+  has(p, "cmWrapPro('seatExportImage', '座次表导出打印')", '座次表导出已挂 Pro gate');
+  has(p, "cmWrapPro('dutyExportImage', '值日表导出打印')", '值日表导出已挂 Pro gate');
+  has(p, 'CM_PRO_SESSION[label] = 1', '引导框每会话每功能只弹一次');
+  has(p, 'if (cmProActive()) return orig.apply(this, arguments);', '已激活透传原函数');
+  // 引导弹窗：引导付费 + 申请码 + 自动取码 + 手动贴码
+  has(p, 'function cmProModal', 'Pro 引导弹窗');
+  has(p, 'cmProReqCode', '申请码生成（设备指纹+邮箱哈希）');
+  has(p, 'custom_order_id=', '购买链接携带申请码（自动发货对单用）');
+  has(p, 'afdian.com/a/', '爱发电购买入口（afdian.com 新域名）');
+  has(p, "id=\"cmProClaim\"", '「我已付款自动取码」按钮');
+  has(p, "id=\"cmProGo\"", '手动贴码激活');
+  has(p, '846699191@qq.com', '失败兜底联系邮箱');
+  // 激活后状态切换
+  has(p, 'function buildProActiveCard', '「Pro 已激活」卡（D1=A）');
+  has(p, 'if (cmProActive()) return;   // 已买断：不再弹赞赏提醒（D 批复）', '买断后赞赏满天弹窗停发');
+  has(p, '早鸟纪念', '早鸟纪念徽章 #N/100');
+  // 主进程验签（双存储：pro.json 存 lic 原文，status 重验签）；核心实现抽 pro.core.cjs（探针共用）
+  has(m, "require('./src/pro.core.cjs')", '主进程接 Pro 核心（薄壳）');
+  const core = fs.readFileSync(path.join(HERE, 'src', 'pro.core.cjs'), 'utf8');
+  has(core, "require('./ed25519.cjs')", '核心内联 Ed25519 验签库');
+  has(core, 'async function proCheck', '验签函数（真实现，探针共用）');
+  has(core, 'l.dev !== reqDev', '设备指纹绑定校验');
+  has(core, "ipcMain.handle('cm-pro-status'", '状态 IPC（重验签）');
+  has(core, "ipcMain.handle('cm-pro-activate'", '激活 IPC');
+  has(core, "ipcMain.handle('cm-pro-claim'", '自动取码 IPC');
+  has(m, "CM_PRO_PUB = ''", '公钥常量占位（上线前 KeyGen 替换）');
+  has(m, 'proCore.register(', '主进程注册 Pro handlers');
+  ok(m.indexOf("process.env.CM_PRO_PUB_DEV") >= 0, '测试公钥逃生舱口存在');
+  ok(/!app\.isPackaged && process\.env\.CM_PRO_PUB_DEV/.test(m), '公钥测试覆盖仅限非打包环境');
+  // 桥与打包
+  has(pre, '__CM_PRO', 'preload Pro 受控桥');
+  notHas(pre, 'nodeIntegration', 'preload 不开 Node');
+  ok(pkg.build.files.indexOf('src/ed25519.cjs') >= 0, '验签库进 asar');
+  has(build, 'src/ed25519.cjs', 'build.js 拷贝验签库');
+  ok(fs.existsSync(path.join(HERE, 'src', 'ed25519.cjs')), '验签库文件存在');
+  has(css, '.cmDesk-pro-price', 'Pro 弹窗样式');
+  // 老承诺红线：免费承诺文案仍在
+  has(p, '功能不加钱也不减', '老承诺文案仍在（基础版永久免费）');
 });
 
 console.log('\n通过 ' + pass + ' 项，失败 ' + fail + ' 项');
