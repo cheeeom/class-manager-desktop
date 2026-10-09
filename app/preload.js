@@ -32,7 +32,8 @@ contextBridge.exposeInMainWorld('__CM_PRO', {
   reportPdf: function (html, name) { return ipcRenderer.invoke('cm-pro-report-pdf', { html: html, name: name }); }
 });
 
-/* 剪贴板（v1.1.1）：主进程直写，file:// 下比 navigator.clipboard 可靠 */
+/* 剪贴板（v1.2.0）：主进程直写直读，file:// 下比 navigator.clipboard 可靠 */
 contextBridge.exposeInMainWorld('__CM_CLIP', {
-  write: function (text) { return ipcRenderer.invoke('cm-clip-write', text); }
+  write: function (text) { return ipcRenderer.invoke('cm-clip-write', text); },
+  read: function () { return ipcRenderer.invoke('cm-clip-read'); }
 });

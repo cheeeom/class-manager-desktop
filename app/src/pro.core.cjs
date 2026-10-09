@@ -59,10 +59,14 @@ function register(deps) {
       return j && j.ok ? { ok: true, lic: j.lic } : { ok: false, why: (j && j.why) || 'NOT_FOUND' };
     } catch (e2) { return { ok: false, why: 'NET' }; }
   });
-  /* 剪贴板（v1.1.1）：file:// 下 navigator.clipboard 不可靠，主进程 clipboard 直写 */
+  /* 剪贴板（v1.2.0）：file:// 下 navigator.clipboard 不可靠，主进程 clipboard 直写/直读 */
   const { clipboard: CLIP } = require('electron');
   ipcMain.handle('cm-clip-write', function (e, text) {
     try { CLIP.writeText(String(text == null ? '' : text)); return { ok: true }; }
+    catch (err) { return { ok: false, why: String((err && err.message) || err).slice(0, 80) }; }
+  });
+  ipcMain.handle('cm-clip-read', function () {
+    try { return { ok: true, text: CLIP.readText() || '' }; }
     catch (err) { return { ok: false, why: String((err && err.message) || err).slice(0, 80) }; }
   });
   /* 学期报告 PDF 导出（M3）：隐藏窗口 printToPDF，全程离线。

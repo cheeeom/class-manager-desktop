@@ -367,6 +367,34 @@ t('⑨ Pro 扩容与导航栏 Pro 化', function () {
   has(p, 'window.autoPushToCloud = function', 'autoPushToCloud 已置空（去 token 提示）');
 });
 
+/* ⑩ v1.2.0：页面级 Pro 锁 + 剪贴板粘贴激活码 + Pro 版图扩张 */
+t('⑩ 页面级 Pro 锁', function () {
+  const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
+  const core = fs.readFileSync(path.join(HERE, 'src', 'pro.core.cjs'), 'utf8');
+  const pre = fs.readFileSync(path.join(HERE, 'preload.js'), 'utf8');
+  const css = fs.readFileSync(path.join(HERE, 'src', 'wizard.css'), 'utf8');
+  // 页面清单（老板拍板：截图清单全 Pro；免费=工作台/学生/班委/寝室/座次表/值日）
+  ['attendance', 'rollcall', 'grades', 'todo', 'worklogs', 'notices', 'credits', 'bank', 'publicity', 'honors', 'analytics', 'profiles'].forEach(function (pg) {
+    ok(p.indexOf(pg + ": ['") >= 0, 'CM_PRO_PAGES 缺页面 ' + pg);
+  });
+  has(p, 'function wrapNavigatePro', 'navigateTo 包闸');
+  has(p, "window.__cmRole === 'committee'", '班委协作模式豁免页面锁');
+  has(p, 'function cmPagePill', '关弹窗后悬浮解锁按钮');
+  has(p, 'cmDesk-blurtarget', '高斯模糊类（渲染层）');
+  has(css, '.cmDesk-blurtarget', '高斯模糊样式');
+  has(css, '.cmDesk-pagepill', '悬浮解锁按钮样式');
+  has(css, '.cmDesk-pro-intro', '页面功能介绍样式');
+  has(p, 'cmPageLockClear', '激活成功解除模糊');
+  // 剪贴板粘贴激活码
+  has(core, "ipcMain.handle('cm-clip-read'", '主进程剪贴板读取 IPC');
+  has(pre, 'read:', 'preload 剪贴板读取桥');
+  has(p, 'cmProPaste', '「我已有激活码」粘贴按钮');
+  has(p, '/^CMPRO1\\./.test(t)', '粘贴内容校验激活码前缀');
+  // Pro 版图扩张：公示导出两闸
+  has(p, "cmWrapPro('exportPublicityPoster', '公示海报导出')", '公示海报导出已挂 gate');
+  has(p, "cmWrapPro('exportWeeklyReport', '学分周报导出')", '学分周报导出已挂 gate');
+});
+
 console.log('\n通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 console.log(`结果：${pass} 通过，${fail} 失败`);
 if (fail) { console.log('\n失败项：'); failures.forEach(f => console.log('  · ' + f)); }

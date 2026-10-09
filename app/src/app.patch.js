@@ -991,10 +991,71 @@
       cmProModal(label);
     };
   }
-  function cmProModal(label) {
+  /* ---------- v1.2.0 页面级 Pro 锁 ----------
+     免费页 = 工作台首页 / 学生管理 / 班委管理 / 寝室管理 / 座次表 / 值日排班（导出另锁）/ 设置；
+     其余页面进入即高斯模糊 + PRO 弹窗（介绍本页功能 + 引导买断）；关闭弹窗保留模糊 + 悬浮解锁按钮；
+     班委协作模式（__cmRole）不受闸——激活是整机级的，班委随本机授权走。 */
+  var CM_PRO_PAGES = {
+    attendance: ['请假管理', '请假登记 · 续假销假 · 请假日历与统计，全流程一条龙'],
+    rollcall: ['课堂点名', '随机点名 · 点名历史，课堂互动更省心'],
+    grades: ['成绩管理', '成绩录入 · 成绩条导出 · 班级对比分析'],
+    todo: ['待办提醒', '待办事项 · 重要节点提醒，班务不漏项'],
+    worklogs: ['工作留痕', '班务日志 · 图文留痕 · 月度导出，评优述职有据可查'],
+    notices: ['通知', '家校通知 · 模板管理 · 一键发送'],
+    credits: ['学分记录', '加扣分流水 · 学分币 · 撤销追踪，班级激励引擎'],
+    bank: ['学分银行', '学分币钱包 · 商品兑换 · 月度结算，激励体系闭环'],
+    publicity: ['学分公示', '公示海报 · 排行榜 · 学分周报，一键生成'],
+    honors: ['荣誉墙', '荣誉证书 · 班级荣誉展示墙'],
+    analytics: ['数据分析', '学分趋势 · 成绩深度分析 · 预警中心'],
+    profiles: ['学生档案', '学生档案卡 · 德育记录 · 成长时间线，一人一档']
+  };
+  var cmGatePage = null;   // 当前被锁的页面（弹窗关闭后悬浮按钮据此重开）
+  function cmBlurTarget(on) {
+    var c = document.getElementById('content');
+    if (c) c.classList.toggle('cmDesk-blurtarget', !!on);
+  }
+  function cmPageLockClear() {
+    cmGatePage = null;
+    cmBlurTarget(false);
+    var p = document.getElementById('cmDeskPagePill');
+    if (p) p.remove();
+  }
+  function cmPagePill() {
+    if (document.getElementById('cmDeskPagePill')) return;
+    var pill = el('button', 'cmDesk-pagepill');
+    pill.id = 'cmDeskPagePill';
+    pill.textContent = '🔒 解锁 PRO 完整功能';
+    pill.onclick = function () {
+      pill.remove();
+      var info = CM_PRO_PAGES[cmGatePage] || ['学期报告', ''];
+      cmProModal(info[0], { intro: info[1], gatePage: cmGatePage });
+    };
+    document.body.appendChild(pill);
+  }
+  function wrapNavigatePro() {
+    var origNav = window.navigateTo;
+    if (typeof origNav !== 'function' || wrapNavigatePro._done) return;
+    wrapNavigatePro._done = 1;
+    window.navigateTo = function (page) {
+      var r = origNav.apply(this, arguments);
+      if (cmProActive() || window.__cmRole === 'committee') return r;
+      if (CM_PRO_PAGES[page]) {
+        var info = CM_PRO_PAGES[page];
+        cmGatePage = page;
+        cmBlurTarget(true);
+        cmProModal(info[0], { intro: info[1], gatePage: page });
+      } else if (cmGatePage) {
+        cmPageLockClear();
+      }
+      return r;
+    };
+  }
+  function cmProModal(label, opts) {
     if (!label) label = '这个功能';
     if (document.getElementById('cmDeskProModal')) return;
     CM_PRO_SESSION[label] = 1;
+    opts = opts || {};
+    if (opts.gatePage) cmGatePage = opts.gatePage;
     var req = cmProReqCode();
     var m = el('div', 'cmDesk-modal-overlay');
     m.id = 'cmDeskProModal';
@@ -1003,6 +1064,7 @@
       '<button class="cmDesk-donate-close" id="cmProClose" aria-label="关闭">×</button>' +
       '<h3>✨ ' + label + ' 是 Pro 功能</h3>' +
       '<div class="cmDesk-pro-list">' +
+      (opts.intro ? '<div class="cmDesk-pro-intro">' + opts.intro + '</div>' : '') +
       '<div>🎓 学期报告引擎：个人 + 班级报告，PDF / 长图一键导出</div>' +
       '<div>🖼️ 座次表 · 值日表 · 成绩条，排版打印不发愁</div>' +
       '<div>📊 数据分析深度版：趋势 · 预警 · 导出</div>' +
@@ -1014,16 +1076,35 @@
       '<a class="btn btn-primary" id="cmProBuy" href="' + CM_PRO_BUY_URL + '?custom_order_id=' + encodeURIComponent(req) + '" target="_blank" rel="noopener">🛒 购买激活（微信 / 支付宝）</a>' +
       '<button class="btn btn-outline btn-sm" id="cmProClaim">② 我已付款 · 自动获取激活码</button>' +
       '</div>' +
-      '<div class="cmDesk-pro-manual">或手动贴入作者发给你的激活码：<input id="cmProLic" placeholder="CMPRO1.xxxx…"><button class="btn btn-primary btn-sm" id="cmProGo">激活</button></div>' +
+      '<div class="cmDesk-pro-manual"><button class="btn btn-outline btn-sm" id="cmProPaste">我已有激活码 · 从剪贴板粘贴</button><input id="cmProLic" placeholder="或手动贴入 CMPRO1.xxxx…"><button class="btn btn-primary btn-sm" id="cmProGo">激活</button></div>' +
       '<div class="cmDesk-pro-msg" id="cmProMsg">付款后一般 12 小时内发货；激活全程离线验签，数据不出这台电脑。</div>' +
       '<div class="cmDesk-donate-actions"><button class="btn btn-outline btn-sm" id="cmProLater">下次再说</button></div>' +
       '</div>';
     document.body.appendChild(m);
-    m.querySelector('#cmProClose').onclick = function () { m.remove(); };
-    m.querySelector('#cmProLater').onclick = function () { m.remove(); };
-    m.addEventListener('click', function (e) { if (e.target === m) m.remove(); });
+    function closeModal() {
+      m.remove();
+      if (opts.gatePage && !cmProActive()) cmPagePill();   // 页面锁：关弹窗仍保留模糊 + 悬浮解锁
+    }
+    m.querySelector('#cmProClose').onclick = closeModal;
+    m.querySelector('#cmProLater').onclick = closeModal;
+    m.addEventListener('click', function (e) { if (e.target === m) closeModal(); });
     m.querySelector('#cmProReqCopy').onclick = function () {
       cmProCopy(req, function () { if (window.showToast) window.showToast('申请码已复制，下单时粘贴到留言', 'success'); }, function () { if (window.showToast) window.showToast('复制失败，请长按手动复制', 'error'); });
+    };
+    m.querySelector('#cmProPaste').onclick = function () {
+      var msg = m.querySelector('#cmProMsg');
+      if (!window.__CM_CLIP || !window.__CM_CLIP.read) { msg.textContent = '当前环境不支持自动粘贴，请手动贴入激活码。'; return; }
+      msg.textContent = '正在读取剪贴板…';
+      window.__CM_CLIP.read().then(function (r) {
+        var t = ((r && r.text) || '').trim();
+        if (/^CMPRO1\./.test(t)) {
+          m.querySelector('#cmProLic').value = t;
+          msg.textContent = '已从剪贴板填入激活码，正在验签…';
+          m.querySelector('#cmProGo').click();
+        } else {
+          msg.textContent = '剪贴板里没有激活码（应以 CMPRO1. 开头）——先复制作者发给你的激活码，再点本按钮。';
+        }
+      });
     };
     m.querySelector('#cmProClaim').onclick = function () {
       var msg = m.querySelector('#cmProMsg');
@@ -1048,6 +1129,7 @@
             if (old) old.remove();
             var about = document.getElementById('settingsAbout');
             if (about) buildDonateRow(about);
+            if (opts.gatePage) cmPageLockClear();   // 激活成功：解除本页模糊
           });
         } else {
           msg.textContent = '❌ ' + ((r && r.why) || '激活失败') + '（连续失败可邮件联系作者：846699191@qq.com）';
@@ -1498,12 +1580,12 @@
       });
     };
   }
-  /* 导航栏 Pro 化（v1.1.1）：学期报告独立入口 + 学分银行/数据分析 PRO 角标。
+  /* 导航栏 Pro 化（v1.2.0）：全部 Pro 页面挂角标 + 学期报告独立入口。
      动态插入的 .nav-item 不会被页面启动时的批量绑定监听 → 自己绑 click。 */
   function buildNavPro() {
     var nav = document.getElementById('nav');
     if (!nav || document.getElementById('cmNavReport')) return;
-    ['bank', 'analytics'].forEach(function (pg) {
+    Object.keys(CM_PRO_PAGES).forEach(function (pg) {
       var item = nav.querySelector('.nav-item[data-page="' + pg + '"]');
       if (item && !item.querySelector('.cmDesk-navbadge')) {
         var b = el('span', 'cmDesk-navbadge');
@@ -1545,7 +1627,10 @@
     cmWrapPro('cbOpenItemEditor', '学分银行');
     cmWrapPro('cbOpenBankProfile', '学分银行');
     cmWrapPro('switchAnalyticsTab', '数据分析');
+    cmWrapPro('exportPublicityPoster', '公示海报导出');
+    cmWrapPro('exportWeeklyReport', '学分周报导出');
     silenceCloudPush();
+    wrapNavigatePro();
     buildNavPro();
     enhanceAbout();
     buildSecurityCard();

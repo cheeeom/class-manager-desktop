@@ -191,3 +191,11 @@ body{
 .nav-item{position:relative}
 .cmDesk-navbadge{position:absolute;top:5px;right:9px;background:var(--primary,#A63A2B);color:#fff;font-size:8.5px;font-weight:bold;line-height:1;padding:2.5px 5px;border-radius:7px;letter-spacing:.5px;pointer-events:none}
 .cmDesk-navreport .nav-icon{font-size:15px;display:flex;align-items:center;justify-content:center}
+
+/* ---------- v1.2.0 页面级 Pro 锁 ---------- */
+.cmDesk-blurtarget{filter:blur(16px) saturate(.85);pointer-events:none;user-select:none}
+.cmDesk-pagepill{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9998;background:var(--primary,#A63A2B);color:#fff;border:0;border-radius:24px;padding:12px 26px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 12px 36px rgba(60,40,20,.35)}
+.cmDesk-pagepill:hover{filter:brightness(1.06)}
+.cmDesk-pro-intro{font-size:12.5px;color:var(--ink,#2B2B33);background:var(--row-bg,#FBF8F1);border:1px solid var(--border,#E6DECD);border-radius:10px;padding:9px 12px;margin-bottom:8px;line-height:1.8;text-align:left}
+.cmDesk-pro-manual{font-size:12px;color:var(--text-secondary,#5F5E5A);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.cmDesk-pro-manual input{flex:1;min-width:150px;font-family:monospace;font-size:11px;padding:7px 9px;border:1px solid var(--border,#E6DECD);border-radius:8px}
