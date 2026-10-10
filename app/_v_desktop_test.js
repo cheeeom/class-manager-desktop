@@ -110,7 +110,11 @@ t('③e 注入层契约：更新弹窗与设置页桌面化', () => {
   has(css, '.cmUpdBar', '下载进度条样式');
   has(css, 'left:20px;bottom:20px', '弹窗固定在左下角');
   has(css, 'justify-content:center', '按钮文字居中');
-  ok(/\.cmDesk-wfoot \.btn \.arr[^}]*position:absolute/.test(css), '箭头符号钉在按钮右侧（不挤占文字居中）');
+  ok(!/cmWizNext"><span>下一步<\/span><span class="arr">/.test(p), '向导「下一步」无箭头（v1.2.6 老板拍板去箭头）');
+  ok(!/<span class="arr">←<\/span><span>上一步/.test(p), '向导「上一步」无箭头');
+  ok(p.indexOf("'<button class=\"btn btn-outline\" id=\"cmWizBack\"><span>上一步</span></button>' +") >= 0
+     && p.indexOf("'<button class=\"btn btn-primary\" id=\"cmWizNext\"><span>下一步</span></button>')") >= 0,
+     '向导按钮顺序：上一步居左、下一步居右（v1.2.6 使用逻辑）');
 });
 
 t('③d 向导按钮绑定回归：foot 区按钮一律 w.foot.querySelector（v1.0.1 首屏按钮死因）', () => {
@@ -241,7 +245,8 @@ t('③g 注入层契约：反馈卡邮件直达（v1.0.11）', () => {
   const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
   has(p, '846699191@qq.com', '作者邮箱');
   has(p, 'buildFeedbackRow(about);', '关于卡接线（enhanceAbout 内调用）');
-  has(p, "about.querySelector('.cmDeskFeedback')", '反馈卡幂等护栏');
+  has(p, "document.querySelector('.cmDeskFeedback')", '反馈卡幂等护栏（v1.2.6 独立成卡，文档级查重）');
+  has(p, 'about.parentNode.insertBefore(sec, about);   // 独立卡：排在「关于本系统」上方', '反馈卡独立成卡置于关于卡上方（v1.2.6 老板拍板）');
   has(p, '__CM_FEEDBACK.mail', '写邮件走受控桥');
   has(p, 'cmCopyText', '复制邮箱兜底函数');
   has(p, 'id="cmFbCopy"', '邮箱 chip 可点复制');
@@ -306,8 +311,8 @@ t('⑦ 注入层契约：Pro 买断体系（v1.1.0）', () => {
   has(build, 'src/ed25519.cjs', 'build.js 拷贝验签库');
   ok(fs.existsSync(path.join(HERE, 'src', 'ed25519.cjs')), '验签库文件存在');
   has(css, '.cmDesk-pro-price', 'Pro 弹窗样式');
-  // 老承诺红线：免费承诺文案仍在
-  has(p, '功能不加钱也不减', '老承诺文案仍在（基础版永久免费）');
+  // 老承诺红线：免费承诺文案仍在（v1.2.6 措辞升级：Pro 买断制上线后的口径）
+  has(p, '已发布功能永久免费', '老承诺文案仍在（基础版永久免费）');
 });
 
 /* ⑧ M3 学期报告引擎（v1.1.0 Pro 核心） */
@@ -358,7 +363,7 @@ t('⑨ Pro 扩容与导航栏 Pro 化', function () {
   has(p, 'function buildNavPro', '导航栏 Pro 化函数');
   has(p, 'cmDesk-navbadge', 'PRO 角标类');
   has(p, 'cmNavReport', '学期报告导航项');
-  has(p, "it.addEventListener('click', function () { cmReportOpen(); });", '报告导航项直弹报告/引导框');
+  has(p, "reportItem.addEventListener('click', function () { cmReportOpen(); });", '报告导航项直弹报告/引导框');
   has(css, '.cmDesk-navbadge', '导航 PRO 角标样式');
   // 设置页入口卡已撤（挪到导航栏）
   ok(p.indexOf('buildReportCard') < 0, '设置页报告入口卡应已移除');
@@ -373,10 +378,11 @@ t('⑩ 页面级 Pro 锁', function () {
   const core = fs.readFileSync(path.join(HERE, 'src', 'pro.core.cjs'), 'utf8');
   const pre = fs.readFileSync(path.join(HERE, 'preload.js'), 'utf8');
   const css = fs.readFileSync(path.join(HERE, 'src', 'wizard.css'), 'utf8');
-  // 页面清单（老板拍板：截图清单全 Pro；免费=工作台/学生/班委/寝室/座次表/值日）
-  ['attendance', 'rollcall', 'grades', 'todo', 'worklogs', 'notices', 'credits', 'bank', 'publicity', 'honors', 'analytics', 'profiles'].forEach(function (pg) {
+  // 页面清单（v1.2.6 放宽：考勤请假/课堂点名转免费，老板拍板；免费=工作台/学生/班委/寝室/座次表/值日/考勤/点名）
+  ['grades', 'todo', 'worklogs', 'notices', 'credits', 'bank', 'publicity', 'honors', 'analytics', 'profiles'].forEach(function (pg) {
     ok(p.indexOf(pg + ": ['") >= 0, 'CM_PRO_PAGES 缺页面 ' + pg);
   });
+  ok(p.indexOf("attendance: [") < 0 && p.indexOf("rollcall: [") < 0, '考勤请假/课堂点名已转免费（v1.2.6）');
   has(p, 'function wrapNavigatePro', 'navigateTo 包闸');
   has(p, "window.__cmRole === 'committee'", '班委协作模式豁免页面锁');
   has(p, 'function cmPagePill', '关弹窗后悬浮解锁按钮');
@@ -442,6 +448,42 @@ t('⑬ 开发者密钥门槛', function () {
   has(p, "else cmDevKeyPrompt();", '开启需密钥');
   ok(/cmDevOn\) \{\s*\/\/ 关闭免密/.test(p) || p.indexOf('关闭免密') >= 0, '关闭免密');
   has(p, "checkKey(v).then", '异步主进程比对');
+});
+
+/* ⑭ v1.2.6：向导导入学生名单 + 侧栏 PRO 徽标 + 请假流水导出 + 关于卡更新简要 */
+t('⑭ v1.2.6 七件套', function () {
+  const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
+  const css = fs.readFileSync(path.join(HERE, 'src', 'wizard.css'), 'utf8');
+  // 向导第 5 步：导入学生名单（网页版描述已移除）
+  has(p, '导入学生名单（可选）', '向导第 5 步改导入学生名单');
+  notHas(p, '如果你在用<b>网页版</b>', '网页版导入描述已移除');
+  has(p, 'function cmWizStuTpl', '导入模板下载函数');
+  has(p, '学生导入模板.csv', '模板文件名');
+  has(p, 'function cmWizPickTable', '向导表格导入入口');
+  has(p, "id === 'studentImportModal'", '劫持预览弹窗：向导语境直接确认注入');
+  has(p, 'wizState.imported = true', '导入后置标记');
+  has(p, "setTimeout(function () { finishWizard(false); }, 250);", '导入完成自动收尾进入工作台');
+  ok(p.indexOf("(wizState.imported") >= 0, '完成页按 imported 切换文案/按钮（不再展示示例数据）');
+  ok(p.indexOf("(wizState.imported\n        ? '<p>📋 学生名单已导入") >= 0 || p.indexOf("wizState.imported ?") >= 0 || p.indexOf("(wizState.imported") >= 0, '示例体验让位已导入名单');
+  // 导入模板演示行无多余空格（列识别口径干净）
+  ok(p.indexOf(', S202601 ,') < 0, '模板演示数据无脏空格');
+  // 侧栏 PRO 徽标（激活专属）
+  has(p, 'cmDesk-proemblem', '侧栏 PRO 徽标类');
+  has(css, '.cmDesk-proemblem', '侧栏 PRO 徽标样式');
+  has(p, "var olds = nav.querySelectorAll('.cmDesk-navbadge');", '激活后清角标（状态感知重跑）');
+  ok((p.match(/buildNavPro\(\)/g) || []).length >= 4, 'buildNavPro 至少四处刷新（boot/激活/吊销/开发者模拟）');
+  // 请假流水导出（Pro）
+  has(p, 'function buildLeaveExportBtn', '考勤页导出按钮注入');
+  has(p, "cmWrapPro('cmExportLeaveFlow', '请假流水导出')", '请假流水导出已挂 Pro gate');
+  has(p, 'window.cmExportLeaveFlow = function', '导出实现挂 window（gate 包装目标）');
+  has(p, '班委模式无权导出数据', '班委模式拦截导出');
+  // 关于卡：本版更新简要（无网页版字样）
+  has(p, '桌面版 v\' + D.version + \' 更新', '关于卡 = 本版更新简要');
+  ok(p.indexOf('功能与网页版') < 0, '关于卡介绍不再提网页版');
+  // 打赏弹窗口径跟上 Pro 时代
+  has(p, '免费功能永久免费，Pro 一次买断', '打赏弹窗文案不再声称「所有功能永远免费」');
+  // wizard.css：箭头钉右侧死规则已随箭头移除
+  ok(!/\.cmDesk-wfoot \.btn \.arr/.test(css), 'wfoot 箭头死规则已清');
 });
 
 console.log('\n通过 ' + pass + ' 项，失败 ' + fail + ' 项');

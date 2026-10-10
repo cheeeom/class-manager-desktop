@@ -195,7 +195,7 @@
   }
 
   /* ---------- 4. 首启向导 ---------- */
-  var wizState = { step: 0, loginP1: '', loginP2: '', adminP1: '', adminP2: '', loginSkip: false, adminSkip: false };
+  var wizState = { step: 0, loginP1: '', loginP2: '', adminP1: '', adminP2: '', loginSkip: false, adminSkip: false, imported: false };
 
   function wizardShell(title, bodyHtml, footHtml) {
     // 换步前清掉所有现存向导遮罩（防堆叠：半透明层叠加会逐层变暗，document 查询也会命中旧标题）
@@ -244,8 +244,8 @@
       '</div>' +
       '<div class="cmDesk-copy">© 2026 <b>chee</b> · 班主任工作台 · 保留所有权利<br>' +
       '<span style="color:var(--text-muted)">本软件版权归开发者所有，转发分享请完整保留开发者署名与本声明。</span></div>',
-      '<button class="btn btn-primary" id="cmWizNext"><span>开始配置</span><span class="arr">→</span></button>' +
-      '<button class="btn btn-outline" id="cmWizSkipAll">跳过向导</button>');
+      '<button class="btn btn-outline" id="cmWizSkipAll">跳过向导</button>' +
+      '<button class="btn btn-primary" id="cmWizNext"><span>开始配置</span></button>');
     w.foot.querySelector('#cmWizNext').onclick = function () { stepLoginPwd(); };
     w.foot.querySelector('#cmWizSkipAll').onclick = function () { finishWizard(); };
   }
@@ -258,9 +258,9 @@
       '<div style="text-align:center"><div id="cmDeskDotsWrap"></div></div>' +
       '<div id="cmDeskPad"></div>' +
       '<div id="cmDeskMsg" style="height:20px;font-size:12px;color:var(--danger);text-align:center"></div>',
-      '<button class="btn btn-primary" id="cmWizNext"><span>下一步</span><span class="arr">→</span></button>' +
+      '<button class="btn btn-outline" id="cmWizBack"><span>上一步</span></button>' +
       '<button class="btn btn-outline" id="cmWizSkipPwd">跳过（不设密码）</button>' +
-      '<button class="btn btn-outline" id="cmWizBack"><span class="arr">←</span><span>上一步</span></button>');
+      '<button class="btn btn-primary" id="cmWizNext"><span>下一步</span></button>');
     var wrap = w.body.querySelector('#cmDeskDotsWrap');
     var padWrap = w.body.querySelector('#cmDeskPad');
     var msg = w.body.querySelector('#cmDeskMsg');
@@ -287,8 +287,8 @@
         '<h2 style="font-family:var(--font-display)">再输一遍确认</h2>' +
         '<div style="text-align:center"><div id="cmDeskDotsWrap2"></div></div><div id="cmDeskPad2"></div>' +
         '<div id="cmDeskMsg2" style="height:20px;font-size:12px;color:var(--danger);text-align:center"></div>',
-        '<button class="btn btn-primary" id="cmWizOk">完成密码设置</button>' +
-        '<button class="btn btn-outline" id="cmWizBack2"><span class="arr">←</span><span>重输</span></button>');
+        '<button class="btn btn-outline" id="cmWizBack2"><span>重输</span></button>' +
+        '<button class="btn btn-primary" id="cmWizOk">完成密码设置</button>');
       var wrap2 = w2.body.querySelector('#cmDeskDotsWrap2');
       var pad2 = w2.body.querySelector('#cmDeskPad2');
       var msg2 = w2.body.querySelector('#cmDeskMsg2');
@@ -317,9 +317,9 @@
       '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px">用于敏感操作确认（如「清空数据」）。可跳过——未设置时，清空数据需输入「清空」二字确认。</div>' +
       '<div style="text-align:center"><div id="cmDeskDotsWrap"></div></div><div id="cmDeskPad"></div>' +
       '<div id="cmDeskMsg" style="height:20px;font-size:12px;color:var(--danger);text-align:center"></div>',
-      '<button class="btn btn-primary" id="cmWizNext"><span>下一步</span><span class="arr">→</span></button>' +
+      '<button class="btn btn-outline" id="cmWizBack"><span>上一步</span></button>' +
       '<button class="btn btn-outline" id="cmWizSkipPwd">跳过（不设管理员密码）</button>' +
-      '<button class="btn btn-outline" id="cmWizBack"><span class="arr">←</span><span>上一步</span></button>');
+      '<button class="btn btn-primary" id="cmWizNext"><span>下一步</span></button>');
     var wrap = w.body.querySelector('#cmDeskDotsWrap');
     var padWrap = w.body.querySelector('#cmDeskPad');
     var msg = w.body.querySelector('#cmDeskMsg');
@@ -340,8 +340,8 @@
         '<h2 style="font-family:var(--font-display)">再输一遍确认</h2>' +
         '<div style="text-align:center"><div id="cmDeskDotsWrap2"></div></div><div id="cmDeskPad2"></div>' +
         '<div id="cmDeskMsg2" style="height:20px;font-size:12px;color:var(--danger);text-align:center"></div>',
-        '<button class="btn btn-primary" id="cmWizOk">完成设置</button>' +
-        '<button class="btn btn-outline" id="cmWizBack2"><span class="arr">←</span><span>重输</span></button>');
+        '<button class="btn btn-outline" id="cmWizBack2"><span>重输</span></button>' +
+        '<button class="btn btn-primary" id="cmWizOk">完成设置</button>');
       var wrap2 = w2.body.querySelector('#cmDeskDotsWrap2');
       var pad2 = w2.body.querySelector('#cmDeskPad2');
       var msg2 = w2.body.querySelector('#cmDeskMsg2');
@@ -371,9 +371,9 @@
       '<h2 style="font-family:var(--font-display)">班级名称</h2>' +
       '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">显示在首页与导出件上，可以留空以后在设置里改。</div>' +
       '<input class="cmDesk-input" id="cmWizClassName" placeholder="如：三年级2班 / 2026级幼儿保育1班" maxlength="30">',
-      '<button class="btn btn-primary" id="cmWizNext"><span>下一步</span><span class="arr">→</span></button>' +
+      '<button class="btn btn-outline" id="cmWizBack"><span>上一步</span></button>' +
       '<button class="btn btn-outline" id="cmWizSkip">跳过</button>' +
-      '<button class="btn btn-outline" id="cmWizBack"><span class="arr">←</span><span>上一步</span></button>');
+      '<button class="btn btn-primary" id="cmWizNext"><span>下一步</span></button>');
     var input = w.body.querySelector('#cmWizClassName');
     function saveAndGo() {
       var name = (input.value || '').trim();
@@ -393,22 +393,65 @@
     input.focus();
   }
 
+  /* 第 5 步：导入学生名单（v1.2.6 重做）——提供模板下载；选表格后自动识别列并注入；
+     此步导入了学生 → 后续完成页不再提供示例数据体验（wizState.imported） */
   function stepImport() {
     var w = wizardShell('第 5 步 · 共 6 步',
-      '<h2 style="font-family:var(--font-display)">导入已有数据（可选）</h2>' +
+      '<h2 style="font-family:var(--font-display)">导入学生名单（可选）</h2>' +
       '<div style="font-size:13px;color:var(--text-secondary);line-height:2;margin-bottom:12px">' +
-      '如果你在用<b>网页版</b>，先在网页版「设置 → 导出数据」得到备份 JSON，在这里一键导入。<br>' +
-      '全新使用可跳过此步。</div>',
-      '<button class="btn btn-primary" id="cmWizImport"><span class="ico">📁</span><span>选择备份文件导入</span></button>' +
+      '下载导入模板，按模板填好学生名单，在这里选择表格文件——系统自动识别姓名、性别、家长电话、学号、寝室等列并注入。<br>' +
+      '也可以先跳过，之后随时在 设置 → 学生管理 →「批量导入学生表格」导入。</div>' +
+      '<div style="margin-bottom:4px"><button class="btn btn-outline btn-sm" id="cmWizStuTpl"><span>📥 下载导入模板</span></button> <span style="font-size:12px;color:var(--text-muted)">（Excel / WPS 可直接编辑的 CSV）</span></div>',
+      '<button class="btn btn-outline" id="cmWizBack"><span>上一步</span></button>' +
       '<button class="btn btn-outline" id="cmWizSkip">跳过</button>' +
-      '<button class="btn btn-outline" id="cmWizBack"><span class="arr">←</span><span>上一步</span></button>');
-    w.foot.querySelector('#cmWizImport').onclick = function () {
-      var fn = appFn('importData');
-      if (fn) fn();
-      stepTour();
-    };
+      '<button class="btn btn-primary" id="cmWizImport"><span>📊 选择表格导入</span></button>');
+    w.body.querySelector('#cmWizStuTpl').onclick = cmWizStuTpl;
+    w.foot.querySelector('#cmWizImport').onclick = cmWizPickTable;
     w.foot.querySelector('#cmWizSkip').onclick = function () { stepTour(); };
     w.foot.querySelector('#cmWizBack').onclick = function () { stepClassName(); };
+  }
+  /* 导入模板：表头与网页版「批量导入学生表格」的列识别口径一致（姓名必填） */
+  function cmWizStuTpl() {
+    try {
+      var head = '姓名,性别,家长电话,家长姓名,学号,寝室';
+      var demo = '张三,男,13800000001,张父,S202601,1栋101室\n李四,女,13800000002,李母,S202602,走读';
+      var csv = '\uFEFF' + head + '\n' + demo + '\n';
+      var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = '学生导入模板.csv';
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+      if (window.showToast) window.showToast('模板已下载', 'success');
+    } catch (e) { if (window.showToast) window.showToast('模板下载失败', 'error'); }
+  }
+  /* 向导里选表格：复用网页版解析链（pickStudentTableFile → handleStudentTableFile），
+     劫持 openModal('studentImportModal') 跳过预览直接确认注入（向导语境要「自动」）。
+     导入完成 → wizState.imported = true → 直接走完向导进入工作台。 */
+  function cmWizPickTable() {
+    var origOpen = window.openModal;
+    if (typeof origOpen !== 'function') return;
+    window.openModal = function (id) {
+      if (id === 'studentImportModal') {
+        window.openModal = origOpen;                      // 先还原，别影响用户之后在设置里的正常导入
+        var origC = window.confirmStudentImport;
+        window.confirmStudentImport = function () {
+          window.confirmStudentImport = origC;
+          var r = origC ? origC.apply(this, arguments) : undefined;
+          wizState.imported = true;
+          setTimeout(function () { finishWizard(false); }, 250);   // 注入完成 → 收尾进入工作台
+          return r;
+        };
+        return window.confirmStudentImport();
+      }
+      return origOpen.apply(this, arguments);
+    };
+    var fn = appFn('pickStudentTableFile');
+    if (fn) fn();
+    else {
+      window.openModal = origOpen;                        // 解析链不在（理论不会），回退提示
+      if (window.showToast) window.showToast('导入功能未就绪，请进入工作台后在设置里导入', 'warning');
+    }
   }
 
   function stepTour() {
@@ -426,7 +469,7 @@
     });
     grid += '</div>';
     var w = wizardShell('第 6 步 · 共 6 步', '<h2 style="font-family:var(--font-display)">30 秒认识工作台</h2>' + grid,
-      '<button class="btn btn-primary" id="cmWizNext"><span>完成</span><span class="arr">→</span></button>');
+      '<button class="btn btn-primary" id="cmWizNext"><span>完成</span></button>');
     w.foot.querySelector('#cmWizNext').onclick = function () { stepFinish(); };
   }
 
@@ -437,13 +480,17 @@
       '<div style="color:var(--text-secondary);font-size:13.5px;line-height:2">' +
       (wizState.loginSkip ? '<p>🔓 当前为<b>零密码模式</b>：打开应用直接进入。想加密码可到「设置 → 🔐 安全」。</p>' : '<p>🔐 登录密码已设置，下次打开需输入。</p>') +
       (userAdminPwdSet() ? '' : '<p>🛡️ 未设管理员密码：清空数据时输入「清空」二字确认。</p>') +
-      '<p>🎓 拿不准从哪开始？可以<b>带示例数据体验</b>：每个功能配指引弹窗，走完自动清除示例，不留任何痕迹。</p>' +
+      (wizState.imported
+        ? '<p>📋 学生名单已导入，直接开工吧！缺的信息可随时在「学生管理」里补充。</p>'
+        : '<p>🎓 拿不准从哪开始？可以<b>带示例数据体验</b>：每个功能配指引弹窗，走完自动清除示例，不留任何痕迹。</p>') +
       '<p>💾 建议：定期在「设置 → 导出数据」留一份备份。</p>' +
       '</div>' +
       '<div class="cmDesk-copy">© 2026 <b>chee</b> · 班主任工作台（桌面版 v' + D.version + '） · 保留所有权利</div>',
-      '<button class="btn btn-outline" id="cmWizSample"><span>🎓 带示例体验</span><span class="arr">→</span></button>' +
-      '<button class="btn btn-primary" id="cmWizDone"><span>进入工作台</span><span class="arr">→</span></button>');
-    w.foot.querySelector('#cmWizSample').onclick = function () { finishWizard(true); };
+      wizState.imported
+        ? '<button class="btn btn-primary" id="cmWizDone"><span>进入工作台</span></button>'
+        : '<button class="btn btn-outline" id="cmWizSample"><span>🎓 带示例体验</span></button>' +
+          '<button class="btn btn-primary" id="cmWizDone"><span>进入工作台</span></button>');
+    if (!wizState.imported) w.foot.querySelector('#cmWizSample').onclick = function () { finishWizard(true); };
     w.foot.querySelector('#cmWizDone').onclick = function () { finishWizard(false); };
   }
 
@@ -721,12 +768,12 @@
       else about.appendChild(row);
     }
 
-    /* 桌面版介绍卡：插在版本徽标行之后、网页版速览之前 */
+    /* 桌面版介绍卡（v1.2.6 重写）：本版更新简要（≤100 字）+ 单机版一句话，不再出现网页版字样 */
     var intro = el('div', 'cmDeskAbout');
     intro.style.cssText = 'margin:10px 0 12px;padding:10px 12px;background:var(--row-bg,#FBF8F1);border:1px dashed var(--border,#E6DECD);border-radius:10px;font-size:12.5px;color:var(--text-secondary,#5F5E5A);line-height:1.9';
     intro.innerHTML =
-      '🖥️ <b>班主任工作台 · 桌面版 v' + D.version + '</b>（单机版）——这是安装在 Windows 上的独立应用，<b>全部数据仅保存在这台电脑上</b>，不经任何服务器。' + (D.baseWeb ? '功能与网页版 ' + D.baseWeb + ' 一致（网页版的云同步在桌面版中不适用，已移除）。' : '') + '<br>' +
-      '🔄 <b>自动更新</b>：发现新版会在左下角弹窗询问，选择「立即更新」后台下载；就绪后点「立即重启」，自动沿用原目录覆盖安装并重启新版。<br>' +
+      '📦 <b>桌面版 v' + D.version + ' 更新</b>：向导新增「导入学生名单」；请假管理、课堂点名转免费；新增导出请假流水（Pro）；激活后侧栏亮 PRO 徽标。<br>' +
+      '🖥️ 单机版：数据仅保存在这台电脑上；自动更新——发现新版左下角弹窗询问后进行。<br>' +
       '<span style="color:var(--text-muted,#8C8577)">' + COPYRIGHT + ' · 转发分享请保留开发者署名</span>';
     var rows = about.querySelectorAll(':scope > div');
     var badgeRow = null;
@@ -824,7 +871,7 @@
       '<figure class="cmDesk-donate-ch"><img src="' + CM_DONATE.wechatImg + '" alt="微信收款码"><figcaption><i style="background:#07C160"></i>微信支付</figcaption></figure>' +
       '<figure class="cmDesk-donate-ch"><img src="' + CM_DONATE.alipayImg + '" alt="支付宝收款码"><figcaption><i style="background:#1677FF"></i>支付宝</figcaption></figure>' +
       '</div>' +
-      '<p class="cmDesk-donate-note">所有功能永远免费——这笔钱只影响作者期末夜的伙食质量。</p>' +
+      '<p class="cmDesk-donate-note">免费功能永久免费，Pro 一次买断——这笔钱只影响作者期末夜的伙食质量。</p>' +
       '<div class="cmDesk-donate-actions"><button class="btn btn-outline btn-sm" id="cmDonateLater">下次一定</button></div>' +
       '</div>';
     document.body.appendChild(m);
@@ -852,9 +899,9 @@
     m.innerHTML =
       '<div class="cmDesk-donate-card cmDesk-nudge">' +
       '<h3>📖 一个班主任的小声叭叭</h3>' +
-      '<p class="cmDesk-nudge-p">这个工具没有广告、没有激活码，也不打算找你办会员。</p>' +
+      '<p class="cmDesk-nudge-p">这个工具没有广告、也不办会员；已发布的所有功能永久免费，新增的 Pro 是一次买断的升级，不搞订阅。</p>' +
       '<p class="cmDesk-nudge-p">它值多少钱，取决于它替你省了多少操心。如果某个期末夜，是它陪你熬过来的——</p>' +
-      '<p class="cmDesk-nudge-p">可以考虑请作者喝杯奶茶。不请也完全没事，功能一分不减，作者照写不误，就是鸡腿会少一根。</p>' +
+      '<p class="cmDesk-nudge-p">可以考虑请作者喝杯奶茶。不请也完全没事，免费功能一分不减，作者照写不误，就是鸡腿会少一根。</p>' +
       '<div class="cmDesk-gbtns" style="justify-content:center;margin-top:14px">' +
       '<button class="btn btn-outline btn-sm" id="cmNudgeLater">下次一定</button>' +
       '<button class="btn btn-primary btn-sm" id="cmNudgeYes"><span>🧧 请作者喝一杯</span></button>' +
@@ -894,7 +941,7 @@
     sec.id = 'cmDeskDonateSec';
     sec.innerHTML =
       '<h3>☕ 请作者喝杯奶茶</h3>' +
-      '<div class="cmDeskDonate-t">自愿 · 无广告无激活码，功能不加钱也不减——但奶茶能让更新写得更快。</div>' +
+      '<div class="cmDeskDonate-t">自愿 · 无广告无订阅，已发布功能永久免费——但奶茶能让更新写得更快。</div>' +
       '<div class="cmDeskDonate-r">' +
       '<button class="btn btn-primary" id="cmDonateOpen" style="padding:10px 30px;font-size:14.5px;position:relative;min-width:150px"><span>🧧 打赏作者</span><span class="arr">→</span></button>' +
       '<span class="cmDeskDonate-hint">微信 / 支付宝均可</span>' +
@@ -903,7 +950,7 @@
     about.parentNode.insertBefore(sec, about);
   }
 
-  /* ---------- 反馈卡（v1.0.11）：设置 → 关于本系统，邮件直达作者 ---------- */
+  /* 反馈卡（v1.0.11；v1.2.6 独立成卡）：设置页独立 settings-section，排在「关于本系统」上方 */
   var CM_MAIL = '846699191@qq.com';
   function cmCopyFallback(txt) {
     try {
@@ -929,23 +976,23 @@
     } catch (e) { fail(); }
   }
   function buildFeedbackRow(about) {
-    if (about.querySelector('.cmDeskFeedback')) return;
-    var row = el('div', 'cmDeskFeedback');
-    row.innerHTML =
-      '<div class="cmDeskDonate-t">✉️ <b>反馈与建议</b>　<span>遇到问题、有想法，直接发邮件给作者——看到就会回。</span></div>' +
+    if (document.querySelector('.cmDeskFeedback')) return;
+    var sec = el('div', 'settings-section cmDeskFeedback');
+    sec.innerHTML =
+      '<h3>✉️ 反馈与建议</h3>' +
+      '<div class="cmDeskDonate-t">遇到问题、有想法，直接发邮件给作者——看到就会回。</div>' +
       '<div class="cmDeskDonate-r">' +
       '<button class="btn btn-outline btn-sm" id="cmFbMail"><span>✉ 写邮件给作者</span><span class="arr">→</span></button>' +
       '<span class="cmDeskFbMail" id="cmFbCopy" title="点击复制邮箱">' + CM_MAIL + '</span>' +
       '</div>';
-    row.querySelector('#cmFbMail').onclick = function () {
+    sec.querySelector('#cmFbMail').onclick = function () {
       if (window.__CM_FEEDBACK && window.__CM_FEEDBACK.mail) {
         window.__CM_FEEDBACK.mail();          // 桌面：唤起系统邮件客户端（收件人主进程定死）
       } else { cmCopyText(CM_MAIL); }         // 非桌面环境兜底：复制邮箱
     };
-    row.querySelector('#cmFbCopy').onclick = function () { cmCopyText(CM_MAIL); };
-    var anchor = about.querySelector('.cmDeskDonate') || about.querySelector('.cmDeskAbout');
-    if (anchor) anchor.parentNode.insertBefore(row, anchor.nextSibling);
-    else about.appendChild(row);
+    sec.querySelector('#cmFbCopy').onclick = function () { cmCopyText(CM_MAIL); };
+    if (about && about.parentNode) about.parentNode.insertBefore(sec, about);   // 独立卡：排在「关于本系统」上方
+    else document.body.appendChild(sec);
   }
 
   /* ---------- Pro 授权（v1.1.0）：gate + 引导弹窗 + 激活 ----------
@@ -967,7 +1014,7 @@
   function cmProRefresh() {
     if (!window.__CM_PRO) return Promise.resolve({ active: false });
     return window.__CM_PRO.status().then(function (r) {
-      var c = { active: !!r.active, tier: r.tier || '', sn: r.sn || 0, eh: r.eh || '' };
+      var c = { active: !!r.active, tier: r.tier || '', sn: r.sn || 0, eh: r.eh || '', lic: r.lic || '' };
       lsSet(CM_PRO_LS, JSON.stringify(c));
       return c;
     });
@@ -997,13 +1044,11 @@
       cmProModal(label);
     };
   }
-  /* ---------- v1.2.0 页面级 Pro 锁 ----------
-     免费页 = 工作台首页 / 学生管理 / 班委管理 / 寝室管理 / 座次表 / 值日排班（导出另锁）/ 设置；
+  /* ---------- v1.2.0 页面级 Pro 锁（v1.2.6 放宽：考勤请假/课堂点名转免费） ----------
+     免费页 = 工作台首页 / 学生管理 / 班委管理 / 寝室管理 / 座次表 / 值日排班 / 考勤请假 / 课堂点名（导出另锁）/ 设置；
      其余页面进入即高斯模糊 + PRO 弹窗（介绍本页功能 + 引导买断）；关闭弹窗保留模糊 + 悬浮解锁按钮；
      班委协作模式（__cmRole）不受闸——激活是整机级的，班委随本机授权走。 */
   var CM_PRO_PAGES = {
-    attendance: ['请假管理', '请假登记 · 续假销假 · 请假日历与统计，全流程一条龙'],
-    rollcall: ['课堂点名', '随机点名 · 点名历史，课堂互动更省心'],
     grades: ['成绩管理', '成绩录入 · 成绩条导出 · 班级对比分析'],
     todo: ['待办提醒', '待办事项 · 重要节点提醒，班务不漏项'],
     worklogs: ['工作留痕', '班务日志 · 图文留痕 · 月度导出，评优述职有据可查'],
@@ -1042,6 +1087,7 @@
      断网/无码 → 主进程返回 checked:false，静默跳过，宁宽勿错。 */
   function cmProRevoke() {
     cmProRefresh().then(function () {
+      buildNavPro();                            // 吊销：徽标摘下、角标回来（v1.2.6）
       if (window.showToast) window.showToast('Pro 激活已失效（订单退款或异常），已恢复基础版', 'error');
       var cur = null;
       Object.keys(CM_PRO_PAGES).forEach(function (k) {
@@ -1082,6 +1128,7 @@
       }
       badge.textContent = 'DEV · ' + (cmDevOverride === null ? '真实' : cmDevOverride ? '模拟已激活' : '模拟未激活');
     } else if (badge) badge.remove();
+    buildNavPro();                              // 开发者模拟切换锁态 → 侧栏角标/徽标即时跟随（v1.2.6）
     var cur = cmDevCurPage();
     if (cur) {
       var locked = (cmDevOverride === false) || (cmDevOverride === null && !cmProCache().active);
@@ -1215,13 +1262,16 @@
       '<div>🌟 进步之星榜 · 零扣分续航榜 海报导出</div>' +
       '</div>' +
       '<div class="cmDesk-pro-price"><s>¥69</s> <b>¥49</b> <span>早鸟限量 100 份 · 一次买断 · 无订阅</span></div>' +
-      '<div class="cmDesk-pro-req"><span>① 复制申请码（已含本机标识）</span><input id="cmProReq" readonly value="' + req + '"><button class="btn btn-outline btn-sm" id="cmProReqCopy">复制</button></div>' +
+      '<div class="cmDesk-pro-mail"><span>✉ 邮箱（选填）</span><input id="cmProMailIn" type="email" placeholder="换机重置时自动核对身份 · 只存加密指纹，本机不存明文"></div>' +
+      '<div class="cmDesk-pro-req"><span>① 复制申请码（已含本机标识）</span><button class="btn btn-primary btn-sm" id="cmProReqCopy">复制</button></div>' +
+      '<input id="cmProReq" readonly value="' + req + '">' +
       '<div class="cmDesk-pro-act">' +
       '<a class="btn btn-primary" id="cmProBuy" href="' + CM_PRO_BUY_URL + '?custom_order_id=' + encodeURIComponent(req) + '" target="_blank" rel="noopener">🛒 购买激活（微信 / 支付宝）</a>' +
-      '<button class="btn btn-outline btn-sm" id="cmProClaim">② 我已付款 · 自动获取激活码</button>' +
+      '<button class="btn btn-outline" id="cmProClaim">② 我已付款 · 自动获取激活码</button>' +
       '</div>' +
-      '<div class="cmDesk-pro-manual"><button class="btn btn-outline btn-sm" id="cmProPaste">我已有激活码 · 从剪贴板粘贴</button><input id="cmProLic" placeholder="或手动贴入 CMPRO1.xxxx…"><button class="btn btn-primary btn-sm" id="cmProGo">激活</button></div>' +
-      '<div class="cmDesk-pro-msg" id="cmProMsg">付款后一般 12 小时内发货；激活全程离线验签，数据不出这台电脑。</div>' +
+      '<div class="cmDesk-pro-manual"><button class="btn btn-outline btn-sm" id="cmProPaste">我已有激活码 · 从剪贴板粘贴</button><input id="cmProLic" placeholder="或手动贴入 CMPRO1.xxxx…"></div>' +
+      '<button class="btn btn-primary" id="cmProGo">激活</button>' +
+      '<div class="cmDesk-pro-msg" id="cmProMsg">付款后点「② 我已付款 · 自动获取激活码」即可自动激活，一般几秒内到码；没取到也可复制激活码手动贴入。激活全程离线验签，数据不出这台电脑。</div>' +
       '<div class="cmDesk-donate-actions"><button class="btn btn-outline btn-sm" id="cmProLater">下次再说</button></div>' +
       '</div>';
     document.body.appendChild(m);
@@ -1234,6 +1284,20 @@
     m.addEventListener('click', function (e) { if (e.target === m) closeModal(); });
     m.querySelector('#cmProReqCopy').onclick = function () {
       cmProCopy(req, function () { if (window.showToast) window.showToast('申请码已复制，下单时粘贴到留言', 'success'); }, function () { if (window.showToast) window.showToast('复制失败，请长按手动复制', 'error'); });
+    };
+    /* 可选邮箱（v1.2.6）：填了就进申请码指纹（eh），重签时 KeyGen 自动核对；
+       改邮箱 → 申请码/购买链接即时重算（复制/下单都拿新的） */
+    var mailIn = m.querySelector('#cmProMailIn');
+    mailIn.value = lsGet('cmProMail') || '';
+    mailIn.onchange = function () {
+      var v = (mailIn.value || '').trim().toLowerCase();
+      var msgEl = m.querySelector('#cmProMsg');
+      if (v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { msgEl.textContent = '邮箱格式看起来不对，改一下再回车'; return; }
+      lsSet('cmProMail', v);
+      req = cmProReqCode();
+      m.querySelector('#cmProReq').value = req;
+      m.querySelector('#cmProBuy').href = CM_PRO_BUY_URL + '?custom_order_id=' + encodeURIComponent(req);
+      msgEl.textContent = v ? '✉ 邮箱已记入（只存加密指纹），申请码已更新——请重新复制' : '邮箱已清除，申请码已更新';
     };
     m.querySelector('#cmProPaste').onclick = function () {
       var msg = m.querySelector('#cmProMsg');
@@ -1256,7 +1320,7 @@
       msg.textContent = '正在向作者服务器查询你的激活码…';
       window.__CM_PRO.claim(req).then(function (r) {
         if (r && r.ok) { m.querySelector('#cmProLic').value = r.lic; m.querySelector('#cmProGo').click(); }
-        else msg.textContent = r && r.why === 'AUTO_OFF' ? '自动获取即将开通——目前请把申请码发给作者（爱发电留言 / 邮箱），收到激活码贴在下方。' : '暂未查到订单：确认已付款且申请码已填进爱发电留言，稍后再试或联系作者。';
+        else msg.textContent = r && r.why === 'AUTO_OFF' ? '自动获取暂未开通——请把申请码发给作者（爱发电留言 / 邮箱），收到激活码贴在下方。' : '暂未查到订单：确认已付款、申请码已填进爱发电留言，几秒后可再点一次；仍未到码请联系作者（846699191@qq.com）。';
       });
     };
     m.querySelector('#cmProGo').onclick = function () {
@@ -1269,6 +1333,7 @@
           cmProRefresh().then(function () {
             m.remove();
             if (window.showToast) window.showToast('🎉 Pro 已激活' + (r.tier === 'early' ? '（早鸟纪念 #' + r.sn + '/100）' : ''), 'success');
+            buildNavPro();                          // 侧栏：去角标、亮 PRO 徽标（v1.2.6）
             var old = document.getElementById('cmDeskDonateSec');
             if (old) old.remove();
             var about = document.getElementById('settingsAbout');
@@ -1281,17 +1346,40 @@
       });
     };
   }
-  /* Pro 已激活卡（D1：替换打赏卡；保底小打赏入口） */
+  /* Pro 已激活卡（v1.2.6 B 印章式定稿）：暖黑底 + 金色发丝边框 + 早鸟钢印，右下角开发者署名。
+     v1.2.6 二审：授权邮箱行撤下（本机从不存明文、实际也留不了邮箱），
+     换成金宋体身份行「早鸟 №042 · 正版授权」——铭牌感直接给足。 */
   function buildProActiveCard(about) {
     var c = cmProCache();
     var sec = el('div', 'settings-section cmDeskDonateSec');
     sec.id = 'cmDeskDonateSec';
+    var early = c.tier === 'early';
+    var sn = ('00' + (c.sn || 0)).slice(-3);
     sec.innerHTML =
-      '<h3>✅ Pro 已激活</h3>' +
-      '<div class="cmDeskDonate-t">授权给 <b>' + cmProMaskMail(c.eh) + '</b>' + (c.tier === 'early' ? ' · 🐦 早鸟纪念 #' + c.sn + '/100' : '') + ' · 一次买断，永久可用</div>' +
-      '<div class="cmDeskDonate-r"><span class="cmDeskDonate-hint">换电脑？每年 3 次免费重置：846699191@qq.com</span>' +
-      '<button class="btn btn-outline btn-sm" id="cmProThanks">☕ 仍想请作者喝一杯</button></div>';
-    sec.querySelector('#cmProThanks').onclick = cmDonateModal;
+      '<div class="cmDesk-procard">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">' +
+      '<span class="chip">✦ PRO</span><span>已激活 · 终身有效</span>' +
+      '</div>' +
+      (early ? '<div class="seal"><i>早鸟</i><b>№' + sn + '</b><s>共100份</s></div>' : '') +
+      '<div class="bd">' +
+      '<div class="lic">' + (early ? '早鸟 №' + sn + ' · 正版授权' : '正版授权') + '</div>' +
+      '<div>一次买断，全部 Pro 功能永久可用</div>' +
+      '<div class="mut">换机重置：每年 3 次免费 · 846699191@qq.com</div>' +
+      '<button class="cmDesk-procard-copy" id="cmProLicCopy" title="换机/清数据后把它和新的申请码一起发给作者，即可免费重签">📋 复制激活码（换机重签用）</button>' +
+      '</div>' +
+      '<div class="ft"><span>' + (early ? '感谢你成为前 100 位支持者' : '感谢支持独立开发') + '</span><span class="sig">BY: chee</span></div>' +
+      '</div>';
+    var licBtn = sec.querySelector('#cmProLicCopy');
+    licBtn.onclick = function () {
+      function send(l) {
+        if (l) cmProCopy(l, function () { if (window.showToast) window.showToast('激活码已复制，连同新申请码一起发给作者即可重签', 'success'); }, function () { if (window.showToast) window.showToast('复制失败，请邮件联系作者', 'error'); });
+        else if (window.showToast) window.showToast('本机未找到激活码，请邮件联系作者：846699191@qq.com', 'error');
+      }
+      var lic = (cmProCache() || {}).lic || '';
+      if (lic) send(lic);
+      else if (window.__CM_PRO && window.__CM_PRO.status) window.__CM_PRO.status().then(function (r) { send((r && r.lic) || ''); });
+      else send('');
+    };
     about.parentNode.insertBefore(sec, about);
   }
 
@@ -1724,27 +1812,105 @@
       });
     };
   }
-  /* 导航栏 Pro 化（v1.2.0）：全部 Pro 页面挂角标 + 学期报告独立入口。
-     动态插入的 .nav-item 不会被页面启动时的批量绑定监听 → 自己绑 click。 */
+  /* ---------- v1.2.6 请假流水导出（Pro）：考勤页注入按钮 + CSV ----------
+     原则：所有导出皆 Pro（数据备份导出除外——数据主权红线，老板 D 批复）。
+     考勤请假 v1.2.6 转免费页面，但导出仍走 Pro gate：按钮常驻，点击未激活弹引导框。 */
+  function buildLeaveExportBtn() {
+    var bar = document.querySelector('#page-attendance .page-toolbar');
+    if (!bar || document.getElementById('cmExportLeaveBtn')) return;
+    var b = el('button', 'btn btn-outline btn-sm');
+    b.id = 'cmExportLeaveBtn';
+    b.innerHTML = '<span>📤 导出请假流水</span>';
+    b.title = '导出全部请假记录为 CSV（Pro 功能）';
+    b.onclick = function () {
+      if (window.__cmRole === 'committee') { if (window.showToast) window.showToast('班委模式无权导出数据', 'warning'); return; }
+      window.cmExportLeaveFlow();
+    };
+    bar.appendChild(b);   // 排在「+ 新增请假」右侧
+  }
+  window.cmExportLeaveFlow = function () {
+    try {
+      var list = (state.leaves || []).slice().sort(function (a, b) { return String(a.createdAt || '').localeCompare(String(b.createdAt || '')); });
+      if (!list.length) { if (window.showToast) window.showToast('还没有请假记录可导出', 'warning'); return; }
+      function stu(id) { var arr = state.students || []; for (var i = 0; i < arr.length; i++) if (arr[i].id === id) return arr[i]; return null; }
+      var ST = { pending: '待销假', returned: '已销假', extended: '续假中' };
+      function q(v) { v = v == null ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+      var rows = ['姓名,学号,类型,开始,结束,时长,事由,状态,登记时间'];
+      list.forEach(function (l) {
+        var s = stu(l.studentId) || {};
+        var dur = (typeof window.formatDuration === 'function') ? window.formatDuration(l.duration) : (l.duration == null ? '' : l.duration);
+        rows.push([
+          q(s.name || ('id:' + l.studentId)), q(s.sid || ''), q(l.type),
+          q(l.startDate), q(l.endDate), q(dur), q(l.reason),
+          q(ST[l.status] || l.status || ''), q(String(l.createdAt || '').replace('T', ' ').slice(0, 16))
+        ].join(','));
+      });
+      var d = new Date();
+      var ds = d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
+      var csv = '\uFEFF' + rows.join('\n') + '\n';
+      var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (state.className || '班级') + '-请假流水-' + ds + '.csv';
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+      if (window.showToast) window.showToast('已导出 ' + list.length + ' 条请假流水', 'success');
+    } catch (e) { if (window.showToast) window.showToast('导出失败：' + (e && e.message ? e.message : '未知错误'), 'error'); }
+  };
+
+  /* 导航栏 Pro 化（v1.2.0；v1.2.6 状态感知重做）：
+     未激活 → Pro 页面挂角标 + 学期报告独立入口（带 PRO 角标）；
+     已激活 → 清掉全部角标，侧栏顶部（班级卡右侧）亮 PRO 徽标。
+     动态插入的 .nav-item 不会被页面启动时的批量绑定监听 → 自己绑 click。
+     状态变化的三条路（激活成功 / 吊销 / 开发者模拟）都会重跑本函数。 */
   function buildNavPro() {
     var nav = document.getElementById('nav');
-    if (!nav || document.getElementById('cmNavReport')) return;
-    Object.keys(CM_PRO_PAGES).forEach(function (pg) {
-      var item = nav.querySelector('.nav-item[data-page="' + pg + '"]');
-      if (item && !item.querySelector('.cmDesk-navbadge')) {
-        var b = el('span', 'cmDesk-navbadge');
-        b.textContent = 'PRO';
-        item.appendChild(b);
+    if (!nav) return;
+    var active = cmProActive();
+    /* 角标：先清后按需补（幂等，可反复重跑） */
+    var olds = nav.querySelectorAll('.cmDesk-navbadge');
+    for (var i = 0; i < olds.length; i++) olds[i].remove();
+    if (!active) {
+      Object.keys(CM_PRO_PAGES).forEach(function (pg) {
+        var item = nav.querySelector('.nav-item[data-page="' + pg + '"]');
+        if (item && !item.querySelector('.cmDesk-navbadge')) {
+          var b = el('span', 'cmDesk-navbadge');
+          b.textContent = 'PRO';
+          item.appendChild(b);
+        }
+      });
+    }
+    /* 学期报告入口（无论激活与否都要有；未激活时带角标） */
+    var reportItem = document.getElementById('cmNavReport');
+    if (!reportItem) {
+      var settingsItem = nav.querySelector('.nav-item[data-page="settings"]');
+      reportItem = el('div', 'nav-item cmDesk-navreport');
+      reportItem.id = 'cmNavReport';
+      reportItem.title = '学期报告（Pro）';
+      reportItem.innerHTML = '<span class="nav-icon">🎓</span><span>学期报告</span>';
+      reportItem.addEventListener('click', function () { cmReportOpen(); });
+      if (settingsItem) settingsItem.parentNode.insertBefore(reportItem, settingsItem);
+      else nav.appendChild(reportItem);
+    }
+    if (!active && !reportItem.querySelector('.cmDesk-navbadge')) {
+      var rb = el('span', 'cmDesk-navbadge');
+      rb.textContent = 'PRO';
+      reportItem.appendChild(rb);
+    }
+    /* 侧栏顶部 PRO 徽标（激活专属）：班级卡右侧，金线暗底 + 烫金字，安静但有质感 */
+    var logo = document.querySelector('.sidebar-logo');
+    var em = document.getElementById('cmDeskProEmblem');
+    if (active) {
+      if (logo && !em) {
+        em = el('span', 'cmDesk-proemblem');
+        em.id = 'cmDeskProEmblem';
+        em.title = 'Pro 已激活 · 感谢支持';
+        em.innerHTML = '<i>✦</i>PRO';
+        logo.appendChild(em);
       }
-    });
-    var settingsItem = nav.querySelector('.nav-item[data-page="settings"]');
-    var it = el('div', 'nav-item cmDesk-navreport');
-    it.id = 'cmNavReport';
-    it.title = '学期报告（Pro）';
-    it.innerHTML = '<span class="nav-icon">🎓</span><span>学期报告</span><span class="cmDesk-navbadge">PRO</span>';
-    it.addEventListener('click', function () { cmReportOpen(); });
-    if (settingsItem) settingsItem.parentNode.insertBefore(it, settingsItem);
-    else nav.appendChild(it);
+    } else if (em) {
+      em.remove();
+    }
   }
   /* 云同步静音（v1.1.1）：桌面版数据只在本机，autoPushToCloud 的「未配置云同步 Token」提示与桌面改造方向不符 */
   function silenceCloudPush() {
@@ -1773,6 +1939,8 @@
     cmWrapPro('switchAnalyticsTab', '数据分析');
     cmWrapPro('exportPublicityPoster', '公示海报导出');
     cmWrapPro('exportWeeklyReport', '学分周报导出');
+    cmWrapPro('cmExportLeaveFlow', '请假流水导出');   // v1.2.6：考勤页新按钮（原则：所有导出皆 Pro）
+    buildLeaveExportBtn();
     silenceCloudPush();
     wrapNavigatePro();
     buildNavPro();

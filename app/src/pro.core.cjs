@@ -31,7 +31,7 @@ function register(deps) {
       const st = JSON.parse(fs.readFileSync(f, 'utf8'));
       const r = await proCheck(st.lic, st.dev, pub());
       if (!r.ok) return { active: false, why: r.why };
-      return { active: true, tier: r.tier, sn: r.sn, eh: r.eh };
+      return { active: true, tier: r.tier, sn: r.sn, eh: r.eh, lic: st.lic };
     } catch (e) { return { active: false, why: String(e && e.message || e).slice(0, 80) }; }
   });
   ipcMain.handle('cm-pro-activate', async function (e, payload) {

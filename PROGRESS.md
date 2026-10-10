@@ -4,10 +4,11 @@
 
 ## 一、当前状态速览
 
-- **线上 Release**：**v1.2.5 = Latest**（密钥门槛版；v1.2.2…v1.2.4 在档）（三件套齐；**v1.2.1 已删**——换钥前的坏版，自动取码验签必失败）。
-- **测试**：`_v_desktop_test.js` **17/18**（唯一失败 = root 零改动检查 EBUSY 环境误报，git 侧面确认零改动）；gate/report 探针 PASS；打包冒烟 **PASS**（v1.2.3）；契约测试 **19 项**（+⑪ 心跳段，17 过 2 项环境误报）。
+- **线上 Release**：**v1.2.6 = Latest**（2026-10-10 七件套版；v1.2.2…v1.2.5 在档；v1.2.1 已删——换钥前坏版）。
+- **测试**：`_v_desktop_test.js` **22 套全绿**（+⑭ v1.2.6 七件套段；沙箱跑法 = bash 预取 HEAD 写文件 + `CM_HEAD_FILE` 逃生舱）；打包冒烟 **PASS**（v1.2.6，`CM_SMOKE_SHOT` 指定落点才能存图——打包版 `__dirname` 在 asar 里写不进 out/）。
+- **v1.2.6 内容**：向导按钮重排（上一步左/下一步右/去箭头）；第 5 步改「导入学生名单」（CSV 模板下载 + 劫持预览直接注入 + 导入后不再给示例数据）；激活后侧栏去 PRO 角标、左上角亮烫金 PRO 徽标（cmDesk-proemblem，buildNavPro 状态感知化）；考勤请假/课堂点名转免费 + 新增「导出请假流水」（CSV，Pro gate，班委拦截）；反馈卡独立成卡；关于卡改本版更新简要（≤100 字，无网页版字样）；满天弹窗/打赏卡文案跟上 Pro 时代；激活弹窗重排（复制钮右置主色、购买/已付款 300px 居中对齐、激活居中放大）+ 可选邮箱框（cmProMail 真实入链）；Pro 已激活卡 B 印章式定稿（早鸟 № 钢印 + BY: chee 署名 + 复制激活码按钮）；KeyGen ②b 换机重签自动核对（邮箱指纹/设备指纹/沿用序号）+ ③发货记录查询框。
 - **⚠️ 换钥事故（2026-10-10 凌晨）**：App 旧公钥 4e4f3a71 对应的私钥在 KeyGen 页被「生成新私钥」覆盖丢失（页面显示的 3714294d 与云函数 PRO_PRIV=3938d60b 才是真配对）。处理：CM_PRO_PUB 改 **3714294d**（v1.2.2 已发），云函数不动；KeyGen 页 gen 按钮加双确认+生成后强提醒导出；老板本机旧激活失效需重签。教训：**烧进 App 的公钥对应的私钥必须「导出备份」双份保存，KeyGen 页 localStorage 是唯一存储太脆**。
-- **进行中**：**v1.2.1 已打包**（自动取码 API 上线）——**未发布 Release**，等老板下令发布。v1.1.0/v1.1.1/v1.2.0 三包均在 out/ 备档。
+- **⚠️ 打包坑（v1.2.6 实测）**：electron-builder 清空 `out/win-unpacked` 被安全删除钩子拦（批量删除超阈值）→ **打包前先 `mv out/win-unpacked out/_trash_*`**。
 - **发货机已上线**（2026-10-09）：腾讯云函数 `cm-pro-shipper`（ap-shanghai，Nodejs12.16 Web 函数），URL `https://1466839507-gqk4mefrq0.ap-shanghai.tencentscf.com/?req=`；4 环境变量全齐（含 PRO_PRIV）；线上实测：格式拒 + 合法 payload → `NOT_FOUND`（爱发电翻页查单链路通）。部署改走 **SCF REST API**（`scripts/_scf_api.py` TC3 签名，密钥 `scripts/_tencent_creds.txt` 严禁入仓）；浏览器代操作在本机不可行（GUI 进程被系统收割，试 3 次全灭）。
 
 ## 二、待办队列
