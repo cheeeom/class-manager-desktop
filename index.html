@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>班主任工作台 · Windows 桌面版</title>
-<meta name="description" content="班主任工作台 Windows 桌面版免费下载：点名、学分、值日、请假、家校通知，一间教室的日常搬上电脑。数据只存本机，无广告、无激活限制。">
+<meta name="description" content="班主任工作台 Windows 桌面版免费下载：点名、课表、值日、请假、座次，一间教室的日常搬上电脑。核心功能永久免费，Pro 一次买断。数据只存本机，无广告、无订阅。">
 <meta name="theme-color" content="#F6F2E9">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%23A63A2B'/%3E%3Crect%20x='5'%20y='5'%20width='54'%20height='54'%20rx='10'%20fill='none'%20stroke='%23FFFDF7'%20stroke-opacity='.8'%20stroke-width='2.5'/%3E%3Ctext%20x='32'%20y='45'%20font-family='STZhongsong,SimSun,serif'%20font-size='34'%20font-weight='700'%20fill='%23FFFDF7'%20text-anchor='middle'%3E%E7%8F%AD%3C/text%3E%3C/svg%3E">
 <style>
@@ -199,15 +199,18 @@ a{color:inherit;text-decoration:none}
 .donate-card .d-note{margin-top:14px;font-size:12.5px;color:var(--ink-3);line-height:1.8}
 .donate-close{position:absolute;top:10px;right:14px;border:0;background:none;font-size:24px;line-height:1;color:var(--ink-3);cursor:pointer;padding:4px}
 .donate-actions{margin-top:16px;display:flex;justify-content:center}
-.dl-badge{
-  display:inline-flex;align-items:center;gap:7px;height:52px;padding:0 18px;
-  border:1px dashed #D9CFBB;border-radius:12px;background:var(--card);
-  font-size:14px;color:var(--ink-2);white-space:nowrap;
+.dl-stat{
+  display:inline-flex;align-items:baseline;gap:11px;white-space:nowrap;
 }
-.dl-badge b{font-family:var(--font-display);font-size:16.5px;color:var(--zhu);font-variant-numeric:tabular-nums}
-.dl-badge .pulse{width:7px;height:7px;border-radius:50%;background:#3E9B4F;flex:none;animation:pulse 2.2s ease-in-out infinite}
+.dl-stat b{
+  font-family:var(--font-display);font-size:34px;font-weight:700;line-height:1;
+  color:var(--zhu);font-variant-numeric:tabular-nums;
+}
+.dl-stat i{font-style:normal;font-size:13px;color:var(--ink-3);letter-spacing:.08em}
+.dl-stat .pulse{width:8px;height:8px;border-radius:50%;background:#3E9B4F;flex:none;align-self:center;animation:pulse 2.2s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-@media (max-width:720px){.dl-badge{height:44px;font-size:13px}}
+.cta-sub{margin-top:14px}
+@media (max-width:720px){.dl-stat b{font-size:26px}}
 .donate-actions .btn{height:42px;padding:0 22px;font-size:14.5px}
 
 /* ============ FAQ ============ */
@@ -239,14 +242,19 @@ a{color:inherit;text-decoration:none}
 .f-links a:hover{color:var(--zhu)}
 .f-copy{margin-top:14px;font-size:12.5px;color:var(--ink-3)}
 
-/* ============ 入场：仅 hero 一处编排 ============ */
+/* ============ 入场：hero 用 rise 编排；其余区块由 JS 标注 .rv 滚动入场 ============ */
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 .hero-copy h1,.hero-copy .lead{animation:rise .34s ease-out both}
 .hero-copy .cta{animation:rise .34s .08s ease-out both}
-.hero-copy .meta{animation:rise .34s .14s ease-out both}
+.hero-copy .cta-sub{animation:rise .34s .13s ease-out both}
+.hero-copy .meta{animation:rise .34s .18s ease-out both}
 .visual{animation:rise .38s .1s ease-out both}
+/* 滚动入场：进入视口前下移淡隐，进入后浮出（组内按序 stagger） */
+.rv{opacity:0;transform:translateY(24px);transition:opacity .7s cubic-bezier(.22,.61,.36,1),transform .7s cubic-bezier(.22,.61,.36,1)}
+.rv.in{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
+  .rv{opacity:1;transform:none}
   html{scroll-behavior:auto}
 }
 
@@ -267,25 +275,95 @@ a{color:inherit;text-decoration:none}
   .nav-links{gap:16px;font-size:13.5px}
   .nav-links .hide-m{display:none}
 }
-/* ---------- Pro 买断区（v1.1 前瞻） ---------- */
-.pro-lead{color:var(--ink-2);font-size:15px;line-height:1.9;max-width:640px;margin:0 0 26px}
-.pro-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:stretch}
-.pro-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px 26px 22px;box-shadow:0 10px 30px rgba(60,40,20,.06);display:flex;flex-direction:column}
-.pro-card h3{font-family:var(--font-display);font-size:20px;color:var(--ink);margin:0 0 14px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-.pro-card h3 small{font-size:14px;color:var(--ink-3);font-family:var(--font-body)}
-.pro-card h3 small s{color:var(--ink-3)}
-.pro-card h3 small b{color:var(--zhu);font-size:22px}
-.pro-card ul{list-style:none;margin:0 0 18px;padding:0;flex:1}
-.pro-card ul li{position:relative;padding:7px 0 7px 24px;font-size:14px;line-height:1.7;color:var(--ink-2);border-bottom:1px dashed var(--line)}
-.pro-card ul li:last-child{border-bottom:0}
-.pro-card ul li::before{content:"";position:absolute;left:2px;top:15px;width:9px;height:9px;border-radius:3px;transform:rotate(45deg);background:var(--zhu);opacity:.75}
-.pro-free ul li::before{background:var(--ink-3);opacity:.5}
-.pro-early{align-self:flex-start;font-size:12.5px;font-weight:700;color:var(--zhu);background:rgba(166,58,43,.08);border:1px solid rgba(166,58,43,.28);border-radius:999px;padding:3px 12px;margin-bottom:12px}
-.pro-note{font-size:12px;color:var(--ink-3);margin:10px 0 0;text-align:center}
-.pro-steps{display:flex;gap:14px;flex-wrap:wrap;margin-top:18px}
-.pro-steps span{flex:1;min-width:200px;background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:12px 16px;font-size:13px;color:var(--ink-2);line-height:1.7}
-.pro-steps b{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--zhu);color:#FFFDF7;font-family:var(--font-display);margin-right:8px;font-size:13px}
-@media (max-width:760px){.pro-grid{grid-template-columns:1fr}}
+/* ---------- Pro 买断区（v1.2.6：与水墨海报统一 —— 发丝线、菱形印点、一纸一玄） ---------- */
+.pro-lead{color:var(--ink-2);font-size:15px;line-height:1.9;max-width:660px;margin:0 0 34px}
+.pro-lead b{color:var(--ink)}
+
+/* —— 对比表：行式 + 发丝线 + 菱形印点 —— */
+.cmp{border-top:2px solid var(--ink)}
+.cmp-head,.cmp-row{display:grid;grid-template-columns:minmax(0,1fr) 96px 96px;gap:16px;align-items:center}
+.cmp-head{padding-block:14px;border-bottom:1px solid var(--line);font-family:var(--font-display);font-weight:700;font-size:15px;letter-spacing:.06em}
+.cmp-head .h-sub{display:block;font-family:var(--font-body);font-weight:400;font-size:12px;color:var(--ink-3);letter-spacing:.04em;margin-top:2px}
+.cmp-row{padding-block:17px;border-bottom:1px solid var(--line)}
+.cmp-row .g{font-size:15px;font-weight:600;letter-spacing:.02em}
+.cmp-row .g small{display:block;font-weight:400;font-size:12.5px;color:var(--ink-3);margin-top:3px;letter-spacing:.01em}
+.cmp-row .g b{font-weight:700}
+.mk{width:20px;height:20px;transform:rotate(45deg);margin-inline:auto;display:flex;align-items:center;justify-content:center}
+.mk-yes{border:1.5px solid var(--zhu)}
+.mk-gold{background:var(--zhu)}
+.mk-no{width:16px;height:1.5px;background:#C9BFA9;transform:none}
+@media (max-width:640px){
+  .cmp-head,.cmp-row{grid-template-columns:minmax(0,1fr) 52px 52px;gap:8px}
+  .cmp-head{font-size:13.5px}
+}
+
+/* —— 双卡：免费（纸白） × Pro（玄墨） —— */
+.pro-duo{display:grid;grid-template-columns:1fr 1.12fr;gap:22px;margin-top:40px;align-items:stretch}
+.pcard{border:1px solid var(--line);padding:34px 32px 28px;display:flex;flex-direction:column;position:relative}
+.pcard-free{background:var(--card)}
+.pcard-pro{background:#191613;border-color:#191613;border-top:1px solid #C9A227;color:#EAE2D2}
+.pcard .eyebrow{display:flex;align-items:center;gap:14px}
+.pcard .eyebrow .ln{width:40px;height:1px;flex:none}
+.pcard-free .eyebrow .ln{background:var(--zhu)}
+.pcard-pro .eyebrow .ln{background:#C9A227}
+.pcard .eyebrow span{font-size:12.5px;letter-spacing:.32em}
+.pcard-free .eyebrow span{color:var(--ink-3)}
+.pcard-pro .eyebrow span{color:#8C8270}
+.pcard .price{margin-top:20px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.pcard .price .cur{font-family:var(--font-display);font-size:22px}
+.pcard .price .num{font-family:var(--font-display);font-size:52px;font-weight:700;line-height:1}
+.pcard-free .price .num{color:var(--ink)}
+.pcard-pro .price .num{color:#EFD98B}
+.pcard .price s{font-size:15px;color:var(--ink-3)}
+.pcard-pro .price s{color:#6E6552}
+.pcard .price .cap{font-size:12.5px;letter-spacing:.18em;color:var(--ink-3)}
+.pcard-pro .price .cap{color:#8C8270}
+.pcard ul{list-style:none;margin:22px 0 26px;padding:0;flex:1}
+.pcard ul li{position:relative;padding:9px 0 9px 26px;font-size:14.5px;line-height:1.75;border-top:1px solid var(--line)}
+.pcard-pro ul li{border-top:1px solid rgba(234,226,210,.14);color:#CFC5AF}
+.pcard ul li b{color:var(--ink)}
+.pcard-pro ul li b{color:#F2EAD8}
+.pcard ul li::before{
+  content:"";position:absolute;left:4px;top:19px;width:8px;height:8px;
+  transform:rotate(45deg);background:var(--zhu);opacity:.85;
+}
+.pcard-pro ul li::before{background:#C9A227}
+.pcard .btn{justify-content:center}
+.pcard-pro .btn-primary{background:#C9A227;color:#191613}
+.pcard-pro .btn-primary:hover{background:#DDB743}
+.pcard-pro .btn-ghost{background:transparent;border-color:rgba(234,226,210,.3);color:#EAE2D2}
+.pcard-pro .btn-ghost:hover{border-color:#C9A227;color:#EFD98B}
+.pcard-free .btn-ghost{background:transparent}
+.pcard .p-note{margin-top:14px;font-size:12px;line-height:1.8;text-align:center;color:var(--ink-3)}
+.pcard-pro .p-note{color:#8C8270}
+.pcard .early{
+  align-self:flex-start;font-size:12px;font-weight:700;letter-spacing:.12em;
+  color:var(--zhu);border:1px solid rgba(166,58,43,.42);padding:5px 13px;margin-bottom:16px;
+}
+.pcard-pro .early{color:#C9A227;border-color:rgba(201,162,39,.5)}
+.pcard-pro .seal-mini{
+  position:absolute;top:26px;right:26px;width:64px;height:64px;transform:rotate(7deg);opacity:.9;
+}
+@media (max-width:860px){.pro-duo{grid-template-columns:1fr}}
+
+/* —— 三步激活：发丝线行式，编号绝对定位（flex 匿名 item 会把中文劈成碎条） —— */
+.pro-steps{margin-top:34px;border-top:1px solid var(--line)}
+.pro-steps span{
+  position:relative;padding:18px 0 18px 46px;
+  font-size:14.5px;color:var(--ink-2);line-height:1.75;
+}
+.pro-steps span + span{border-top:1px solid var(--line)}
+.pro-steps b.n{
+  position:absolute;left:0;top:20px;
+  display:flex;align-items:center;justify-content:center;
+  width:28px;height:28px;transform:rotate(45deg);
+  border:1.5px solid var(--zhu);font-family:var(--font-display);
+}
+.pro-steps b.n i{transform:rotate(-45deg);font-style:normal;font-size:13px;color:var(--zhu);font-weight:700}
+@media (min-width:761px){
+  .pro-steps{display:grid;grid-template-columns:repeat(3,1fr);column-gap:38px}
+  .pro-steps span{border-top:0;padding-block:24px 6px}
+}
 </style>
 </head>
 <body>
@@ -325,11 +403,11 @@ a{color:inherit;text-decoration:none}
       <h1>把一个班，<br>管得明明白白。</h1>
       <p class="lead">点名、学分、值日、请假、家校通知——为班主任日常写就的桌面应用。双击安装，打开即用，所有数据只保存在你自己的电脑上。</p>
       <div class="cta">
-        <a class="btn btn-primary" href="https://github.com/cheeeom/class-manager-desktop/releases/latest/download/ClassManager-Setup.exe" download>下载 Windows 版</a>
-        <button class="btn btn-ghost" type="button" onclick="openDonate()">☕ 请作者喝杯奶茶</button>
-        <span class="dl-badge"><span class="pulse" aria-hidden="true"></span>已有 <b class="dl-num">1,2xx</b> 位班主任下载</span>
+        <a class="btn btn-primary" href="#pro">下载 Windows 版</a>
+        <span class="dl-stat"><span class="pulse" aria-hidden="true"></span><b class="dl-num">1,2xx</b><i>位班主任在用</i></span>
       </div>
-      <p class="meta">Windows 10 / 11　·　约 83 MB　·　免费，无广告、无激活限制</p>
+      <div class="cta-sub"><button class="btn btn-ghost" type="button" onclick="openDonate()">☕ 请作者喝杯奶茶</button></div>
+      <p class="meta">Windows 10 / 11　·　约 83 MB　·　免费下载，无广告、无订阅</p>
     </div>
 
     <div class="visual" role="img" aria-label="班主任工作台桌面版：纸墨远山壁纸与朱砂「班」字印章">
@@ -337,7 +415,7 @@ a{color:inherit;text-decoration:none}
       <div class="v-center">
         <svg class="v-seal" width="128" height="128" aria-hidden="true"><use href="#seal"/></svg>
         <div class="v-name">班主任工作台</div>
-        <div class="v-ver">WINDOWS 桌面版 · V1.0.9</div>
+        <div class="v-ver">WINDOWS 桌面版 · V1.2.6</div>
       </div>
       <svg class="v-stamp" aria-hidden="true"><use href="#stamp-yin"/></svg>
     </div>
@@ -412,16 +490,15 @@ a{color:inherit;text-decoration:none}
       <h2>所有数据，<br>只留在这台电脑上。</h2>
       <p class="sub">不需要注册账号，不连接任何服务器。学生信息不出你的机器；升级、重装应用，数据都还在原处。</p>
       <div class="cta">
-        <a class="btn btn-primary" href="https://github.com/cheeeom/class-manager-desktop/releases/latest/download/ClassManager-Setup.exe" download>下载 Windows 版</a>
-        <a class="btn btn-ghost" href="https://github.com/cheeeom/class-manager-desktop/releases">查看历史版本</a>
-        <span class="dl-badge"><span class="pulse" aria-hidden="true"></span>已有 <b class="dl-num">1,2xx</b> 位班主任下载</span>
-        <button class="btn btn-ghost" type="button" onclick="openDonate()">☕ 请作者喝杯奶茶</button>
+        <a class="btn btn-primary" href="#pro">下载 Windows 版</a>
+        <span class="dl-stat"><span class="pulse" aria-hidden="true"></span><b class="dl-num">1,2xx</b><i>位班主任在用</i></span>
       </div>
+      <div class="cta-sub"><button class="btn btn-ghost" type="button" onclick="openDonate()">☕ 请作者喝杯奶茶</button></div>
       <p class="note">首次运行若被 Windows SmartScreen 拦截，点「更多信息」再选「仍要运行」即可，这是未签名安装包的正常提示。</p>
     </div>
     <ul class="promises">
       <li><span>本地存储<span class="p-sub">学生信息永不上传，断网也能用</span></span></li>
-      <li><span>免费分享<span class="p-sub">基础功能永久免费 · 无广告无订阅</span></span></li>
+      <li><span>免费分享<span class="p-sub">带班核心功能永久免费 · 无广告无订阅</span></span></li>
       <li><span>升级无忧<span class="p-sub">下载新版覆盖安装，数据自动保留</span></span></li>
     </ul>
     <svg class="v-stamp" aria-hidden="true"><use href="#stamp-yin"/></svg>
@@ -432,38 +509,92 @@ a{color:inherit;text-decoration:none}
   <div class="wrap">
     <div class="sec-head">
       <span class="dot" aria-hidden="true"></span>
-      <h2>免费版 · Pro 买断版</h2>
+      <h2>免费版与 Pro，各自管什么</h2>
     </div>
-    <p class="pro-lead">基础版永远免费，功能不加钱也不减。<b>Pro 是给愿意支持独立开发的新坑</b>：一次买断，无订阅、无内购、无广告，数据照旧只留在这台电脑上。</p>
-    <div class="pro-grid">
-      <div class="pro-card pro-free">
-        <h3>🆓 免费版 <small>¥0 · 永久</small></h3>
-        <ul>
-          <li>全部现有功能：课表 · 学分 · 请假 · 值日 · 座次 · 成绩录入 · 班委协作 · 荣誉墙…</li>
-          <li>数据备份导出（永远免费，数据是你的）</li>
-          <li>公示海报 · 普通排行榜导出</li>
-          <li>数据分析 · 页面查看</li>
-        </ul>
-        <a class="btn btn-ghost" href="#download">下载免费版</a>
+    <p class="pro-lead">每天都要用的<b>带班功能，永久免费</b>；学分激励、档案留痕、成绩分析这些<b>沉淀与复盘的层，是一次买断的 Pro</b>。无订阅、无内购、无广告，数据照旧只留在这台电脑上。</p>
+
+    <div class="cmp" role="table" aria-label="免费版与 Pro 功能对比">
+      <div class="cmp-head">
+        <span></span>
+        <span>免费版<span class="h-sub">¥0 · 永久</span></span>
+        <span>Pro<span class="h-sub">一次买断</span></span>
       </div>
-      <div class="pro-card pro-pay">
-        <div class="pro-early">🔥 早鸟限量 100 份 · 仅剩 <b id="proEarlyLeft">100</b> 份</div>
-        <h3>✨ Pro <small><s>¥69</s> <b>¥49</b> · 一次买断</small></h3>
-        <ul>
-          <li>🎓 学期报告引擎：个人 + 班级报告，PDF / 长图一键导出</li>
-          <li>🖼️ 座次表 · 值日表 · 成绩条，排版打印不发愁</li>
-          <li>📊 数据分析深度版：趋势 · 预警 · 导出</li>
-          <li>🌟 进步之星榜 · 零扣分续航榜 海报导出</li>
-          <li>买断后不再弹出赞赏提醒</li>
-        </ul>
-        <a class="btn btn-primary pro-buy" href="https://afdian.com/item/e4cf1936c3d611f19ca752540025c377" target="_blank" rel="noopener">🛒 购买 Pro（微信 / 支付宝）</a>
-        <p class="pro-note">永久使用权 + 一年功能更新 · 换机每年 3 次免费重置 · 支持微信 / 支付宝</p>
+      <div class="cmp-row">
+        <div class="g">每日带班<small>课表 · 课堂点名 · 考勤请假 · 值日排班 · 座次表</small></div>
+        <span class="mk mk-yes" aria-label="包含"></span>
+        <span class="mk mk-yes" aria-label="包含"></span>
+      </div>
+      <div class="cmp-row">
+        <div class="g">数据自主<small>本机存储 · 备份导入导出 · 断网可用</small></div>
+        <span class="mk mk-yes" aria-label="包含"></span>
+        <span class="mk mk-yes" aria-label="包含"></span>
+      </div>
+      <div class="cmp-row">
+        <div class="g">学分与激励<small>学分记录 · 学分银行 · 学分公示 · 荣誉墙</small></div>
+        <span class="mk mk-no" aria-label="不包含"></span>
+        <span class="mk mk-gold" aria-label="包含"></span>
+      </div>
+      <div class="cmp-row">
+        <div class="g">记录与档案<small>学生档案 · 工作留痕 · 待办提醒 · 家校通知</small></div>
+        <span class="mk mk-no" aria-label="不包含"></span>
+        <span class="mk mk-gold" aria-label="包含"></span>
+      </div>
+      <div class="cmp-row">
+        <div class="g">成绩与分析<small>成绩管理 · 数据分析 · 预警中心</small></div>
+        <span class="mk mk-no" aria-label="不包含"></span>
+        <span class="mk mk-gold" aria-label="包含"></span>
+      </div>
+      <div class="cmp-row">
+        <div class="g">导出工坊<small>座次表 / 值日表 / 成绩条 / 学分周报 / 请假流水，打印导出</small></div>
+        <span class="mk mk-no" aria-label="不包含"></span>
+        <span class="mk mk-gold" aria-label="包含"></span>
+      </div>
+      <div class="cmp-row">
+        <div class="g">学期报告引擎<small>学生个人报告 + 班级报告，PDF / 长图一键成图</small></div>
+        <span class="mk mk-no" aria-label="不包含"></span>
+        <span class="mk mk-gold" aria-label="包含"></span>
       </div>
     </div>
+
+    <div class="pro-duo">
+      <div class="pcard pcard-free">
+        <div class="eyebrow"><i class="ln"></i><span>核心带班 · 永久免费</span></div>
+        <div class="price"><span class="cur">¥</span><span class="num">0</span><span class="cap">下载即用 · 永久</span></div>
+        <ul>
+          <li><b>课堂节奏：</b>随机点名、实到统计、考勤请假销假</li>
+          <li><b>排班排座：</b>值日自动轮转、座次拖拽编排</li>
+          <li><b>数据是你：</b>本机存储、备份导入导出，永不上传</li>
+          <li>无广告 · 无订阅 · 已发布功能一个都不减</li>
+        </ul>
+        <a class="btn btn-ghost" href="https://github.com/cheeeom/class-manager-desktop/releases/latest/download/ClassManager-Setup.exe" download>下载免费版</a>
+        <p class="p-note">下载即用 · 数据是你的，也是 Pro 的地基</p>
+      </div>
+
+      <div class="pcard pcard-pro">
+        <svg class="seal-mini" viewBox="0 0 64 64" aria-hidden="true">
+          <rect x="2" y="2" width="60" height="60" fill="none" stroke="#A6402E" stroke-width="2.5"/>
+          <text x="32" y="27" text-anchor="middle" font-size="15" fill="#A6402E" font-family="STZhongsong,SimSun,serif" font-weight="700">早鸟</text>
+          <text x="32" y="48" text-anchor="middle" font-size="12.5" fill="#A6402E" font-family="STZhongsong,SimSun,serif">№042</text>
+        </svg>
+        <div class="eyebrow"><i class="ln"></i><span>完整版 · 一次买断</span></div>
+        <div class="early">早鸟限量 100 份 · 仅剩 <b id="proEarlyLeft">100</b> 份</div>
+        <div class="price"><span class="cur">¥</span><span class="num">49</span><s>¥69</s><span class="cap">早鸟价 · 售完即止</span></div>
+        <ul>
+          <li><b>学期报告引擎：</b>个人 + 班级报告，PDF / 长图一键成图</li>
+          <li><b>学分与激励全线：</b>学分银行 · 公示海报 · 荣誉墙</li>
+          <li><b>记录与档案全线：</b>学生档案 · 工作留痕 · 家校通知</li>
+          <li><b>导出工坊：</b>成绩条 · 值日表 · 座次表 · 请假流水，直接打印</li>
+          <li>买断后不再弹出赞赏提醒，终身激活 · 换机可重签</li>
+        </ul>
+        <a class="btn btn-primary pro-buy" href="https://afdian.com/item/e4cf1936c3d611f19ca752540025c377" target="_blank" rel="noopener">购买 Pro（微信 / 支付宝）</a>
+        <p class="p-note">永久使用权 + 一年功能更新 · 离线激活，不联网不上传 · 换机每年 3 次免费重签</p>
+      </div>
+    </div>
+
     <div class="pro-steps">
-      <span><b>1</b>在 App 的 Pro 功能处点「购买激活」，复制<b>申请码</b></span>
-      <span><b>2</b>爱发电下单（微信 / 支付宝），把申请码填进<b>留言</b></span>
-      <span><b>3</b>收到<b>激活码</b>贴进 App，即刻解锁全部 Pro</span>
+      <span><b class="n"><i>壹</i></b>在 App 的 Pro 功能处点「购买激活」，复制<b>申请码</b></span>
+      <span><b class="n"><i>贰</i></b>爱发电下单（微信 / 支付宝），把申请码填进<b>留言</b></span>
+      <span><b class="n"><i>叁</i></b>收到<b>激活码</b>贴进 App，即刻解锁全部 Pro</span>
     </div>
   </div>
 </section>
@@ -475,10 +606,6 @@ a{color:inherit;text-decoration:none}
       <h2>常见问题</h2>
     </div>
     <details>
-      <summary>它和网页版是什么关系？</summary>
-      <p class="a">同一套功能、同一种数据格式。网页版在浏览器打开、适合多人协作；桌面版装在本机、数据完全本地。两边用「导出 / 导入 JSON」即可互相搬家。</p>
-    </details>
-    <details>
       <summary>忘记登录密码怎么办？</summary>
       <p class="a">桌面版的密码只锁本机，当前版本不提供找回——卸载重装即清空重来。建议养成定期「导出数据」备份的习惯。</p>
     </details>
@@ -488,7 +615,7 @@ a{color:inherit;text-decoration:none}
     </details>
     <details>
       <summary>真的免费吗？以后会收费吗？</summary>
-      <p class="a">基础功能<b>永久免费</b>，这一条写在产品里、说话算话。2026 年冬起新增「Pro 买断」模块（学期报告、导出打印、深度分析），属于新功能新价钱，已发布功能一个都不收、一个都不减。</p>
+      <p class="a">每天要用的带班功能——课表、点名、考勤请假、值日、座次——<b>永久免费</b>，这一条写在产品里、说话算话。2026 年冬起新增「Pro 买断」：学分激励、档案留痕、成绩分析、导出工坊、学期报告，属于新功能新价钱，一次买断、无订阅无内购。</p>
     </details>
     <details>
       <summary>Pro 怎么购买和激活？支持微信 / 支付宝吗？</summary>
@@ -526,7 +653,7 @@ a{color:inherit;text-decoration:none}
       <figure class="donate-ch"><img src="donate-wechat.png" alt="微信收款码"><figcaption><i style="background:#07C160"></i>微信支付</figcaption></figure>
       <figure class="donate-ch"><img src="donate-alipay.png" alt="支付宝收款码"><figcaption><i style="background:#1677FF"></i>支付宝</figcaption></figure>
     </div>
-    <p class="d-note">所有功能永远免费——这笔钱只影响作者期末夜的伙食质量。</p>
+    <p class="d-note">免费功能永久免费，Pro 一次买断——这笔钱只影响作者期末夜的伙食质量。</p>
     <div class="donate-actions"><button class="btn btn-ghost" type="button" onclick="closeDonate()">下次一定</button></div>
   </div>
 </div>
@@ -567,6 +694,22 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDonate(
   var PRO_EARLY_SOLD = 0, PRO_EARLY_TOTAL = 100;
   var el = document.getElementById('proEarlyLeft');
   if (el) el.textContent = Math.max(0, PRO_EARLY_TOTAL - PRO_EARLY_SOLD);
+})();
+</script>
+<script>
+/* 滚动入场：按选择器分组自动标注 .rv（HTML 零侵入），进入视口后浮出；组内按序 stagger */
+(function(){
+  var GROUPS=['.sec-head','.rows .row','.steps .step','.dl h2','.dl .sub','.dl .cta','.dl .note','.promises li','.pro-lead','.cmp-row','.pcard','.pro-steps','.faq details'];
+  var els=[];
+  GROUPS.forEach(function(s){
+    var g=document.querySelectorAll(s);
+    g.forEach(function(e,i){ e.classList.add('rv'); e.style.transitionDelay=Math.min(i*70,420)+'ms'; els.push(e); });
+  });
+  if(!('IntersectionObserver' in window)){ els.forEach(function(e){ e.classList.add('in'); }); return; }
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+  },{threshold:.1,rootMargin:'0px 0px -6% 0px'});
+  els.forEach(function(e){ io.observe(e); });
 })();
 </script>
 
