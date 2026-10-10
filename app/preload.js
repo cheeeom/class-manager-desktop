@@ -18,3 +18,28 @@ contextBridge.exposeInMainWorld('__CM_UPDATER', {
     ipcRenderer.on('cm-upd-event', function (e, payload) { try { cb(payload); } catch (err) {} });
   }
 });
+
+/* 反馈邮件：页面侧只能唤起系统邮件客户端（收件人与主题在主进程定死） */
+contextBridge.exposeInMainWorld('__CM_FEEDBACK', {
+  mail: function () { return ipcRenderer.invoke('cm-feedback-mail'); }
+});
+
+/* Pro 授权（v1.1.0）：验签在主进程，页面侧只能发起状态/激活/取码 */
+contextBridge.exposeInMainWorld('__CM_PRO', {
+  status: function () { return ipcRenderer.invoke('cm-pro-status'); },
+  activate: function (payload) { return ipcRenderer.invoke('cm-pro-activate', payload); },
+  claim: function (reqCode) { return ipcRenderer.invoke('cm-pro-claim', reqCode); },
+  heartbeat: function () { return ipcRenderer.invoke('cm-pro-heartbeat'); },
+  reportPdf: function (html, name) { return ipcRenderer.invoke('cm-pro-report-pdf', { html: html, name: name }); }
+});
+
+/* 剪贴板（v1.2.0）：主进程直写直读，file:// 下比 navigator.clipboard 可靠 */
+/* 开发者密钥校验（v1.2.5）：SHA-256 在主进程比对 */
+contextBridge.exposeInMainWorld('__CM_DEV', {
+  checkKey: function (k) { return ipcRenderer.invoke('cm-dev-checkkey', k); }
+});
+
+contextBridge.exposeInMainWorld('__CM_CLIP', {
+  write: function (text) { return ipcRenderer.invoke('cm-clip-write', text); },
+  read: function () { return ipcRenderer.invoke('cm-clip-read'); }
+});

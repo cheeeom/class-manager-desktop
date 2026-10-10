@@ -195,7 +195,7 @@
   }
 
   /* ---------- 4. 首启向导 ---------- */
-  var wizState = { step: 0, loginP1: '', loginP2: '', adminP1: '', adminP2: '', loginSkip: false, adminSkip: false };
+  var wizState = { step: 0, loginP1: '', loginP2: '', adminP1: '', adminP2: '', loginSkip: false, adminSkip: false, imported: false };
 
   function wizardShell(title, bodyHtml, footHtml) {
     // 换步前清掉所有现存向导遮罩（防堆叠：半透明层叠加会逐层变暗，document 查询也会命中旧标题）
@@ -244,8 +244,8 @@
       '</div>' +
       '<div class="cmDesk-copy">© 2026 <b>chee</b> · 班主任工作台 · 保留所有权利<br>' +
       '<span style="color:var(--text-muted)">本软件版权归开发者所有，转发分享请完整保留开发者署名与本声明。</span></div>',
-      '<button class="btn btn-primary" id="cmWizNext"><span>开始配置</span><span class="arr">→</span></button>' +
-      '<button class="btn btn-outline" id="cmWizSkipAll">跳过向导</button>');
+      '<button class="btn btn-outline" id="cmWizSkipAll">跳过向导</button>' +
+      '<button class="btn btn-primary" id="cmWizNext"><span>开始配置</span></button>');
     w.foot.querySelector('#cmWizNext').onclick = function () { stepLoginPwd(); };
     w.foot.querySelector('#cmWizSkipAll').onclick = function () { finishWizard(); };
   }
@@ -258,9 +258,9 @@
       '<div style="text-align:center"><div id="cmDeskDotsWrap"></div></div>' +
       '<div id="cmDeskPad"></div>' +
       '<div id="cmDeskMsg" style="height:20px;font-size:12px;color:var(--danger);text-align:center"></div>',
-      '<button class="btn btn-primary" id="cmWizNext"><span>下一步</span><span class="arr">→</span></button>' +
+      '<button class="btn btn-outline" id="cmWizBack"><span>上一步</span></button>' +
       '<button class="btn btn-outline" id="cmWizSkipPwd">跳过（不设密码）</button>' +
-      '<button class="btn btn-outline" id="cmWizBack"><span class="arr">←</span><span>上一步</span></button>');
+      '<button class="btn btn-primary" id="cmWizNext"><span>下一步</span></button>');
     var wrap = w.body.querySelector('#cmDeskDotsWrap');
     var padWrap = w.body.querySelector('#cmDeskPad');
     var msg = w.body.querySelector('#cmDeskMsg');
@@ -287,8 +287,8 @@
         '<h2 style="font-family:var(--font-display)">再输一遍确认</h2>' +
         '<div style="text-align:center"><div id="cmDeskDotsWrap2"></div></div><div id="cmDeskPad2"></div>' +
         '<div id="cmDeskMsg2" style="height:20px;font-size:12px;color:var(--danger);text-align:center"></div>',
-        '<button class="btn btn-primary" id="cmWizOk">完成密码设置</button>' +
-        '<button class="btn btn-outline" id="cmWizBack2"><span class="arr">←</span><span>重输</span></button>');
+        '<button class="btn btn-outline" id="cmWizBack2"><span>重输</span></button>' +
+        '<button class="btn btn-primary" id="cmWizOk">完成密码设置</button>');
       var wrap2 = w2.body.querySelector('#cmDeskDotsWrap2');
       var pad2 = w2.body.querySelector('#cmDeskPad2');
       var msg2 = w2.body.querySelector('#cmDeskMsg2');
@@ -317,9 +317,9 @@
       '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px">用于敏感操作确认（如「清空数据」）。可跳过——未设置时，清空数据需输入「清空」二字确认。</div>' +
       '<div style="text-align:center"><div id="cmDeskDotsWrap"></div></div><div id="cmDeskPad"></div>' +
       '<div id="cmDeskMsg" style="height:20px;font-size:12px;color:var(--danger);text-align:center"></div>',
-      '<button class="btn btn-primary" id="cmWizNext"><span>下一步</span><span class="arr">→</span></button>' +
+      '<button class="btn btn-outline" id="cmWizBack"><span>上一步</span></button>' +
       '<button class="btn btn-outline" id="cmWizSkipPwd">跳过（不设管理员密码）</button>' +
-      '<button class="btn btn-outline" id="cmWizBack"><span class="arr">←</span><span>上一步</span></button>');
+      '<button class="btn btn-primary" id="cmWizNext"><span>下一步</span></button>');
     var wrap = w.body.querySelector('#cmDeskDotsWrap');
     var padWrap = w.body.querySelector('#cmDeskPad');
     var msg = w.body.querySelector('#cmDeskMsg');
@@ -340,8 +340,8 @@
         '<h2 style="font-family:var(--font-display)">再输一遍确认</h2>' +
         '<div style="text-align:center"><div id="cmDeskDotsWrap2"></div></div><div id="cmDeskPad2"></div>' +
         '<div id="cmDeskMsg2" style="height:20px;font-size:12px;color:var(--danger);text-align:center"></div>',
-        '<button class="btn btn-primary" id="cmWizOk">完成设置</button>' +
-        '<button class="btn btn-outline" id="cmWizBack2"><span class="arr">←</span><span>重输</span></button>');
+        '<button class="btn btn-outline" id="cmWizBack2"><span>重输</span></button>' +
+        '<button class="btn btn-primary" id="cmWizOk">完成设置</button>');
       var wrap2 = w2.body.querySelector('#cmDeskDotsWrap2');
       var pad2 = w2.body.querySelector('#cmDeskPad2');
       var msg2 = w2.body.querySelector('#cmDeskMsg2');
@@ -371,9 +371,9 @@
       '<h2 style="font-family:var(--font-display)">班级名称</h2>' +
       '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">显示在首页与导出件上，可以留空以后在设置里改。</div>' +
       '<input class="cmDesk-input" id="cmWizClassName" placeholder="如：三年级2班 / 2026级幼儿保育1班" maxlength="30">',
-      '<button class="btn btn-primary" id="cmWizNext"><span>下一步</span><span class="arr">→</span></button>' +
+      '<button class="btn btn-outline" id="cmWizBack"><span>上一步</span></button>' +
       '<button class="btn btn-outline" id="cmWizSkip">跳过</button>' +
-      '<button class="btn btn-outline" id="cmWizBack"><span class="arr">←</span><span>上一步</span></button>');
+      '<button class="btn btn-primary" id="cmWizNext"><span>下一步</span></button>');
     var input = w.body.querySelector('#cmWizClassName');
     function saveAndGo() {
       var name = (input.value || '').trim();
@@ -393,22 +393,65 @@
     input.focus();
   }
 
+  /* 第 5 步：导入学生名单（v1.2.6 重做）——提供模板下载；选表格后自动识别列并注入；
+     此步导入了学生 → 后续完成页不再提供示例数据体验（wizState.imported） */
   function stepImport() {
     var w = wizardShell('第 5 步 · 共 6 步',
-      '<h2 style="font-family:var(--font-display)">导入已有数据（可选）</h2>' +
+      '<h2 style="font-family:var(--font-display)">导入学生名单（可选）</h2>' +
       '<div style="font-size:13px;color:var(--text-secondary);line-height:2;margin-bottom:12px">' +
-      '如果你在用<b>网页版</b>，先在网页版「设置 → 导出数据」得到备份 JSON，在这里一键导入。<br>' +
-      '全新使用可跳过此步。</div>',
-      '<button class="btn btn-primary" id="cmWizImport"><span class="ico">📁</span><span>选择备份文件导入</span></button>' +
+      '下载导入模板，按模板填好学生名单，在这里选择表格文件——系统自动识别姓名、性别、家长电话、学号、寝室等列并注入。<br>' +
+      '也可以先跳过，之后随时在 设置 → 学生管理 →「批量导入学生表格」导入。</div>' +
+      '<div style="margin-bottom:4px"><button class="btn btn-outline btn-sm" id="cmWizStuTpl"><span>📥 下载导入模板</span></button> <span style="font-size:12px;color:var(--text-muted)">（Excel / WPS 可直接编辑的 CSV）</span></div>',
+      '<button class="btn btn-outline" id="cmWizBack"><span>上一步</span></button>' +
       '<button class="btn btn-outline" id="cmWizSkip">跳过</button>' +
-      '<button class="btn btn-outline" id="cmWizBack"><span class="arr">←</span><span>上一步</span></button>');
-    w.foot.querySelector('#cmWizImport').onclick = function () {
-      var fn = appFn('importData');
-      if (fn) fn();
-      stepTour();
-    };
+      '<button class="btn btn-primary" id="cmWizImport"><span>📊 选择表格导入</span></button>');
+    w.body.querySelector('#cmWizStuTpl').onclick = cmWizStuTpl;
+    w.foot.querySelector('#cmWizImport').onclick = cmWizPickTable;
     w.foot.querySelector('#cmWizSkip').onclick = function () { stepTour(); };
     w.foot.querySelector('#cmWizBack').onclick = function () { stepClassName(); };
+  }
+  /* 导入模板：表头与网页版「批量导入学生表格」的列识别口径一致（姓名必填） */
+  function cmWizStuTpl() {
+    try {
+      var head = '姓名,性别,家长电话,家长姓名,学号,寝室';
+      var demo = '张三,男,13800000001,张父,S202601,1栋101室\n李四,女,13800000002,李母,S202602,走读';
+      var csv = '\uFEFF' + head + '\n' + demo + '\n';
+      var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = '学生导入模板.csv';
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+      if (window.showToast) window.showToast('模板已下载', 'success');
+    } catch (e) { if (window.showToast) window.showToast('模板下载失败', 'error'); }
+  }
+  /* 向导里选表格：复用网页版解析链（pickStudentTableFile → handleStudentTableFile），
+     劫持 openModal('studentImportModal') 跳过预览直接确认注入（向导语境要「自动」）。
+     导入完成 → wizState.imported = true → 直接走完向导进入工作台。 */
+  function cmWizPickTable() {
+    var origOpen = window.openModal;
+    if (typeof origOpen !== 'function') return;
+    window.openModal = function (id) {
+      if (id === 'studentImportModal') {
+        window.openModal = origOpen;                      // 先还原，别影响用户之后在设置里的正常导入
+        var origC = window.confirmStudentImport;
+        window.confirmStudentImport = function () {
+          window.confirmStudentImport = origC;
+          var r = origC ? origC.apply(this, arguments) : undefined;
+          wizState.imported = true;
+          setTimeout(function () { finishWizard(false); }, 250);   // 注入完成 → 收尾进入工作台
+          return r;
+        };
+        return window.confirmStudentImport();
+      }
+      return origOpen.apply(this, arguments);
+    };
+    var fn = appFn('pickStudentTableFile');
+    if (fn) fn();
+    else {
+      window.openModal = origOpen;                        // 解析链不在（理论不会），回退提示
+      if (window.showToast) window.showToast('导入功能未就绪，请进入工作台后在设置里导入', 'warning');
+    }
   }
 
   function stepTour() {
@@ -426,7 +469,7 @@
     });
     grid += '</div>';
     var w = wizardShell('第 6 步 · 共 6 步', '<h2 style="font-family:var(--font-display)">30 秒认识工作台</h2>' + grid,
-      '<button class="btn btn-primary" id="cmWizNext"><span>完成</span><span class="arr">→</span></button>');
+      '<button class="btn btn-primary" id="cmWizNext"><span>完成</span></button>');
     w.foot.querySelector('#cmWizNext').onclick = function () { stepFinish(); };
   }
 
@@ -437,13 +480,17 @@
       '<div style="color:var(--text-secondary);font-size:13.5px;line-height:2">' +
       (wizState.loginSkip ? '<p>🔓 当前为<b>零密码模式</b>：打开应用直接进入。想加密码可到「设置 → 🔐 安全」。</p>' : '<p>🔐 登录密码已设置，下次打开需输入。</p>') +
       (userAdminPwdSet() ? '' : '<p>🛡️ 未设管理员密码：清空数据时输入「清空」二字确认。</p>') +
-      '<p>🎓 拿不准从哪开始？可以<b>带示例数据体验</b>：每个功能配指引弹窗，走完自动清除示例，不留任何痕迹。</p>' +
+      (wizState.imported
+        ? '<p>📋 学生名单已导入，直接开工吧！缺的信息可随时在「学生管理」里补充。</p>'
+        : '<p>🎓 拿不准从哪开始？可以<b>带示例数据体验</b>：每个功能配指引弹窗，走完自动清除示例，不留任何痕迹。</p>') +
       '<p>💾 建议：定期在「设置 → 导出数据」留一份备份。</p>' +
       '</div>' +
       '<div class="cmDesk-copy">© 2026 <b>chee</b> · 班主任工作台（桌面版 v' + D.version + '） · 保留所有权利</div>',
-      '<button class="btn btn-outline" id="cmWizSample"><span>🎓 带示例体验</span><span class="arr">→</span></button>' +
-      '<button class="btn btn-primary" id="cmWizDone"><span>进入工作台</span><span class="arr">→</span></button>');
-    w.foot.querySelector('#cmWizSample').onclick = function () { finishWizard(true); };
+      wizState.imported
+        ? '<button class="btn btn-primary" id="cmWizDone"><span>进入工作台</span></button>'
+        : '<button class="btn btn-outline" id="cmWizSample"><span>🎓 带示例体验</span></button>' +
+          '<button class="btn btn-primary" id="cmWizDone"><span>进入工作台</span></button>');
+    if (!wizState.imported) w.foot.querySelector('#cmWizSample').onclick = function () { finishWizard(true); };
     w.foot.querySelector('#cmWizDone').onclick = function () { finishWizard(false); };
   }
 
@@ -721,12 +768,12 @@
       else about.appendChild(row);
     }
 
-    /* 桌面版介绍卡：插在版本徽标行之后、网页版速览之前 */
+    /* 桌面版介绍卡（v1.2.6 重写）：本版更新简要（≤100 字）+ 单机版一句话，不再出现网页版字样 */
     var intro = el('div', 'cmDeskAbout');
     intro.style.cssText = 'margin:10px 0 12px;padding:10px 12px;background:var(--row-bg,#FBF8F1);border:1px dashed var(--border,#E6DECD);border-radius:10px;font-size:12.5px;color:var(--text-secondary,#5F5E5A);line-height:1.9';
     intro.innerHTML =
-      '🖥️ <b>班主任工作台 · 桌面版 v' + D.version + '</b>（单机版）——这是安装在 Windows 上的独立应用，<b>全部数据仅保存在这台电脑上</b>，不经任何服务器。' + (D.baseWeb ? '功能与网页版 ' + D.baseWeb + ' 一致（网页版的云同步在桌面版中不适用，已移除）。' : '') + '<br>' +
-      '🔄 <b>自动更新</b>：发现新版会在左下角弹窗询问，选择「立即更新」后台下载；就绪后点「立即重启」，自动沿用原目录覆盖安装并重启新版。<br>' +
+      '📦 <b>桌面版 v' + D.version + ' 更新</b>：向导新增「导入学生名单」；请假管理、课堂点名转免费；新增导出请假流水（Pro）；激活后侧栏亮 PRO 徽标。<br>' +
+      '🖥️ 单机版：数据仅保存在这台电脑上；自动更新——发现新版左下角弹窗询问后进行。<br>' +
       '<span style="color:var(--text-muted,#8C8577)">' + COPYRIGHT + ' · 转发分享请保留开发者署名</span>';
     var rows = about.querySelectorAll(':scope > div');
     var badgeRow = null;
@@ -744,6 +791,9 @@
     /* 打赏入口（v1.0.10）：微信 + 支付宝双渠道，关于卡常驻卡 + 满 3 天一次性提醒。
        素材随构建分发，缺资产时按钮自动隐藏（见下方 CM_DONATE 模块注释）。 */
     buildDonateRow(about);
+
+    /* 反馈卡（v1.0.11）：邮件直达作者 + 点邮箱一键复制 */
+    buildFeedbackRow(about);
 
     // 应用内更新逻辑（仅桌面且有更新桥时接线）
     if (!window.__CM_UPDATER) return;
@@ -798,11 +848,12 @@
 
   /* ---------- 打赏入口（微信 + 支付宝双渠道，自愿/零捆绑） ----------
      三处触点：①关于卡常驻「请作者喝杯奶茶」卡片 → 双渠道选择弹窗
-              ②使用满 3 天首次进入工作台弹一次诙谐提醒（cmDonateNudge 只弹一次）
+              ②使用满 3 天起，每满 3 天弹一轮诙谐提醒（cmDonateNudgeAt 记上次弹出时间；
+                弹窗「下次一定」只关本轮弹窗，下次启动到点再弹）
               ③（落地页另有同款，独立实现）
      渠道徽标色：微信 07C160 / 支付宝 1677FF。爱发电暂缓（老板拍板）。 ---------- */
   var CM_DONATE = { wechatImg: 'donate-wechat.png', alipayImg: 'donate-alipay.png' };
-  var CM_NUDGE_FLAG = 'cmDonateNudge';
+  var CM_NUDGE_AT = 'cmDonateNudgeAt';
   var CM_NUDGE_DAYS = 3;
 
   /* 双渠道选择弹窗：两张码并排，注明渠道让用户挑着扫 */
@@ -820,7 +871,7 @@
       '<figure class="cmDesk-donate-ch"><img src="' + CM_DONATE.wechatImg + '" alt="微信收款码"><figcaption><i style="background:#07C160"></i>微信支付</figcaption></figure>' +
       '<figure class="cmDesk-donate-ch"><img src="' + CM_DONATE.alipayImg + '" alt="支付宝收款码"><figcaption><i style="background:#1677FF"></i>支付宝</figcaption></figure>' +
       '</div>' +
-      '<p class="cmDesk-donate-note">所有功能永远免费——这笔钱只影响作者期末夜的伙食质量。</p>' +
+      '<p class="cmDesk-donate-note">免费功能永久免费，Pro 一次买断——这笔钱只影响作者期末夜的伙食质量。</p>' +
       '<div class="cmDesk-donate-actions"><button class="btn btn-outline btn-sm" id="cmDonateLater">下次一定</button></div>' +
       '</div>';
     document.body.appendChild(m);
@@ -831,12 +882,16 @@
     if (later) later.onclick = function () { m.remove(); };
   }
 
-  /* 满天弹窗：一个班主任的小声叭叭（只弹一次，点「下次一定」后再不弹） */
+  /* 满天弹窗：一个班主任的小声叭叭（每满 3 天一轮；「下次一定」只关本轮弹窗） */
   function cmNudgeMaybe() {
-    if (lsGet(CM_NUDGE_FLAG) === '1') return;
+    if (cmProActive()) return;   // 已买断：不再弹赞赏提醒（D 批复）
     var t0 = parseInt(lsGet(LS_ONBOARD), 10);
     if (!t0 || Date.now() - t0 < CM_NUDGE_DAYS * 86400000) return;
-    lsSet(CM_NUDGE_FLAG, '1');   // 无论后续选哪边，本轮生命周期只打扰这一次
+    var last = parseInt(lsGet(CM_NUDGE_AT), 10) || 0;
+    if (last && Date.now() - last < CM_NUDGE_DAYS * 86400000) return;
+    /* 旧版（v1.0.10/11）一次性标记迁移：视为「刚提醒过」，3 天后进入周期提醒 */
+    if (lsGet('cmDonateNudge') === '1') { lsSet(CM_NUDGE_AT, String(Date.now())); lsSet('cmDonateNudge', ''); return; }
+    lsSet(CM_NUDGE_AT, String(Date.now()));   // 无论后续选哪边，本轮已打扰，隔 3 天再来
     var old = document.getElementById('cmDeskNudge');
     if (old) old.remove();
     var m = el('div', 'cmDesk-modal-overlay');
@@ -844,9 +899,9 @@
     m.innerHTML =
       '<div class="cmDesk-donate-card cmDesk-nudge">' +
       '<h3>📖 一个班主任的小声叭叭</h3>' +
-      '<p class="cmDesk-nudge-p">这个工具没有广告、没有激活码，也不打算找你办会员。</p>' +
+      '<p class="cmDesk-nudge-p">这个工具没有广告、也不办会员；已发布的所有功能永久免费，新增的 Pro 是一次买断的升级，不搞订阅。</p>' +
       '<p class="cmDesk-nudge-p">它值多少钱，取决于它替你省了多少操心。如果某个期末夜，是它陪你熬过来的——</p>' +
-      '<p class="cmDesk-nudge-p">可以考虑请作者喝杯奶茶。不请也完全没事，功能一分不减，作者照写不误，就是鸡腿会少一根。</p>' +
+      '<p class="cmDesk-nudge-p">可以考虑请作者喝杯奶茶。不请也完全没事，免费功能一分不减，作者照写不误，就是鸡腿会少一根。</p>' +
       '<div class="cmDesk-gbtns" style="justify-content:center;margin-top:14px">' +
       '<button class="btn btn-outline btn-sm" id="cmNudgeLater">下次一定</button>' +
       '<button class="btn btn-primary btn-sm" id="cmNudgeYes"><span>🧧 请作者喝一杯</span></button>' +
@@ -864,7 +919,6 @@
     var tries = 0;
     var t = setInterval(function () {
       tries++;
-      if (lsGet(CM_NUDGE_FLAG) === '1') { clearInterval(t); return; }
       var ov = document.getElementById('loginOverlay');
       var overlayGone = !ov || ov.classList.contains('hidden');
       var appEl = document.querySelector('.app');
@@ -876,22 +930,993 @@
     }, 500);
   }
 
-  /* 常驻卡片：设置 → 关于本系统（介绍卡下方） */
+  /* 常驻卡片（v1.0.12 定稿）：设置页「关于本系统」上方单独成卡，常驻不消失。
+     周期提醒由满天弹窗负责（每 3 天一轮），卡片本身不打扰。 */
   function buildDonateRow(about) {
     var hasAny = !!(CM_DONATE.wechatImg || CM_DONATE.alipayImg);
-    if (!hasAny) return;
-    if (about.querySelector('.cmDeskDonate')) return;
-    var row = el('div', 'cmDeskDonate');
-    row.innerHTML =
-      '<div class="cmDeskDonate-t">☕ <b>请作者喝杯奶茶</b>　<span>自愿 · 无广告无激活码，功能不加钱也不减——但奶茶能让更新写得更快。</span></div>' +
+    if (cmProActive()) { if (about) buildProActiveCard(about); return; }   // D1：买断后换「Pro 已激活」卡
+    if (!hasAny || !about) return;
+    if (document.getElementById('cmDeskDonateSec')) return;
+    var sec = el('div', 'settings-section cmDeskDonateSec');
+    sec.id = 'cmDeskDonateSec';
+    sec.innerHTML =
+      '<h3>☕ 请作者喝杯奶茶</h3>' +
+      '<div class="cmDeskDonate-t">自愿 · 无广告无订阅，已发布功能永久免费——但奶茶能让更新写得更快。</div>' +
       '<div class="cmDeskDonate-r">' +
-      '<button class="btn btn-outline btn-sm" id="cmDonateOpen"><span>🧧 打赏作者</span><span class="arr">→</span></button>' +
+      '<button class="btn btn-primary" id="cmDonateOpen" style="padding:10px 30px;font-size:14.5px;position:relative;min-width:150px"><span>🧧 打赏作者</span><span class="arr">→</span></button>' +
       '<span class="cmDeskDonate-hint">微信 / 支付宝均可</span>' +
       '</div>';
-    row.querySelector('#cmDonateOpen').onclick = cmDonateModal;
-    var intro = about.querySelector('.cmDeskAbout');
-    if (intro) intro.parentNode.insertBefore(row, intro.nextSibling);
-    else about.appendChild(row);
+    sec.querySelector('#cmDonateOpen').onclick = cmDonateModal;
+    about.parentNode.insertBefore(sec, about);
+  }
+
+  /* 反馈卡（v1.0.11；v1.2.6 独立成卡）：设置页独立 settings-section，排在「关于本系统」上方 */
+  var CM_MAIL = '846699191@qq.com';
+  function cmCopyFallback(txt) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = txt; ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta); ta.select();
+      var done = document.execCommand('copy');
+      ta.remove(); return done;
+    } catch (e) { return false; }
+  }
+  function cmCopyText(txt) {
+    var ok = function () { if (window.showToast) window.showToast('邮箱已复制', 'success'); };
+    var bad = function () { if (window.showToast) window.showToast('复制失败，请手动记录邮箱', 'error'); };
+    cmProCopy(txt, ok, bad);
+  }
+  /* 统一复制（v1.1.1）：主进程 clipboard 直写（file:// 下 navigator.clipboard 不可靠）→ execCommand 兜底 */
+  function cmProCopy(txt, ok, bad) {
+    var fail = function () { (cmCopyFallback(txt) ? ok : bad)(); };
+    try {
+      if (window.__CM_CLIP && window.__CM_CLIP.write) {
+        window.__CM_CLIP.write(txt).then(function (r) { (r && r.ok) ? ok() : fail(); }, fail);
+      } else fail();
+    } catch (e) { fail(); }
+  }
+  function buildFeedbackRow(about) {
+    if (document.querySelector('.cmDeskFeedback')) return;
+    var sec = el('div', 'settings-section cmDeskFeedback');
+    sec.innerHTML =
+      '<h3>✉️ 反馈与建议</h3>' +
+      '<div class="cmDeskDonate-t">遇到问题、有想法，直接发邮件给作者——看到就会回。</div>' +
+      '<div class="cmDeskDonate-r">' +
+      '<button class="btn btn-outline btn-sm" id="cmFbMail"><span>✉ 写邮件给作者</span><span class="arr">→</span></button>' +
+      '<span class="cmDeskFbMail" id="cmFbCopy" title="点击复制邮箱">' + CM_MAIL + '</span>' +
+      '</div>';
+    sec.querySelector('#cmFbMail').onclick = function () {
+      if (window.__CM_FEEDBACK && window.__CM_FEEDBACK.mail) {
+        window.__CM_FEEDBACK.mail();          // 桌面：唤起系统邮件客户端（收件人主进程定死）
+      } else { cmCopyText(CM_MAIL); }         // 非桌面环境兜底：复制邮箱
+    };
+    sec.querySelector('#cmFbCopy').onclick = function () { cmCopyText(CM_MAIL); };
+    if (about && about.parentNode) about.parentNode.insertBefore(sec, about);   // 独立卡：排在「关于本系统」上方
+    else document.body.appendChild(sec);
+  }
+
+  /* ---------- Pro 授权（v1.1.0）：gate + 引导弹窗 + 激活 ----------
+     原则：导出按钮 UI 不变，点击才拦；每会话每功能只弹一次引导框；
+     验签在主进程（__CM_PRO 桥），渲染层只做展示与状态缓存。 */
+  var CM_PRO_LS = 'cmProCache';
+  var CM_PRO_BUY_URL = 'https://afdian.com/item/e4cf1936c3d611f19ca752540025c377';   // 爱发电 Pro 商品页（2026-10-09 老板开店后替换）
+  var CM_PRO_SESSION = {};                                // 本会话已弹过的功能
+  /* 开发者模式（v1.2.4）：渲染层模拟激活/未激活，不碰真实激活文件。
+     入口 = 3 秒内连点侧栏版本文字 5 次；badge 常驻右下角，点开浮动面板。 */
+  var cmDevOn = false, cmDevOverride = null, cmDevTaps = 0, cmDevTapTs = 0;
+  function cmProCache() {
+    try { return JSON.parse(lsGet(CM_PRO_LS) || '{}'); } catch (e) { return {}; }
+  }
+  function cmProActive() {
+    if (cmDevOverride !== null) return cmDevOverride === true;   // 开发者模拟优先（仅渲染层）
+    return cmProCache().active === true;
+  }
+  function cmProRefresh() {
+    if (!window.__CM_PRO) return Promise.resolve({ active: false });
+    return window.__CM_PRO.status().then(function (r) {
+      var c = { active: !!r.active, tier: r.tier || '', sn: r.sn || 0, eh: r.eh || '', lic: r.lic || '' };
+      lsSet(CM_PRO_LS, JSON.stringify(c));
+      return c;
+    });
+  }
+  function cmProReqCode() {
+    var dev = lsGet('cmProDev');
+    if (!dev || !/^[0-9a-f]{16}$/.test(dev)) {
+      var a = new Uint8Array(8);
+      if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(a);
+      else for (var i = 0; i < 8; i++) a[i] = Math.floor(Math.random() * 256);
+      dev = ''; for (var j = 0; j < 8; j++) dev += a[j].toString(16).padStart(2, '0');
+      lsSet('cmProDev', dev);
+    }
+    var h = 0x811c9dc5, src = (lsGet('cmProMail') || '').trim().toLowerCase();
+    for (var k = 0; k < src.length; k++) { h ^= src.charCodeAt(k); h = (h * 0x01000193) >>> 0; }
+    var eh = ('00000000' + h.toString(16)).slice(-8);
+    var b = '';
+    try { b = btoa(JSON.stringify({ v: 1, dev: dev, eh: eh })).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); } catch (e) { b = ''; }
+    return b;
+  }
+  function cmProMaskMail(eh) { return eh && eh !== '00000000' ? 'a***@' + (eh).slice(0, 2) + '（邮箱已加密存档）' : '未留邮箱'; }
+  function cmWrapPro(fnName, label) {
+    var orig = window[fnName];
+    if (typeof orig !== 'function') return;
+    window[fnName] = function () {
+      if (cmProActive()) return orig.apply(this, arguments);
+      cmProModal(label);
+    };
+  }
+  /* ---------- v1.2.0 页面级 Pro 锁（v1.2.6 放宽：考勤请假/课堂点名转免费） ----------
+     免费页 = 工作台首页 / 学生管理 / 班委管理 / 寝室管理 / 座次表 / 值日排班 / 考勤请假 / 课堂点名（导出另锁）/ 设置；
+     其余页面进入即高斯模糊 + PRO 弹窗（介绍本页功能 + 引导买断）；关闭弹窗保留模糊 + 悬浮解锁按钮；
+     班委协作模式（__cmRole）不受闸——激活是整机级的，班委随本机授权走。 */
+  var CM_PRO_PAGES = {
+    grades: ['成绩管理', '成绩录入 · 成绩条导出 · 班级对比分析'],
+    todo: ['待办提醒', '待办事项 · 重要节点提醒，班务不漏项'],
+    worklogs: ['工作留痕', '班务日志 · 图文留痕 · 月度导出，评优述职有据可查'],
+    notices: ['通知', '家校通知 · 模板管理 · 一键发送'],
+    credits: ['学分记录', '加扣分流水 · 学分币 · 撤销追踪，班级激励引擎'],
+    bank: ['学分银行', '学分币钱包 · 商品兑换 · 月度结算，激励体系闭环'],
+    publicity: ['学分公示', '公示海报 · 排行榜 · 学分周报，一键生成'],
+    honors: ['荣誉墙', '荣誉证书 · 班级荣誉展示墙'],
+    analytics: ['数据分析', '学分趋势 · 成绩深度分析 · 预警中心'],
+    profiles: ['学生档案', '学生档案卡 · 德育记录 · 成长时间线，一人一档']
+  };
+  var cmGatePage = null;   // 当前被锁的页面（弹窗关闭后悬浮按钮据此重开）
+  function cmBlurTarget(on) {
+    var c = document.getElementById('content');
+    if (c) c.classList.toggle('cmDesk-blurtarget', !!on);
+  }
+  function cmPageLockClear() {
+    cmGatePage = null;
+    cmBlurTarget(false);
+    var p = document.getElementById('cmDeskPagePill');
+    if (p) p.remove();
+  }
+  function cmPagePill() {
+    if (document.getElementById('cmDeskPagePill')) return;
+    var pill = el('button', 'cmDesk-pagepill');
+    pill.id = 'cmDeskPagePill';
+    pill.textContent = '🔒 解锁 PRO 完整功能';
+    pill.onclick = function () {
+      pill.remove();
+      var info = CM_PRO_PAGES[cmGatePage] || ['学期报告', ''];
+      cmProModal(info[0], { intro: info[1], gatePage: cmGatePage });
+    };
+    document.body.appendChild(pill);
+  }
+  /* 激活心跳（v1.2.3）：启动后静默复查订单，退款 → 删激活文件（主进程）+ 本地恢复锁态。
+     断网/无码 → 主进程返回 checked:false，静默跳过，宁宽勿错。 */
+  function cmProRevoke() {
+    cmProRefresh().then(function () {
+      buildNavPro();                            // 吊销：徽标摘下、角标回来（v1.2.6）
+      if (window.showToast) window.showToast('Pro 激活已失效（订单退款或异常），已恢复基础版', 'error');
+      var cur = null;
+      Object.keys(CM_PRO_PAGES).forEach(function (k) {
+        var p = document.getElementById('page-' + k);
+        if (p && p.classList.contains('active')) cur = k;
+      });
+      if (cur && !cmProActive() && window.__cmRole !== 'committee') {
+        var info = CM_PRO_PAGES[cur];
+        cmGatePage = cur;
+        cmBlurTarget(true);
+        cmProModal(info[0], { intro: info[1], gatePage: cur });
+      }
+    });
+  }
+  function cmProHeartbeat() {
+    if (!window.__CM_PRO || !window.__CM_PRO.heartbeat) return;
+    window.__CM_PRO.heartbeat().then(function (r) {
+      if (r && r.revoked) cmProRevoke();
+    }).catch(function () {});
+  }
+  /* ---------- 开发者模式（v1.2.4）---------- */
+  function cmDevCurPage() {
+    var cur = null;
+    Object.keys(CM_PRO_PAGES).forEach(function (k) {
+      var p = document.getElementById('page-' + k);
+      if (p && p.classList.contains('active')) cur = k;
+    });
+    return cur;
+  }
+  function cmDevApply() {
+    var badge = document.getElementById('cmDeskDevBadge');
+    if (cmDevOn) {
+      if (!badge) {
+        badge = el('button', 'cmDesk-devbadge'); badge.id = 'cmDeskDevBadge';
+        badge.textContent = 'DEV';
+        badge.onclick = function () { cmDevPanel(); };
+        document.body.appendChild(badge);
+      }
+      badge.textContent = 'DEV · ' + (cmDevOverride === null ? '真实' : cmDevOverride ? '模拟已激活' : '模拟未激活');
+    } else if (badge) badge.remove();
+    buildNavPro();                              // 开发者模拟切换锁态 → 侧栏角标/徽标即时跟随（v1.2.6）
+    var cur = cmDevCurPage();
+    if (cur) {
+      var locked = (cmDevOverride === false) || (cmDevOverride === null && !cmProCache().active);
+      if (locked && window.__cmRole !== 'committee') {
+        var info = CM_PRO_PAGES[cur];
+        cmGatePage = cur;
+        cmBlurTarget(true);
+        var om = document.getElementById('cmDeskProModal');
+        if (om) om.remove();
+        cmProModal(info[0], { intro: info[1], gatePage: cur });
+      } else {
+        cmPageLockClear();
+        var om2 = document.getElementById('cmDeskProModal');
+        if (om2) om2.remove();
+      }
+    }
+    cmDevRenderPanel();
+  }
+  function cmDevPanel() {
+    var old = document.getElementById('cmDeskDevCard');
+    if (old) { old.remove(); return; }
+    var c = el('div', 'cmDesk-devcard'); c.id = 'cmDeskDevCard';
+    c.innerHTML =
+      '<h4>🛠 开发者模式</h4>' +
+      '<div class="cmDesk-devrow"><button class="btn btn-outline btn-sm" id="cmDevNo">模拟未激活</button>' +
+      '<button class="btn btn-outline btn-sm" id="cmDevYes">模拟已激活</button>' +
+      '<button class="btn btn-outline btn-sm" id="cmDevReal">恢复真实</button></div>' +
+      '<div class="cmDesk-devrow"><button class="btn btn-outline btn-sm" id="cmDevWiz">重播首启向导</button>' +
+      '<button class="btn btn-ghost btn-sm" id="cmDevOff">关闭开发者模式</button></div>' +
+      '<div class="cmDesk-devnote">仅影响本窗口显示，不改动真实激活数据</div>';
+    document.body.appendChild(c);
+    c.querySelector('#cmDevNo').onclick = function () { cmDevOverride = false; cmDevApply(); };
+    c.querySelector('#cmDevYes').onclick = function () { cmDevOverride = true; cmDevApply(); };
+    c.querySelector('#cmDevReal').onclick = function () { cmDevOverride = null; cmDevApply(); };
+    c.querySelector('#cmDevWiz').onclick = function () { c.remove(); lsSet(LS_ONBOARD, ''); stepWelcome(); };
+    c.querySelector('#cmDevOff').onclick = function () { cmDevOn = false; cmDevOverride = null; c.remove(); cmDevApply(); };
+    cmDevRenderPanel();
+  }
+  function cmDevRenderPanel() {
+    var c = document.getElementById('cmDeskDevCard');
+    if (!c) return;
+    [['#cmDevNo', cmDevOverride === false], ['#cmDevYes', cmDevOverride === true], ['#cmDevReal', cmDevOverride === null]].forEach(function (it) {
+      var b = c.querySelector(it[0]);
+      if (b) b.classList.toggle('active', it[1]);
+    });
+  }
+  function cmDevTap() {
+    var now = Date.now();
+    if (now - cmDevTapTs > 3000) cmDevTaps = 0;
+    cmDevTapTs = now;
+    if (++cmDevTaps >= 5) {
+      cmDevTaps = 0;
+      if (cmDevOn) {   // 关闭免密
+        cmDevOn = false; cmDevOverride = null;
+        if (document.getElementById('cmDeskDevCard')) document.getElementById('cmDeskDevCard').remove();
+        if (window.showToast) window.showToast('开发者模式已关闭', 'info');
+        cmDevApply();
+      } else cmDevKeyPrompt();   // 开启需密钥
+    }
+  }
+  function cmDevKeyPrompt() {
+    if (document.getElementById('cmDevKeyModal')) return;
+    var ov = el('div', 'cmDesk-modal-overlay'); ov.id = 'cmDevKeyModal';
+    ov.innerHTML =
+      '<div class="cmDesk-modal">' +
+      '<h3>🛠 开发者模式</h3>' +
+      '<div class="cmDesk-pro-intro">此模式用于调试预览（模拟激活双态/重播向导），请输入开发者密钥。密钥遗失请联系作者重置。</div>' +
+      '<input id="cmDevKeyIn" type="password" placeholder="开发者密钥（形如 CMDEV-XXXX-XXXX-XXXX-XXXX）" style="width:100%;font-family:monospace;font-size:12px;padding:9px 11px;border:1px solid var(--border,#E6DECD);border-radius:8px;box-sizing:border-box">' +
+      '<div id="cmDevKeyMsg" style="font-size:12px;color:#B04A3A;min-height:16px;margin-top:6px"></div>' +
+      '<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-outline btn-sm" id="cmDevKeyCancel">取消</button><button class="btn btn-primary btn-sm" id="cmDevKeyGo">验证并开启</button></div>' +
+      '</div>';
+    document.body.appendChild(ov);
+    var done = false;
+    ov.querySelector('#cmDevKeyCancel').onclick = function () { done = true; ov.remove(); };
+    ov.addEventListener('click', function (ev) { if (ev.target === ov && !done) { done = true; ov.remove(); } });
+    function tryGo() {
+      if (done) return;
+      var v = ov.querySelector('#cmDevKeyIn').value.trim();
+      if (!v) { ov.querySelector('#cmDevKeyMsg').textContent = '请输入密钥'; return; }
+      if (!window.__CM_DEV || !window.__CM_DEV.checkKey) { ov.querySelector('#cmDevKeyMsg').textContent = '校验不可用'; return; }
+      window.__CM_DEV.checkKey(v).then(function (ok) {
+        if (done) return;
+        if (ok) {
+          done = true; ov.remove();
+          cmDevOn = true;
+          if (window.showToast) window.showToast('🛠 开发者模式已开启（右下角 DEV）', 'success');
+          cmDevApply();
+        } else ov.querySelector('#cmDevKeyMsg').textContent = '密钥不正确';
+      }).catch(function () { ov.querySelector('#cmDevKeyMsg').textContent = '校验失败，重试'; });
+    }
+    ov.querySelector('#cmDevKeyGo').onclick = tryGo;
+    ov.querySelector('#cmDevKeyIn').addEventListener('keydown', function (ev) { if (ev.key === 'Enter') tryGo(); });
+    setTimeout(function () { var i = ov.querySelector('#cmDevKeyIn'); if (i) i.focus(); }, 60);
+  }
+  function wrapNavigatePro() {
+    var origNav = window.navigateTo;
+    if (typeof origNav !== 'function' || wrapNavigatePro._done) return;
+    wrapNavigatePro._done = 1;
+    window.navigateTo = function (page) {
+      var r = origNav.apply(this, arguments);
+      if (cmProActive() || window.__cmRole === 'committee') return r;
+      if (CM_PRO_PAGES[page]) {
+        var info = CM_PRO_PAGES[page];
+        cmGatePage = page;
+        cmBlurTarget(true);
+        cmProModal(info[0], { intro: info[1], gatePage: page });
+      } else if (cmGatePage) {
+        cmPageLockClear();
+      }
+      return r;
+    };
+  }
+  function cmProModal(label, opts) {
+    if (!label) label = '这个功能';
+    if (document.getElementById('cmDeskProModal')) return;
+    CM_PRO_SESSION[label] = 1;
+    opts = opts || {};
+    if (opts.gatePage) cmGatePage = opts.gatePage;
+    var req = cmProReqCode();
+    var m = el('div', 'cmDesk-modal-overlay');
+    m.id = 'cmDeskProModal';
+    m.innerHTML =
+      '<div class="cmDesk-donate-card cmDesk-pro">' +
+      '<button class="cmDesk-donate-close" id="cmProClose" aria-label="关闭">×</button>' +
+      '<h3>✨ ' + label + ' 是 Pro 功能</h3>' +
+      '<div class="cmDesk-pro-list">' +
+      (opts.intro ? '<div class="cmDesk-pro-intro">' + opts.intro + '</div>' : '') +
+      '<div>🎓 学期报告引擎：个人 + 班级报告，PDF / 长图一键导出</div>' +
+      '<div>🖼️ 座次表 · 值日表 · 成绩条，排版打印不发愁</div>' +
+      '<div>📊 数据分析深度版：趋势 · 预警 · 导出</div>' +
+      '<div>🌟 进步之星榜 · 零扣分续航榜 海报导出</div>' +
+      '</div>' +
+      '<div class="cmDesk-pro-price"><s>¥69</s> <b>¥49</b> <span>早鸟限量 100 份 · 一次买断 · 无订阅</span></div>' +
+      '<div class="cmDesk-pro-mail"><span>✉ 邮箱（选填）</span><input id="cmProMailIn" type="email" placeholder="换机重置时自动核对身份 · 只存加密指纹，本机不存明文"></div>' +
+      '<div class="cmDesk-pro-req"><span>① 复制申请码（已含本机标识）</span><button class="btn btn-primary btn-sm" id="cmProReqCopy">复制</button></div>' +
+      '<input id="cmProReq" readonly value="' + req + '">' +
+      '<div class="cmDesk-pro-act">' +
+      '<a class="btn btn-primary" id="cmProBuy" href="' + CM_PRO_BUY_URL + '?custom_order_id=' + encodeURIComponent(req) + '" target="_blank" rel="noopener">🛒 购买激活（微信 / 支付宝）</a>' +
+      '<button class="btn btn-outline" id="cmProClaim">② 我已付款 · 自动获取激活码</button>' +
+      '</div>' +
+      '<div class="cmDesk-pro-manual"><button class="btn btn-outline btn-sm" id="cmProPaste">我已有激活码 · 从剪贴板粘贴</button><input id="cmProLic" placeholder="或手动贴入 CMPRO1.xxxx…"></div>' +
+      '<button class="btn btn-primary" id="cmProGo">激活</button>' +
+      '<div class="cmDesk-pro-msg" id="cmProMsg">付款后点「② 我已付款 · 自动获取激活码」即可自动激活，一般几秒内到码；没取到也可复制激活码手动贴入。激活全程离线验签，数据不出这台电脑。</div>' +
+      '<div class="cmDesk-donate-actions"><button class="btn btn-outline btn-sm" id="cmProLater">下次再说</button></div>' +
+      '</div>';
+    document.body.appendChild(m);
+    function closeModal() {
+      m.remove();
+      if (opts.gatePage && !cmProActive()) cmPagePill();   // 页面锁：关弹窗仍保留模糊 + 悬浮解锁
+    }
+    m.querySelector('#cmProClose').onclick = closeModal;
+    m.querySelector('#cmProLater').onclick = closeModal;
+    m.addEventListener('click', function (e) { if (e.target === m) closeModal(); });
+    m.querySelector('#cmProReqCopy').onclick = function () {
+      cmProCopy(req, function () { if (window.showToast) window.showToast('申请码已复制，下单时粘贴到留言', 'success'); }, function () { if (window.showToast) window.showToast('复制失败，请长按手动复制', 'error'); });
+    };
+    /* 可选邮箱（v1.2.6）：填了就进申请码指纹（eh），重签时 KeyGen 自动核对；
+       改邮箱 → 申请码/购买链接即时重算（复制/下单都拿新的） */
+    var mailIn = m.querySelector('#cmProMailIn');
+    mailIn.value = lsGet('cmProMail') || '';
+    mailIn.onchange = function () {
+      var v = (mailIn.value || '').trim().toLowerCase();
+      var msgEl = m.querySelector('#cmProMsg');
+      if (v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { msgEl.textContent = '邮箱格式看起来不对，改一下再回车'; return; }
+      lsSet('cmProMail', v);
+      req = cmProReqCode();
+      m.querySelector('#cmProReq').value = req;
+      m.querySelector('#cmProBuy').href = CM_PRO_BUY_URL + '?custom_order_id=' + encodeURIComponent(req);
+      msgEl.textContent = v ? '✉ 邮箱已记入（只存加密指纹），申请码已更新——请重新复制' : '邮箱已清除，申请码已更新';
+    };
+    m.querySelector('#cmProPaste').onclick = function () {
+      var msg = m.querySelector('#cmProMsg');
+      if (!window.__CM_CLIP || !window.__CM_CLIP.read) { msg.textContent = '当前环境不支持自动粘贴，请手动贴入激活码。'; return; }
+      msg.textContent = '正在读取剪贴板…';
+      window.__CM_CLIP.read().then(function (r) {
+        var t = ((r && r.text) || '').trim();
+        if (/^CMPRO1\./.test(t)) {
+          m.querySelector('#cmProLic').value = t;
+          msg.textContent = '已从剪贴板填入激活码，正在验签…';
+          m.querySelector('#cmProGo').click();
+        } else {
+          msg.textContent = '剪贴板里没有激活码（应以 CMPRO1. 开头）——先复制作者发给你的激活码，再点本按钮。';
+        }
+      });
+    };
+    m.querySelector('#cmProClaim').onclick = function () {
+      var msg = m.querySelector('#cmProMsg');
+      if (!window.__CM_PRO) { msg.textContent = '自动获取不可用，请手动贴码或联系作者。'; return; }
+      msg.textContent = '正在向作者服务器查询你的激活码…';
+      window.__CM_PRO.claim(req).then(function (r) {
+        if (r && r.ok) { m.querySelector('#cmProLic').value = r.lic; m.querySelector('#cmProGo').click(); }
+        else msg.textContent = r && r.why === 'AUTO_OFF' ? '自动获取暂未开通——请把申请码发给作者（爱发电留言 / 邮箱），收到激活码贴在下方。' : '暂未查到订单：确认已付款、申请码已填进爱发电留言，几秒后可再点一次；仍未到码请联系作者（846699191@qq.com）。';
+      });
+    };
+    m.querySelector('#cmProGo').onclick = function () {
+      var msg = m.querySelector('#cmProMsg');
+      var lic = m.querySelector('#cmProLic').value.trim();
+      if (!lic) { msg.textContent = '请先粘贴激活码。'; return; }
+      msg.textContent = '正在验签…';
+      window.__CM_PRO.activate({ req: req, lic: lic }).then(function (r) {
+        if (r && r.ok) {
+          cmProRefresh().then(function () {
+            m.remove();
+            if (window.showToast) window.showToast('🎉 Pro 已激活' + (r.tier === 'early' ? '（早鸟纪念 #' + r.sn + '/100）' : ''), 'success');
+            buildNavPro();                          // 侧栏：去角标、亮 PRO 徽标（v1.2.6）
+            var old = document.getElementById('cmDeskDonateSec');
+            if (old) old.remove();
+            var about = document.getElementById('settingsAbout');
+            if (about) buildDonateRow(about);
+            if (opts.gatePage) cmPageLockClear();   // 激活成功：解除本页模糊
+          });
+        } else {
+          msg.textContent = '❌ ' + ((r && r.why) || '激活失败') + '（连续失败可邮件联系作者：846699191@qq.com）';
+        }
+      });
+    };
+  }
+  /* Pro 已激活卡（v1.2.6 B 印章式定稿）：暖黑底 + 金色发丝边框 + 早鸟钢印，右下角开发者署名。
+     v1.2.6 二审：授权邮箱行撤下（本机从不存明文、实际也留不了邮箱），
+     换成金宋体身份行「早鸟 №042 · 正版授权」——铭牌感直接给足。 */
+  function buildProActiveCard(about) {
+    var c = cmProCache();
+    var sec = el('div', 'settings-section cmDeskDonateSec');
+    sec.id = 'cmDeskDonateSec';
+    var early = c.tier === 'early';
+    var sn = ('00' + (c.sn || 0)).slice(-3);
+    sec.innerHTML =
+      '<div class="cmDesk-procard">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">' +
+      '<span class="chip">✦ PRO</span><span>已激活 · 终身有效</span>' +
+      '</div>' +
+      (early ? '<div class="seal"><i>早鸟</i><b>№' + sn + '</b><s>共100份</s></div>' : '') +
+      '<div class="bd">' +
+      '<div class="lic">' + (early ? '早鸟 №' + sn + ' · 正版授权' : '正版授权') + '</div>' +
+      '<div>一次买断，全部 Pro 功能永久可用</div>' +
+      '<div class="mut">换机重置：每年 3 次免费 · 846699191@qq.com</div>' +
+      '<button class="cmDesk-procard-copy" id="cmProLicCopy" title="换机/清数据后把它和新的申请码一起发给作者，即可免费重签">📋 复制激活码（换机重签用）</button>' +
+      '</div>' +
+      '<div class="ft"><span>' + (early ? '感谢你成为前 100 位支持者' : '感谢支持独立开发') + '</span><span class="sig">BY: chee</span></div>' +
+      '</div>';
+    var licBtn = sec.querySelector('#cmProLicCopy');
+    licBtn.onclick = function () {
+      function send(l) {
+        if (l) cmProCopy(l, function () { if (window.showToast) window.showToast('激活码已复制，连同新申请码一起发给作者即可重签', 'success'); }, function () { if (window.showToast) window.showToast('复制失败，请邮件联系作者', 'error'); });
+        else if (window.showToast) window.showToast('本机未找到激活码，请邮件联系作者：846699191@qq.com', 'error');
+      }
+      var lic = (cmProCache() || {}).lic || '';
+      if (lic) send(lic);
+      else if (window.__CM_PRO && window.__CM_PRO.status) window.__CM_PRO.status().then(function (r) { send((r && r.lic) || ''); });
+      else send('');
+    };
+    about.parentNode.insertBefore(sec, about);
+  }
+
+  /* ---------- M3 学期报告引擎（v1.1.0 Pro 核心）：个人 + 班级，长图 / PDF ----------
+     数据只用网页版 state（流水/请假/成绩），统计一律走 liveOps 过滤撤销；
+     学期起点与公示页同口径（手动设置优先，回退 3/1、9/1 自动推断）；
+     导出两条路：canvas 自绘长图（复用页面 pngExport）+ 主进程 printToPDF。 */
+  var CM_RPT_BG = '#FDFBF7', CM_RPT_BRAND = '#A63A2B', CM_RPT_INK = '#2B2B33',
+      CM_RPT_SUB = '#6B6B75', CM_RPT_LINE = '#E5E0D8';
+  function cmReportSemStart() {
+    var t = 0;
+    try {
+      var v = loadPubSetting('semesterStart');
+      if (v) { var d = new Date(v + 'T00:00:00'); if (!isNaN(d.getTime())) t = d.getTime(); }
+    } catch (e) {}
+    if (!t) {
+      var now = new Date(), y = now.getFullYear(), m = now.getMonth() + 1;
+      var sy = (m >= 9) ? y : (m <= 2 ? y - 1 : y), sm = (m >= 3 && m <= 8) ? 3 : 9;
+      t = new Date(sy, sm - 1, 1).getTime();
+    }
+    return t;
+  }
+  function cmReportSemName() {
+    try { var c = pubRangeCaption('semester'); if (c) return c; } catch (e) {}
+    var now = new Date(), m = now.getMonth() + 1;
+    return now.getFullYear() + ' 年' + ((m >= 3 && m <= 8) ? '春' : '秋') + '学期';
+  }
+  function cmReportDstr(ts) {
+    var d = new Date(ts);
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+  function cmReportCatOf(reason) {
+    try { return REASON_CATALOG_FLAT[reason] || '其他'; } catch (e) { return '其他'; }
+  }
+  function cmReportClassTitle() {
+    try { return (state.className || '').trim(); } catch (e) { return ''; }
+  }
+  function cmReportLiveStudents() {
+    return (state.students || []).filter(function (s) { return !(state.studentDeleted && state.studentDeleted[s.id]); });
+  }
+  function cmReportDormOf(stu) {
+    var tags = stu.tags || [];
+    for (var i = 0; i < tags.length; i++) if (/^\d+栋-?\d+室$/.test(tags[i])) return tags[i];
+    return tags.indexOf('走读') >= 0 ? '走读' : '';
+  }
+  var CM_RPT_POSTS = { banzhang: '班长', fubanzhang: '副班长', jilv: '纪律委员', xuexi: '学习委员', tiyu: '体育委员', shenghuo: '生活委员', wenyi: '文艺委员', xinxi: '信息委员' };
+  function cmReportPostOf(stuId) {
+    try {
+      var cm = state.committee || {};
+      for (var k in cm) if (cm[k] === stuId) return CM_RPT_POSTS[k] || k;
+    } catch (e) {}
+    return '';
+  }
+  function cmReportLatestExam() {
+    var ex = (state.exams || []).slice().filter(function (e) { return e && e.scores; });
+    if (!ex.length) return null;
+    ex.sort(function (a, b) { return (a.date < b.date ? -1 : 1); });
+    return ex[ex.length - 1];
+  }
+  function cmReportExamTotals(exam) {
+    var subs = exam.subjects || [], rows = [];
+    cmReportLiveStudents().forEach(function (s) {
+      var sc = exam.scores[s.id]; if (!sc) return;
+      var t = 0, c = 0;
+      subs.forEach(function (su) { var v = sc[su]; if (typeof v === 'number') { t += v; c++; } });
+      if (c === subs.length && subs.length) rows.push({ id: s.id, name: s.name, total: t });
+    });
+    rows.sort(function (a, b) { return b.total - a.total; });
+    return rows;
+  }
+  /* 个人数据聚合 */
+  function cmReportStuData(stu) {
+    var t0 = cmReportSemStart(), t0s = cmReportDstr(t0);
+    var ops = liveOps(state.operations).filter(function (o) { return o.studentId === stu.id && Number(o.time) >= t0; });
+    var d = { stu: stu, sem: cmReportSemName(), cls: cmReportClassTitle(), add: 0, sub: 0, addCnt: 0, subCnt: 0, coin: 0, cats: [], lv: null, exam: null, rank: 0, examCnt: 0 };
+    var byCat = {};
+    ops.forEach(function (o) {
+      if (o.amount >= 0) { d.add += o.amount; d.addCnt++; } else { d.sub += o.amount; d.subCnt++; }
+      d.coin += Number(o.coin || 0);
+      var c = cmReportCatOf(o.reason);
+      if (!byCat[c]) byCat[c] = { name: c, add: 0, sub: 0, cnt: 0 };
+      byCat[c].cnt++;
+      if (o.amount >= 0) byCat[c].add += o.amount; else byCat[c].sub += o.amount;
+    });
+    d.cats = Object.keys(byCat).map(function (k) { return byCat[k]; })
+      .sort(function (a, b) { return (b.add - b.sub) - (a.add - a.sub) || b.cnt - a.cnt; });
+    var leaves = (state.leaves || []).filter(function (l) { return l.studentId === stu.id && l.startDate && l.startDate >= t0s; });
+    var lv = { total: leaves.length, days: 0, sick: 0, personal: 0, official: 0 };
+    leaves.forEach(function (l) {
+      lv.days += Number(l.duration) || 0;
+      if (l.type === 'sick') lv.sick++; else if (l.type === 'personal') lv.personal++; else if (l.type === 'official') lv.official++;
+    });
+    d.lv = lv;
+    var exam = cmReportLatestExam();
+    if (exam) {
+      var rows = cmReportExamTotals(exam);
+      for (var i = 0; i < rows.length; i++) if (rows[i].id === stu.id) {
+        d.exam = { name: exam.name, date: exam.date, total: rows[i].total, avg: 0, rank: i + 1, cnt: rows.length };
+        break;
+      }
+      if (d.exam) {
+        var sum = 0; rows.forEach(function (r) { sum += r.total; });
+        d.exam.avg = rows.length ? Math.round(sum / rows.length * 10) / 10 : 0;
+      }
+    }
+    return d;
+  }
+  /* 班级数据聚合 */
+  function cmReportClassData() {
+    var t0 = cmReportSemStart(), t0s = cmReportDstr(t0);
+    var ops = liveOps(state.operations).filter(function (o) { return Number(o.time) >= t0; });
+    var d = { sem: cmReportSemName(), cls: cmReportClassTitle(), n: 0, opCnt: ops.length, per: {}, top: [], clean: [], lvTotal: 0, lvDays: 0, exam: null };
+    var stus = cmReportLiveStudents();
+    d.n = stus.length;
+    ops.forEach(function (o) {
+      var p = d.per[o.studentId]; if (!p) p = d.per[o.studentId] = { add: 0, sub: 0 };
+      if (o.amount >= 0) p.add += o.amount; else p.sub += o.amount;
+    });
+    var rows = stus.map(function (s) {
+      var p = d.per[s.id] || { add: 0, sub: 0 };
+      return { name: s.name, sid: s.sid, add: p.add, sub: p.sub, net: p.add + p.sub };
+    });
+    d.top = rows.slice().sort(function (a, b) { return b.net - a.net || b.add - a.add; }).slice(0, 10);
+    d.clean = rows.filter(function (r) { return r.sub === 0; }).slice(0, 20);
+    (state.leaves || []).forEach(function (l) {
+      if (l.startDate && l.startDate >= t0s) { d.lvTotal++; d.lvDays += Number(l.duration) || 0; }
+    });
+    var exam = cmReportLatestExam();
+    if (exam) {
+      var tot = cmReportExamTotals(exam), sum = 0;
+      tot.forEach(function (r) { sum += r.total; });
+      if (tot.length) d.exam = { name: exam.name, date: exam.date, cnt: tot.length, avg: Math.round(sum / tot.length * 10) / 10, max: tot[0].total, min: tot[tot.length - 1].total, first: tot[0].name };
+    }
+    return d;
+  }
+  /* canvas 小工具 */
+  function cmRr(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+  /* canvas 小工具：定高裁切（直接改 height 会重置 context 抹掉全部绘制） */
+  function cmCrop(c, h) {
+    var c2 = document.createElement('canvas');
+    c2.width = 750; c2.height = h;
+    c2.getContext('2d').drawImage(c, 0, 0);
+    return c2;
+  }
+  function cmWrapText(ctx, text, x, y, maxW, lh) {
+    var line = '';
+    for (var i = 0; i < text.length; i++) {
+      if (ctx.measureText(line + text[i]).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = text[i]; }
+      else line += text[i];
+    }
+    if (line) { ctx.fillText(line, x, y); y += lh; }
+    return y;
+  }
+  function cmRptHead(ctx, title, sub, y) {
+    ctx.fillStyle = CM_RPT_BG; ctx.fillRect(0, 0, 750, y);
+    ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 26px sans-serif'; ctx.fillText(title, 40, y - 46);
+    ctx.fillStyle = CM_RPT_SUB; ctx.font = '13px sans-serif'; ctx.fillText(sub, 40, y - 20);
+    ctx.fillStyle = CM_RPT_BRAND; cmRr(ctx, 640, y - 52, 70, 26, 13); ctx.fill();
+    ctx.fillStyle = '#FFF'; ctx.font = 'bold 12px sans-serif'; ctx.fillText('PRO', 657, y - 34);
+    ctx.strokeStyle = CM_RPT_LINE; ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(710, y); ctx.stroke();
+    return y + 26;
+  }
+  function cmRptStat(ctx, x, y, w, label, value, color) {
+    ctx.fillStyle = '#FFFFFF'; cmRr(ctx, x, y, w, 64, 10); ctx.fill();
+    ctx.strokeStyle = CM_RPT_LINE; cmRr(ctx, x, y, w, 64, 10); ctx.stroke();
+    ctx.fillStyle = CM_RPT_SUB; ctx.font = '12px sans-serif'; ctx.fillText(label, x + 14, y + 24);
+    ctx.fillStyle = color || CM_RPT_INK; ctx.font = 'bold 22px sans-serif'; ctx.fillText(value, x + 14, y + 50);
+  }
+  function cmRptFoot(ctx, h) {
+    ctx.strokeStyle = CM_RPT_LINE; ctx.beginPath(); ctx.moveTo(40, h - 52); ctx.lineTo(710, h - 52); ctx.stroke();
+    ctx.fillStyle = CM_RPT_SUB; ctx.font = '11px sans-serif';
+    ctx.fillText('班主任工作台 · ' + cmReportSemName() + '学期报告', 40, h - 30);
+    ctx.fillText('生成于 ' + localDateStr(), 710 - ctx.measureText('生成于 ' + localDateStr()).width, h - 30);
+  }
+  /* 个人报告长图 */
+  function cmReportStuCanvas(d, comment) {
+    var stu = d.stu, y = 0;
+    var c = document.createElement('canvas');
+    var ctx = c.getContext('2d');
+    c.width = 750; c.height = 1400;
+    ctx.fillStyle = CM_RPT_BG; ctx.fillRect(0, 0, 750, c.height);
+    y = cmRptHead(ctx, '学期个人报告', d.sem + (d.cls ? ' · ' + d.cls : ''), 92);
+    ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 30px sans-serif'; ctx.fillText(stu.name, 40, y + 34);
+    ctx.fillStyle = CM_RPT_SUB; ctx.font = '13px sans-serif';
+    var meta = '学号 ' + (stu.sid || '-');
+    if (cmReportDormOf(stu)) meta += ' · ' + cmReportDormOf(stu);
+    if (cmReportPostOf(stu.id)) meta += ' · ' + cmReportPostOf(stu.id);
+    ctx.fillText(meta, 40, y + 58);
+    y += 84;
+    var base = (typeof stu.creditBase === 'number') ? stu.creditBase : null;
+    cmRptStat(ctx, 40, y, 202, '期初基线', base === null ? '-' : String(base), CM_RPT_INK);
+    cmRptStat(ctx, 274, y, 202, '当前学分', String(stu.credit), CM_RPT_BRAND);
+    cmRptStat(ctx, 508, y, 202, '学期净变化', (d.add + d.sub >= 0 ? '+' : '') + (d.add + d.sub), d.add + d.sub >= 0 ? '#2E7D32' : '#B23B3B');
+    y += 84;
+    cmRptStat(ctx, 40, y, 202, '学期加分', '+' + d.add + '（' + d.addCnt + ' 次）', '#2E7D32');
+    cmRptStat(ctx, 274, y, 202, '学期扣分', d.sub + '（' + d.subCnt + ' 次）', '#B23B3B');
+    cmRptStat(ctx, 508, y, 202, '累计学分币', String(d.coin), CM_RPT_INK);
+    y += 106;
+    if (d.cats.length) {
+      ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 16px sans-serif'; ctx.fillText('本学期表现分布', 40, y);
+      y += 18;
+      var maxNet = 1;
+      d.cats.forEach(function (cat) { maxNet = Math.max(maxNet, Math.abs(cat.add + cat.sub)); });
+      d.cats.slice(0, 6).forEach(function (cat) {
+        var net = cat.add + cat.sub;
+        y += 30;
+        ctx.fillStyle = CM_RPT_INK; ctx.font = '13px sans-serif'; ctx.fillText(cat.name, 40, y + 4);
+        var bw = Math.round(Math.abs(net) / maxNet * 380);
+        ctx.fillStyle = net >= 0 ? '#2E7D32' : '#B23B3B';
+        if (bw > 0) { cmRr(ctx, 150, y - 8, Math.max(bw, 6), 14, 7); ctx.fill(); }
+        ctx.fillStyle = CM_RPT_SUB; ctx.font = '12px sans-serif';
+        ctx.fillText((net >= 0 ? '+' : '') + net + ' 分 · ' + cat.cnt + ' 次', 150 + Math.max(bw, 6) + 12, y + 4);
+      });
+      y += 34;
+    }
+    ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 16px sans-serif'; ctx.fillText('请假记录', 40, y);
+    y += 24;
+    ctx.fillStyle = CM_RPT_SUB; ctx.font = '13px sans-serif';
+    ctx.fillText(d.lv.total ? ('病假 ' + d.lv.sick + ' 次 · 事假 ' + d.lv.personal + ' 次 · 公假 ' + d.lv.official + ' 次 · 合计 ' + d.lv.days + ' 天') : '本学期无请假记录', 40, y);
+    y += 40;
+    if (d.exam) {
+      ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 16px sans-serif'; ctx.fillText('最近考试 · ' + d.exam.name, 40, y);
+      y += 24;
+      ctx.fillStyle = CM_RPT_SUB; ctx.font = '13px sans-serif';
+      ctx.fillText('总分 ' + d.exam.total + '（班级均分 ' + d.exam.avg + '，第 ' + d.exam.rank + ' / ' + d.exam.cnt + ' 名）', 40, y);
+      y += 40;
+    }
+    if (comment) {
+      ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 16px sans-serif'; ctx.fillText('老师寄语', 40, y);
+      y += 26;
+      ctx.fillStyle = CM_RPT_INK; ctx.font = '14px sans-serif';
+      y = cmWrapText(ctx, comment, 40, y, 670, 22);
+      y += 14;
+    }
+    cmRptFoot(ctx, y + 76);
+    return cmCrop(c, y + 76);
+  }
+  /* 班级报告长图 */
+  function cmReportClassCanvas(d) {
+    var c = document.createElement('canvas');
+    var ctx = c.getContext('2d');
+    c.width = 750; c.height = 1600;
+    ctx.fillStyle = CM_RPT_BG; ctx.fillRect(0, 0, 750, c.height);
+    var y = cmRptHead(ctx, '学期班级报告', d.sem + (d.cls ? ' · ' + d.cls : ''), 92);
+    cmRptStat(ctx, 40, y, 202, '班级人数', d.n + ' 人', CM_RPT_INK);
+    cmRptStat(ctx, 274, y, 202, '学期流水', d.opCnt + ' 条', CM_RPT_INK);
+    cmRptStat(ctx, 508, y, 202, '请假合计', d.lvDays + ' 天（' + d.lvTotal + ' 次）', CM_RPT_INK);
+    y += 88;
+    ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 16px sans-serif'; ctx.fillText('学分排行 TOP10（按学期净变化）', 40, y);
+    y += 14;
+    ctx.fillStyle = CM_RPT_SUB; ctx.font = '12px sans-serif';
+    ctx.fillText('名次', 40, y + 26); ctx.fillText('姓名', 100, y + 26);
+    ctx.fillText('加分', 220, y + 26); ctx.fillText('扣分', 310, y + 26); ctx.fillText('净变化', 400, y + 26);
+    y += 36;
+    d.top.forEach(function (r, i) {
+      ctx.fillStyle = i < 3 ? CM_RPT_BRAND : CM_RPT_INK; ctx.font = 'bold 13px sans-serif';
+      ctx.fillText(String(i + 1), 40, y + 20);
+      ctx.fillStyle = CM_RPT_INK; ctx.font = '13px sans-serif';
+      ctx.fillText(r.name, 100, y + 20);
+      ctx.fillStyle = '#2E7D32'; ctx.fillText('+' + r.add, 220, y + 20);
+      ctx.fillStyle = r.sub ? '#B23B3B' : CM_RPT_SUB; ctx.fillText(String(r.sub), 310, y + 20);
+      ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 13px sans-serif';
+      ctx.fillText((r.net >= 0 ? '+' : '') + r.net, 400, y + 20);
+      ctx.strokeStyle = CM_RPT_LINE; ctx.beginPath(); ctx.moveTo(40, y + 30); ctx.lineTo(710, y + 30); ctx.stroke();
+      y += 38;
+    });
+    y += 18;
+    if (d.clean.length) {
+      ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 16px sans-serif'; ctx.fillText('零扣分名单（本学期）', 40, y);
+      y += 26;
+      ctx.fillStyle = CM_RPT_INK; ctx.font = '13px sans-serif';
+      y = cmWrapText(ctx, d.clean.map(function (r) { return r.name; }).join(' · '), 40, y, 670, 24);
+    }
+    y += 16;
+    if (d.exam) {
+      ctx.fillStyle = CM_RPT_INK; ctx.font = 'bold 16px sans-serif'; ctx.fillText('最近考试 · ' + d.exam.name, 40, y);
+      y += 24;
+      ctx.fillStyle = CM_RPT_SUB; ctx.font = '13px sans-serif';
+      ctx.fillText('参考 ' + d.exam.cnt + ' 人 · 均分 ' + d.exam.avg + ' · 最高 ' + d.exam.max + '（' + d.exam.first + '）· 最低 ' + d.exam.min, 40, y);
+      y += 40;
+    }
+    cmRptFoot(ctx, y + 76);
+    return cmCrop(c, y + 76);
+  }
+  /* PDF HTML（A4 自包含，禁止脚本已由主进程校验） */
+  function cmRptPdfShell(title, bodyHtml) {
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + title + '</title><style>' +
+      'body{font-family:"Microsoft YaHei",sans-serif;color:#2B2B33;margin:0;padding:24px 28px;background:#FDFBF7;font-size:12px;}' +
+      'h1{font-size:22px;margin:0 0 4px;}h2{font-size:14px;margin:18px 0 8px;border-bottom:1px solid #E5E0D8;padding-bottom:6px;}' +
+      '.sub{color:#6B6B75;font-size:11px;}.pro{display:inline-block;background:#A63A2B;color:#fff;border-radius:9px;padding:1px 9px;font-size:9px;font-weight:bold;vertical-align:middle;}' +
+      '.stat{display:inline-block;width:30%;background:#fff;border:1px solid #E5E0D8;border-radius:8px;padding:8px 10px;margin:4px 1% 4px 0;}' +
+      '.stat b{display:block;font-size:17px;margin-top:3px;}.stat span{color:#6B6B75;font-size:10px;}' +
+      'table{width:100%;border-collapse:collapse;}td,th{border-bottom:1px solid #E5E0D8;padding:5px 6px;text-align:left;font-size:12px;}' +
+      '.pos{color:#2E7D32;}.neg{color:#B23B3B;}.foot{margin-top:26px;border-top:1px solid #E5E0D8;padding-top:8px;color:#6B6B75;font-size:10px;}' +
+      '</style></head><body>' + bodyHtml +
+      '<div class="foot">班主任工作台 · ' + cmReportSemName() + '学期报告 · 生成于 ' + localDateStr() + '</div></body></html>';
+  }
+  function cmReportStuPdf(d, comment) {
+    var stu = d.stu, h = '<h1>学期个人报告 <span class="pro">PRO</span></h1>' +
+      '<div class="sub">' + d.sem + (d.cls ? ' · ' + d.cls : '') + '</div><h2>' + stu.name +
+      (stu.sid ? '（学号 ' + stu.sid + '）' : '') + (cmReportDormOf(stu) ? ' · ' + cmReportDormOf(stu) : '') + (cmReportPostOf(stu.id) ? ' · ' + cmReportPostOf(stu.id) : '') + '</h2>' +
+      '<div><span class="stat">期初基线<b>' + ((typeof stu.creditBase === 'number') ? stu.creditBase : '-') + '</b><span>期初基线</span></span>' +
+      '<span class="stat">当前学分<b class="neg">' + stu.credit + '</b><span>当前学分</span></span>' +
+      '<span class="stat">学期净变化<b class="' + (d.add + d.sub >= 0 ? 'pos' : 'neg') + '">' + (d.add + d.sub >= 0 ? '+' : '') + (d.add + d.sub) + '</b><span>学期净变化</span></span>' +
+      '<span class="stat">学期加分<b class="pos">+' + d.add + '</b><span>' + d.addCnt + ' 次</span></span>' +
+      '<span class="stat">学期扣分<b class="neg">' + d.sub + '</b><span>' + d.subCnt + ' 次</span></span>' +
+      '<span class="stat">累计学分币<b>' + d.coin + '</b><span>累计学分币</span></span></div>';
+    if (d.cats.length) {
+      h += '<h2>本学期表现分布</h2><table><tr><th>大类</th><th>加分</th><th>扣分</th><th>净变化</th><th>次数</th></tr>';
+      d.cats.forEach(function (cat) {
+        h += '<tr><td>' + cat.name + '</td><td class="pos">' + (cat.add ? '+' + cat.add : '-') + '</td><td class="neg">' + (cat.sub || '-') + '</td><td><b>' + (cat.add + cat.sub >= 0 ? '+' : '') + (cat.add + cat.sub) + '</b></td><td>' + cat.cnt + '</td></tr>';
+      });
+      h += '</table>';
+    }
+    h += '<h2>请假记录</h2><div>' + (d.lv.total ? '病假 ' + d.lv.sick + ' 次 · 事假 ' + d.lv.personal + ' 次 · 公假 ' + d.lv.official + ' 次 · 合计 ' + d.lv.days + ' 天' : '本学期无请假记录') + '</div>';
+    if (d.exam) h += '<h2>最近考试 · ' + d.exam.name + '</h2><div>总分 <b>' + d.exam.total + '</b>（班级均分 ' + d.exam.avg + '，第 ' + d.exam.rank + ' / ' + d.exam.cnt + ' 名）</div>';
+    if (comment) h += '<h2>老师寄语</h2><div>' + comment.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</div>';
+    return cmRptPdfShell('学期个人报告 · ' + stu.name, h);
+  }
+  function cmReportClassPdf(d) {
+    var h = '<h1>学期班级报告 <span class="pro">PRO</span></h1>' +
+      '<div class="sub">' + d.sem + (d.cls ? ' · ' + d.cls : '') + '</div>' +
+      '<div><span class="stat">班级人数<b>' + d.n + '</b><span>班级人数</span></span>' +
+      '<span class="stat">学期流水<b>' + d.opCnt + '</b><span>条</span></span>' +
+      '<span class="stat">请假合计<b>' + d.lvDays + ' 天</b><span>' + d.lvTotal + ' 次</span></span></div>' +
+      '<h2>学分排行 TOP10（按学期净变化）</h2><table><tr><th>名次</th><th>姓名</th><th>加分</th><th>扣分</th><th>净变化</th></tr>';
+    d.top.forEach(function (r, i) {
+      h += '<tr><td>' + (i + 1) + '</td><td>' + r.name + '</td><td class="pos">+' + r.add + '</td><td class="neg">' + (r.sub || '-') + '</td><td><b>' + (r.net >= 0 ? '+' : '') + r.net + '</b></td></tr>';
+    });
+    h += '</table>';
+    if (d.clean.length) h += '<h2>零扣分名单（本学期）</h2><div>' + d.clean.map(function (r) { return r.name; }).join(' · ') + '</div>';
+    if (d.exam) h += '<h2>最近考试 · ' + d.exam.name + '</h2><div>参考 ' + d.exam.cnt + ' 人 · 均分 ' + d.exam.avg + ' · 最高 ' + d.exam.max + '（' + d.exam.first + '）· 最低 ' + d.exam.min + '</div>';
+    return cmRptPdfShell('学期班级报告', h);
+  }
+  /* 报告面板 */
+  var CM_RPT_LS_CMT = 'cmReportCmt';
+  function cmReportComments() { try { return JSON.parse(lsGet(CM_RPT_LS_CMT) || '{}'); } catch (e) { return {}; } }
+  function cmReportOpen() {
+    if (!cmProActive()) { cmProModal('学期报告引擎'); return; }
+    if (document.getElementById('cmDeskReport')) return;
+    var m = el('div', 'cmDesk-modal-overlay');
+    m.id = 'cmDeskReport';
+    var stus = cmReportLiveStudents().slice().sort(function (a, b) { return (a.sid || '') < (b.sid || '') ? -1 : 1; });
+    var opts = stus.map(function (s) { return '<option value="' + s.id + '">' + (s.sid ? s.sid + ' ' : '') + s.name + '</option>'; }).join('');
+    m.innerHTML =
+      '<div class="cmDesk-donate-card cmDesk-report-panel">' +
+      '<button class="cmDesk-donate-close" id="cmRptClose" aria-label="关闭">×</button>' +
+      '<h3>🎓 学期报告引擎 <span class="cmDesk-pro-badge">PRO</span></h3>' +
+      '<div class="cmDesk-rp-tabs"><button class="cmDesk-rp-tab active" id="cmRptTabStu">个人报告</button><button class="cmDesk-rp-tab" id="cmRptTabCls">班级报告</button></div>' +
+      '<div class="cmDesk-rp-row" id="cmRptStuRow"><label>选择学生</label><select id="cmRptStu">' + opts + '</select>' +
+      '<textarea id="cmRptCmt" rows="2" placeholder="老师寄语（可选，随报告导出，自动保存）"></textarea></div>' +
+      '<div class="cmDesk-rp-actions"><button class="btn btn-primary" id="cmRptGen">生成报告</button>' +
+      '<button class="btn btn-outline" id="cmRptPng" disabled>导出长图 PNG</button>' +
+      '<button class="btn btn-outline" id="cmRptPdf" disabled>导出 PDF</button></div>' +
+      '<div class="cmDesk-rp-preview" id="cmRptPrev"><div class="cmDesk-rp-empty">选择学生或直接生成班级报告，预览将显示在这里。</div></div>' +
+      '<div class="cmDesk-rp-msg" id="cmRptMsg"></div>' +
+      '</div>';
+    document.body.appendChild(m);
+    m.querySelector('#cmRptClose').onclick = function () { m.remove(); };
+    m.addEventListener('click', function (e) { if (e.target === m) m.remove(); });
+    var tabS = m.querySelector('#cmRptTabStu'), tabC = m.querySelector('#cmRptTabCls'),
+        stuRow = m.querySelector('#cmRptStuRow'), mode = 'stu';
+    var lastCanvas = null, lastName = '学期报告';
+    function setTab(t) {
+      mode = t;
+      tabS.classList.toggle('active', t === 'stu');
+      tabC.classList.toggle('active', t === 'cls');
+      stuRow.style.display = t === 'stu' ? '' : 'none';
+    }
+    tabS.onclick = function () { setTab('stu'); };
+    tabC.onclick = function () { setTab('cls'); };
+    var sel = m.querySelector('#cmRptStu'), cmtBox = m.querySelector('#cmRptCmt');
+    var cmts = cmReportComments();
+    sel.onchange = function () {
+      var c = cmts[sel.value]; cmtBox.value = c ? c.t : '';
+    };
+    if (stus.length && cmts[stus[0].id]) cmtBox.value = cmts[stus[0].id].t;
+    var msg = m.querySelector('#cmRptMsg'), prev = m.querySelector('#cmRptPrev'),
+        btnPng = m.querySelector('#cmRptPng'), btnPdf = m.querySelector('#cmRptPdf');
+    m.querySelector('#cmRptGen').onclick = function () {
+      try {
+        if (!cmReportLiveStudents().length) { msg.textContent = '还没有学生数据。'; return; }
+        var canvas;
+        if (mode === 'stu') {
+          var stu = null;
+          cmReportLiveStudents().forEach(function (s) { if (s.id === Number(sel.value)) stu = s; });
+          if (!stu) { msg.textContent = '请选择学生。'; return; }
+          cmts[stu.id] = { t: cmtBox.value.trim(), at: Date.now() };
+          lsSet(CM_RPT_LS_CMT, JSON.stringify(cmts));
+          var d = cmReportStuData(stu);
+          canvas = cmReportStuCanvas(d, cmtBox.value.trim());
+          lastName = '学期个人报告-' + stu.name;
+        } else {
+          var cd = cmReportClassData();
+          canvas = cmReportClassCanvas(cd);
+          lastName = '学期班级报告';
+        }
+        lastCanvas = canvas;
+        prev.innerHTML = '';
+        prev.appendChild(canvas);
+        btnPng.disabled = false; btnPdf.disabled = false;
+        msg.textContent = '';
+      } catch (err) { msg.textContent = '生成失败：' + String((err && err.message) || err).slice(0, 100); }
+    };
+    btnPng.onclick = function () {
+      if (!lastCanvas) return;
+      pngExport(lastCanvas, lastName + '.png', '长图已导出');
+    };
+    btnPdf.onclick = function () {
+      if (!lastCanvas || !window.__CM_PRO || !window.__CM_PRO.reportPdf) return;
+      btnPdf.disabled = true; msg.textContent = '正在生成 PDF…';
+      var html;
+      if (mode === 'stu') {
+        var stu2 = null;
+        cmReportLiveStudents().forEach(function (s) { if (s.id === Number(sel.value)) stu2 = s; });
+        html = cmReportStuPdf(cmReportStuData(stu2), cmtBox.value.trim());
+      } else {
+        html = cmReportClassPdf(cmReportClassData());
+      }
+      window.__CM_PRO.reportPdf(html, lastName + '.pdf').then(function (r) {
+        btnPdf.disabled = false;
+        if (r && r.ok) msg.textContent = '✅ PDF 已保存：' + r.path;
+        else msg.textContent = (r && r.why === 'canceled') ? '' : '❌ PDF 生成失败：' + ((r && r.why) || '未知原因');
+      });
+    };
+  }
+  /* ---------- v1.2.6 请假流水导出（Pro）：考勤页注入按钮 + CSV ----------
+     原则：所有导出皆 Pro（数据备份导出除外——数据主权红线，老板 D 批复）。
+     考勤请假 v1.2.6 转免费页面，但导出仍走 Pro gate：按钮常驻，点击未激活弹引导框。 */
+  function buildLeaveExportBtn() {
+    var bar = document.querySelector('#page-attendance .page-toolbar');
+    if (!bar || document.getElementById('cmExportLeaveBtn')) return;
+    var b = el('button', 'btn btn-outline btn-sm');
+    b.id = 'cmExportLeaveBtn';
+    b.innerHTML = '<span>📤 导出请假流水</span>';
+    b.title = '导出全部请假记录为 CSV（Pro 功能）';
+    b.onclick = function () {
+      if (window.__cmRole === 'committee') { if (window.showToast) window.showToast('班委模式无权导出数据', 'warning'); return; }
+      window.cmExportLeaveFlow();
+    };
+    bar.appendChild(b);   // 排在「+ 新增请假」右侧
+  }
+  window.cmExportLeaveFlow = function () {
+    try {
+      var list = (state.leaves || []).slice().sort(function (a, b) { return String(a.createdAt || '').localeCompare(String(b.createdAt || '')); });
+      if (!list.length) { if (window.showToast) window.showToast('还没有请假记录可导出', 'warning'); return; }
+      function stu(id) { var arr = state.students || []; for (var i = 0; i < arr.length; i++) if (arr[i].id === id) return arr[i]; return null; }
+      var ST = { pending: '待销假', returned: '已销假', extended: '续假中' };
+      function q(v) { v = v == null ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+      var rows = ['姓名,学号,类型,开始,结束,时长,事由,状态,登记时间'];
+      list.forEach(function (l) {
+        var s = stu(l.studentId) || {};
+        var dur = (typeof window.formatDuration === 'function') ? window.formatDuration(l.duration) : (l.duration == null ? '' : l.duration);
+        rows.push([
+          q(s.name || ('id:' + l.studentId)), q(s.sid || ''), q(l.type),
+          q(l.startDate), q(l.endDate), q(dur), q(l.reason),
+          q(ST[l.status] || l.status || ''), q(String(l.createdAt || '').replace('T', ' ').slice(0, 16))
+        ].join(','));
+      });
+      var d = new Date();
+      var ds = d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
+      var csv = '\uFEFF' + rows.join('\n') + '\n';
+      var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (state.className || '班级') + '-请假流水-' + ds + '.csv';
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+      if (window.showToast) window.showToast('已导出 ' + list.length + ' 条请假流水', 'success');
+    } catch (e) { if (window.showToast) window.showToast('导出失败：' + (e && e.message ? e.message : '未知错误'), 'error'); }
+  };
+
+  /* 导航栏 Pro 化（v1.2.0；v1.2.6 状态感知重做）：
+     未激活 → Pro 页面挂角标 + 学期报告独立入口（带 PRO 角标）；
+     已激活 → 清掉全部角标，侧栏顶部（班级卡右侧）亮 PRO 徽标。
+     动态插入的 .nav-item 不会被页面启动时的批量绑定监听 → 自己绑 click。
+     状态变化的三条路（激活成功 / 吊销 / 开发者模拟）都会重跑本函数。 */
+  function buildNavPro() {
+    var nav = document.getElementById('nav');
+    if (!nav) return;
+    var active = cmProActive();
+    /* 角标：先清后按需补（幂等，可反复重跑） */
+    var olds = nav.querySelectorAll('.cmDesk-navbadge');
+    for (var i = 0; i < olds.length; i++) olds[i].remove();
+    if (!active) {
+      Object.keys(CM_PRO_PAGES).forEach(function (pg) {
+        var item = nav.querySelector('.nav-item[data-page="' + pg + '"]');
+        if (item && !item.querySelector('.cmDesk-navbadge')) {
+          var b = el('span', 'cmDesk-navbadge');
+          b.textContent = 'PRO';
+          item.appendChild(b);
+        }
+      });
+    }
+    /* 学期报告入口（无论激活与否都要有；未激活时带角标） */
+    var reportItem = document.getElementById('cmNavReport');
+    if (!reportItem) {
+      var settingsItem = nav.querySelector('.nav-item[data-page="settings"]');
+      reportItem = el('div', 'nav-item cmDesk-navreport');
+      reportItem.id = 'cmNavReport';
+      reportItem.title = '学期报告（Pro）';
+      reportItem.innerHTML = '<span class="nav-icon">🎓</span><span>学期报告</span>';
+      reportItem.addEventListener('click', function () { cmReportOpen(); });
+      if (settingsItem) settingsItem.parentNode.insertBefore(reportItem, settingsItem);
+      else nav.appendChild(reportItem);
+    }
+    if (!active && !reportItem.querySelector('.cmDesk-navbadge')) {
+      var rb = el('span', 'cmDesk-navbadge');
+      rb.textContent = 'PRO';
+      reportItem.appendChild(rb);
+    }
+    /* 侧栏顶部 PRO 徽标（激活专属）：班级卡右侧，金线暗底 + 烫金字，安静但有质感 */
+    var logo = document.querySelector('.sidebar-logo');
+    var em = document.getElementById('cmDeskProEmblem');
+    if (active) {
+      if (logo && !em) {
+        em = el('span', 'cmDesk-proemblem');
+        em.id = 'cmDeskProEmblem';
+        em.title = 'Pro 已激活 · 感谢支持';
+        em.innerHTML = '<i>✦</i>PRO';
+        logo.appendChild(em);
+      }
+    } else if (em) {
+      em.remove();
+    }
+  }
+  /* 云同步静音（v1.1.1）：桌面版数据只在本机，autoPushToCloud 的「未配置云同步 Token」提示与桌面改造方向不符 */
+  function silenceCloudPush() {
+    if (typeof window.autoPushToCloud === 'function') {
+      window.autoPushToCloud = function () {};
+    }
   }
 
   /* ---------- 启动 ---------- */
@@ -901,6 +1926,29 @@
     cmNudgeWatch();
     stripCloudUI();
     wrapDangerousFns();
+    cmProRefresh();                              // Pro 状态预热（激活缓存供 nudge/gate 判定）
+    cmWrapPro('seatExportImage', '座次表导出打印');   // Pro gate（UI 不变，点击才拦）
+    cmWrapPro('dutyExportImage', '值日表导出打印');
+    cmWrapPro('wlAddImages', '工作留痕配图');
+    cmWrapPro('cbDoSettleUI', '学分银行');
+    cmWrapPro('cbOpenItemDetail', '学分银行');
+    cmWrapPro('cbUseVoucherUI', '学分银行');
+    cmWrapPro('cbRefundVoucherUI', '学分银行');
+    cmWrapPro('cbOpenItemEditor', '学分银行');
+    cmWrapPro('cbOpenBankProfile', '学分银行');
+    cmWrapPro('switchAnalyticsTab', '数据分析');
+    cmWrapPro('exportPublicityPoster', '公示海报导出');
+    cmWrapPro('exportWeeklyReport', '学分周报导出');
+    cmWrapPro('cmExportLeaveFlow', '请假流水导出');   // v1.2.6：考勤页新按钮（原则：所有导出皆 Pro）
+    buildLeaveExportBtn();
+    silenceCloudPush();
+    wrapNavigatePro();
+    buildNavPro();
+    setTimeout(cmProHeartbeat, 20000);   // 激活心跳：启动 20s 后静默复查（v1.2.3）
+    document.body.addEventListener('click', function (ev) {   // 开发者模式入口：连点侧栏版本文字 5 次
+      var f = ev.target && ev.target.closest ? ev.target.closest('.sidebar-footer') : null;
+      if (f) cmDevTap();
+    });
     enhanceAbout();
     buildSecurityCard();
     if (!lsGet(LS_ONBOARD)) {

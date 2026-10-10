@@ -1,8 +1,9 @@
 /* 班主任工作台 · 桌面版 —— Electron 主进程
    原则：本地内容、无远程加载、contextIsolation 开、nodeIntegration 关、禁 ServiceWorker。 */
-const { app, BrowserWindow, shell, ipcMain, session, net } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, session, net, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 app.setName('班主任工作台');
 
@@ -102,6 +103,38 @@ function setupUpdater() {
     return null;
   }
 }
+
+/* ---------- 反馈邮件（v1.0.11）：设置页反馈卡 → 唤起系统邮件客户端 ----------
+   收件人/主题在主进程拼死，页面侧传不进任意 URL（受控桥原则）。 */
+const FEEDBACK_MAIL = '846699191@qq.com';
+ipcMain.handle('cm-feedback-mail', function () {
+  const subject = encodeURIComponent('班主任工作台 · 桌面版反馈（v' + app.getVersion() + '）');
+  const body = encodeURIComponent('作者您好：\n\n\n\n—— 来自班主任工作台桌面版 v' + app.getVersion() + ' / ' + process.platform);
+  return shell.openExternal('mailto:' + FEEDBACK_MAIL + '?subject=' + subject + '&body=' + body)
+    .then(function () { return { ok: true }; })
+    .catch(function (e) { return { ok: false, message: String(e && e.message || e).slice(0, 140) }; });
+});
+
+/* ---------- Pro 授权（v1.1.0）：离线 Ed25519 验签 + 设备绑定 + 双存储 ----------
+   验签/激活/取码实现全部在 src/pro.core.cjs（探针共用同一实现，测的是真代码）。
+   CM_PRO_PUB 上线前用 KeyGen 生成的真公钥替换；测试可用 CM_PRO_PUB_DEV 覆盖（仅非打包环境生效）。 */
+const proCore = require('./src/pro.core.cjs');
+const CM_PRO_PUB = '3714294d85fa0648489eb1ada65b9c0669c088487f11584a33cb0a7d0b228aa8';   // KeyGen 现行密钥对（2026-10-10 换钥：旧钥 4e4f3a71 的私钥在 KeyGen 页被覆盖丢失，与云函数 PRO_PRIV=3938d60b 配对的本钥为准）
+const CM_PRO_CLAIM_API = 'https://1466839507-gqk4mefrq0.ap-shanghai.tencentscf.com/?req=';   // 腾讯云函数 cm-pro-shipper（2026-10-09 上线，NOT_FOUND=正常）
+let proPubCache = '';
+function proPub() {
+  if (!proPubCache) proPubCache = (!app.isPackaged && process.env.CM_PRO_PUB_DEV) ? process.env.CM_PRO_PUB_DEV : CM_PRO_PUB;
+  return proPubCache;
+}
+proCore.register({ ipcMain, app, fs, path, net, pub: proPub, claimApi: CM_PRO_CLAIM_API });
+
+/* 开发者密钥门槛（v1.2.5）：明文只存作者桌面备份，代码里只留 SHA-256；关闭开发者模式不走此校验 */
+const CM_DEV_KEY_HASH = '5a751dcd6ba32957381c49c3d81052ba9a82285c017d9bb1d11fcb874f8f1dd7';
+ipcMain.handle('cm-dev-checkkey', function (e, k) {
+  try { return crypto.createHash('sha256').update(String(k || '').trim(), 'utf8').digest('hex') === CM_DEV_KEY_HASH; }
+  catch (e2) { return false; }
+});
+/* Pro handlers（含 M3 学期报告 PDF 导出）全部在 pro.core.cjs —— main 与探针同源测真代码。 */
 
 function createWindow() {
   win = new BrowserWindow({

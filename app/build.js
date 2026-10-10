@@ -27,7 +27,7 @@ try {
     headContent = fs.readFileSync(process.env.CM_HEAD_FILE, 'utf8');
     log('· HEAD 内容来自 CM_HEAD_FILE（跳过 git spawn）');
   } else {
-    headContent = require('child_process').execSync('git show HEAD:index.html', { cwd: ROOT, maxBuffer: 32 * 1024 * 1024 }).toString();
+    headContent = require('child_process').execFileSync('git', ['show', 'HEAD:index.html'], { cwd: ROOT, maxBuffer: 32 * 1024 * 1024 }).toString();
   }
 } catch (e) { die('取 git HEAD:index.html 失败：' + e.message); }
 if (sha256(rootBuf) !== sha256(Buffer.from(headContent, 'utf8'))) {
@@ -68,7 +68,7 @@ for (const [oldS, newS, cnt, tag] of patches) {
 const dist = path.join(HERE, 'dist');
 fs.mkdirSync(dist, { recursive: true });
 fs.writeFileSync(path.join(dist, 'index.html'), html);
-for (const f of ['src/app.patch.js', 'src/wizard.css']) {
+for (const f of ['src/app.patch.js', 'src/wizard.css', 'src/ed25519.cjs', 'src/pro.core.cjs']) {
   fs.copyFileSync(path.join(HERE, f), path.join(dist, path.basename(f)));
 }
 // 登录页背景海报（AI 生成，已裁水印）
