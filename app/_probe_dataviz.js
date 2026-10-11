@@ -193,6 +193,36 @@ app.whenReady().then(async function () {
       const img4 = await win.webContents.capturePage();
       fs.writeFileSync(path.join(__dirname, 'out', '_probe_dataviz_credit.png'), img4.toPNG());
 
+      STEP = '首页（P2）：学分分布接管';
+      await jsx('window.navigateTo("dashboard");1');
+      await wait(1600);
+      const r5 = await jsx(`(function(){
+        var d=document.getElementById('cmGxDashDist');
+        var inst=d&&window.echarts.getInstanceByDom(d);
+        return JSON.stringify({dash: inst?('live:'+inst.getWidth()+'x'+inst.getHeight()):(d?'box-noinst':'missing'),
+          canvasHidden: (document.getElementById('distChart')||{}).style.display==='none'});
+      })()`);
+      console.log('[DV] 首页 =', r5);
+      if (String(r5).indexOf('live:') < 0) throw new Error('首页分布图未渲染: ' + r5);
+
+      STEP = '公示页（P2）：四图接管';
+      await jsx('window.navigateTo("publicity");1');
+      await wait(2000);
+      const r6 = await jsx(`(function(){
+        var ids=['pubTrendChart__gx','pubDailyChart__gx','pubDistChart__gx','pubReasonChart__gx'];
+        var live=0, sized=0;
+        ids.forEach(function(id){ var d=document.getElementById(id); var inst=d&&window.echarts.getInstanceByDom(d); if(inst){live++; if(inst.getHeight()>50)sized++;} });
+        return JSON.stringify({pub: live, sized: sized, canvasHidden: (document.getElementById('pubTrendChart')||{}).style.display==='none'});
+      })()`);
+      console.log('[DV] 公示 =', r6);
+      const rr6 = JSON.parse(r6);
+      if (rr6.pub < 4 || rr6.sized < 4) throw new Error('公示图表不足: ' + r6);
+      if (!rr6.canvasHidden) throw new Error('原 canvas 未隐藏');
+      await jsx('(() => { var d = document.getElementById("pubTrendChart__gx"); if (d) d.scrollIntoView({block: "center"}); })()');
+      await new Promise(r => setTimeout(r, 600));
+      const img5 = await win.webContents.capturePage();
+      fs.writeFileSync(path.join(__dirname, 'out', '_probe_dataviz_publicity.png'), img5.toPNG());
+
       console.log('[DV] consoleErrors=' + consoleErrors);
       if (consoleErrors > 0) throw new Error('console-error 计数 ' + consoleErrors);
       console.log('[DV] VERDICT=PASS shots=out/_probe_dataviz_{light,dark,final,credit}.png');

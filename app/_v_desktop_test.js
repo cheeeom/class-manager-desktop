@@ -558,6 +558,43 @@ t('⑯ 图表引擎 P1：学分 tab 迁移', function () {
   ok(distHtml && distHtml.indexOf('v1.3.0 桌面版') >= 0, '版本标仍为 1.3.0（P0+P1 同版）');
 });
 
+/* ⑰ v1.3.0 P2：首页学分分布 + 公示四图统一 + 示例数据升级 */
+t('⑰ 图表引擎 P2：首页/公示统一 + 示例考试', function () {
+  const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
+  // 首页接管
+  has(p, 'function cmWrapDistChart', '首页分布接管函数');
+  has(p, 'window.drawDistChart = wrapped', '接管挂 window.drawDistChart');
+  has(p, 'wrapped.__cmGxDist = true', '首页接管防双跑');
+  has(p, 'requestAnimationFrame(function () { window.drawDistChart(credits); })', '未布局 rAF 重试（原实现同款）');
+  ok(p.indexOf('Math.floor(Math.min.apply(null, nums) / 5) * 5') >= 0, '八档口径逐字复刻（lo=floor(min/5)*5）');
+  // 公示四图接管
+  has(p, 'function cmWrapPubCharts', '公示四图接管入口');
+  ok((p.match(/cmWrapPubOne\('drawPub/g) || []).length === 4, '四图全部挂接管');
+  has(p, "cmWrapPubOne('drawPubTrend', 'pubTrendChart'", '趋势接管');
+  has(p, "cmWrapPubOne('drawPubDaily', 'pubDailyChart'", '每日接管');
+  has(p, "cmWrapPubOne('drawPubDist', 'pubDistChart'", '分布接管');
+  has(p, "cmWrapPubOne('drawPubReason', 'pubReasonChart'", '原因接管');
+  has(p, 'function cmGxSwapCanvas', 'canvas 等尺寸顶替手法');
+  has(p, "lg.style.display = 'none'", '原因 HTML 图例退役（并入 ECharts）');
+  // 导出制品铁律：海报/证书不接管
+  notHas(p, 'window.drawPubPoster', '海报导出自绘不接管');
+  notHas(p, 'window.drawWeeklyPoster', '周报导出自绘不接管');
+  notHas(p, 'window.drawHonorCertCanvas', '荣誉证书自绘不接管');
+  // 换肤重渲染扩展 + boot 接线
+  has(p, 'function cmGxThemeExtras', '首页/公示换肤重渲染');
+  has(p, 'cmGxThemeExtras();', 'Observer 已接扩展');
+  ok(p.indexOf('cmWrapDistChart();') >= 0 && p.indexOf('cmWrapPubCharts();') >= 0, 'boot 已接线（P2）');
+  // 示例数据：一场期中考试 + 五档学分流水
+  has(p, "name: '期中考试（示例）'", '示例考试注入');
+  has(p, "subjects: ['语文', '数学', '英语']", '示例考试三科');
+  has(p, 'snap.nextExamId', '考试快照（可恢复）');
+  has(p, 'state.nextExamId = snap.nextExamId', '快照恢复含考试');
+  ok(p.indexOf('!(e.id >= 990001 && e.id <= 990999)') >= 0, '跨会话兜底清示例考试');
+  has(p, '18 条流水', '向导指引文案与新示例一致');
+  has(p, 'finalCredits', '示例学分铺满五档（122/118/158/73/200/55）');
+  ok(p.indexOf('coin: r[3] > 0 ? r[3] : 0') >= 0, '示例 coin 语义与 cbCoinOfAmount 一致（负数 0 币）');
+});
+
 console.log('\n通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 console.log(`结果：${pass} 通过，${fail} 失败`);
 if (fail) { console.log('\n失败项：'); failures.forEach(f => console.log('  · ' + f)); }

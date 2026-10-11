@@ -4,9 +4,9 @@
 
 ## 一、当前状态速览
 
-- **编码中**：**v1.3.0 数据分析图表引擎（2026-10-11 老板拍板开工）**——成绩 tab + 学分 tab 全量重设计（P0+P1）已完成（24 套断言全绿 + `_probe_dataviz.js` 端到端 PASS）；**已打包（BUILD-OK attempt 1）+ 打包冒烟 PASS（v1.3.0 / versionTag 逐字 / 向导交互 / consoleErrors=[]）**，待老板装机审阅 → 明说「推送」才发 Release。
+- **编码中**：**v1.3.0 数据分析图表引擎（2026-10-11 老板拍板开工）**——P0+P1+P2 全站图表统一完成（成绩 6 图/学分 4 图/首页 1 图/公示 4 图 + 示例数据带考试）；**已重新打包冒烟 PASS**，待老板装机审阅 → 明说「推送」才发 Release。
 - **线上 Release**：**v1.2.6 = Latest**（2026-10-10 七件套版；v1.2.2…v1.2.5 在档；v1.2.1 已删——换钥前坏版）。
-- **测试**：`_v_desktop_test.js` **24 套全绿**（+⑮ 图表引擎契约段 +⑯ 学分 tab 迁移段）；`_probe_dataviz.js` 端到端 PASS（激活→注数据→成绩 tab 6 图→暗色重渲染→学分 tab 4 图→console-error 零）。
+- **测试**：`_v_desktop_test.js` **25 套全绿**（+⑮⑯⑰ 图表引擎三段）；`_probe_dataviz.js` 端到端 PASS（成绩/学分/首页/公示 15 个图表实例 + console-error 零）；`_probe_tour.js` 复跑 PASS（示例含考试注入→自动清除）。
 - **v1.3.0 内容（P0+P1 全量完成）**：`src/echarts.min.js`（6.1.0，Apache-2.0，1.12MB，build.js 复制进 dist）；`app.patch.js` 新增「数据分析图表引擎」分节。**P0 成绩 tab**：接管 `renderGradeAnalyticsDetail`（cmWrapGradeDetail，挂原函数名下，Pro 页级锁不动）：KPI 环比带（均分/及格率/优秀率/标准差/最高最低，vs 上一场）、总分直方图（均分/及格/优秀三基准线挂隐藏二轴）、五档环形、各科均分横条（60/85 基准线）、单科得分率雷达（本场 vs 上一场）、多场趋势双轴折线、名次流动斜率图（|Δ|≥4）、学业预警（单科不及格≥2 科 / 总分环比下滑≥10 分）、排名前 10 数据条。**P1 学分 tab**：接管 `renderAnalytics`（cmWrapCreditRender，成绩 tab 激活时委托原函数重定向）：KPI 六卡（平均/中位/标准差/极差/及格率≥CB_ALERT_MIN/进取率，chips 全真实数据）、学分区间五档柱（credit 原生五档色）、五档构成环形（原 pieChart+#pieLegend 一体化）、近 7 天净变动 diverging 柱、本周进退步榜横向 diverging 条（原 renderProgressList 数据口径，7 天窗口+撤销过滤逐字一致）；面板不可见时只刷 DOM 图表记脏，`cmWrapCreditTabSwitch`（链在 Pro gate 之上）切回 credit tab 补渲染。cmInk 主题全部运行时读 CSS 变量（亮/暗/皮肤自适应，MutationObserver 重渲染）；echarts 加载失败/超时/空数据静默回退原实现；图表实例表共享，释放按白名单（CM_GRADE_CHART_IDS）/前缀（cmGxCd*）防误杀。
 - **v1.2.6 内容（已发布）**：向导按钮重排（上一步左/下一步右/去箭头）；第 5 步改「导入学生名单」（CSV 模板下载 + 劫持预览直接注入 + 导入后不再给示例数据）；激活后侧栏去 PRO 角标、左上角亮烫金 PRO 徽标（cmDesk-proemblem，buildNavPro 状态感知化）；考勤请假/课堂点名转免费 + 新增「导出请假流水」（CSV，Pro gate，班委拦截）；反馈卡独立成卡；关于卡改本版更新简要（≤100 字，无网页版字样）；满天弹窗/打赏卡文案跟上 Pro 时代；激活弹窗重排（复制钮右置主色、购买/已付款 300px 居中对齐、激活居中放大）+ 可选邮箱框（cmProMail 真实入链）；Pro 已激活卡 B 印章式定稿（早鸟 № 钢印 + BY: chee 署名 + 复制激活码按钮）；KeyGen ②b 换机重签自动核对（邮箱指纹/设备指纹/沿用序号）+ ③发货记录查询框。
 - **⚠️ v1.3.0 踩坑（重要）**：网页版 `state` 是**顶层 `let`**（词法全局不挂 window）——注入层必须裸名访问（`cmGxState()` 助手），`window.state` 永远 undefined 会静默回退；cmd `set X= && …` 尾随空格会让 ELECTRON_RUN_AS_NODE 陷阱复活，用 `set "X="`。
@@ -16,19 +16,21 @@
 
 ## 二、待办队列
 
-### v1.3.0（完成编码：数据分析图表引擎 P0+P1，2026-10-11，未打包未发布）
+### v1.3.0（完成编码：数据分析图表引擎 P0+P1+P2，2026-10-11，已重新打包冒烟 PASS，待老板审阅后发版）
 - [x] 方案与预览（老板过目拍板）：`app/_dataviz_preview/DATAVIZ-PLAN.md` + `preview.html`（选型 ECharts 6，落选 Chart.js/ApexCharts/AntV 理由在案）
 - [x] `src/echarts.min.js` 6.1.0 → build.js 复制清单 + dist 断言（缺文件即 die）
-- [x] `app.patch.js` 图表引擎分节：cmLoadEcharts 按需加载（15s 挂死兜底）/ cmWrapGradeDetail + cmWrapCreditRender 接管 / cmGx* 主题工具（CSS 变量取色）/ 图表全套 / MutationObserver 亮暗皮肤重渲染 / resize
+- [x] `app.patch.js` 图表引擎分节：cmLoadEcharts 按需加载（15s 挂死兜底）/ cmWrapGradeDetail + cmWrapCreditRender + cmWrapDistChart + cmWrapPubCharts 接管 / cmGx* 主题工具（CSS 变量取色）/ MutationObserver 亮暗皮肤重渲染 / resize
 - [x] P0 成绩 tab 全量（KPI 环比带/直方图三基准线/五档环形/各科均分/雷达/趋势/名次流动/预警/排名数据条）
 - [x] P1 学分 tab 全量（KPI 六卡/五档柱/五档环形/近 7 天 diverging/进退步榜横条；renderAnalytics 接管 + 切 tab 脏渲染补画）
+- [x] **P2 全站统一**：首页学分分布接管（drawDistChart → cmInk 八档直方图，口径逐字复刻）；公示页四图接管（趋势 30 天人均/每日 14 天加扣 diverging/五档分布/原因 Top6 环形——原 HTML 图例退役并入 ECharts）；**图表位置全景排查定论：交互图 8 处全接管（成绩 6 + 学分 4 + 首页 1 + 公示 4 个实例）**，海报导出（drawPubPoster/drawWeeklyPoster）与荣誉证书 canvas 为导出自绘制品**有意不接管**
+- [x] **示例数据升级**：6 生 + 18 条流水铺满五档（credit 122/118/158/73/200/55，不变式=100 基准+Σ流水，加分时总分均 ≥100 → coin 全额合规）+ 一场「期中考试（示例）」3 科成绩（周子墨两科不及格 → 学业预警有货）；快照/恢复/跨会话兜底扩 exams+nextExamId；向导指引文案同步
 - [x] `wizard.css` `.cmGx-*` 样式段（KPI 带 cols5/cols6/图卡/预警/排名，全 CSS 变量带纸墨回退；定高容器空态居中）
-- [x] 版本升 1.3.0（独立版本号铁律）；测试 +⑮+⑯ 契约段（接管/降级/许可头/五档色对齐/boot 接线/链序/版本）
-- [x] `_probe_dataviz.js` 端到端：真码激活 → 注入 45 生 3 考试 + credit 字段 + 42 条流水 → 成绩 tab 6 图 + 暗色重渲染 + 切考试斜率图 → 学分 tab 四图 + 无旧 canvas 残留 → console-error 零；截图 out/_probe_dataviz_{light,dark,final,credit}.png
-- [x] 修复：`window.state`→`cmGxState()`（顶层 let 陷阱，探针抓到）；名次流动/进退步榜空态文案；movers 容器漏定高类（height 0，探针断言抓到）
-- [x] **打包（2026-10-11）**：`_trash_win-unpacked-130` 预移 → `_build_retry.js` BUILD-OK attempt 1 → `out/class-manager-desktop-Setup-1.3.0.exe`（83.4MB）+ blockmap + latest.yml 服 1.3.0（url 与 exe 逐字一致）；代理 off→**on 已恢复**；CM_SMOKE 打包冒烟 **PASS**（version=1.3.0 / versionTag「v1.3.0 桌面版」逐字 / 向导交互翻第 2 步 / consoleErrors=[] / updaterRoute=DIRECT / feed=gh-proxy 仍服线上 1.2.6 符合未发布态），截图 `out/_smoke130.png`
-- [ ] **发布**：老板装机审阅 → 明说「推送」→ gh release create 三件套（Setup-1.3.0.exe + latest.yml + ClassManager-Setup.exe 固定名副本）
-- [ ] P2（可选）：公示页 4 图 / 学期报告长图复用 cmInk 主题；`_dataviz_preview/` 审阅后可删
+- [x] 版本升 1.3.0（独立版本号铁律）；测试 +⑮+⑯+⑰ 契约段（接管/降级/许可头/五档色对齐/boot 接线/链序/示例考试/导出制品不接管）
+- [x] `_probe_dataviz.js` 端到端：真码激活 → 成绩 tab 6 图 + 暗色重渲染 + 学分 tab 四图 + **首页 1 图 + 公示 4 图** → console-error 零；`_probe_tour.js` 复跑：示例注入（平均学分 121 精确吻合/预警 1）+ 完成自动清除全链 PASS
+- [x] 修复：`window.state`→`cmGxState()`（顶层 let 陷阱）；公示图表 key 与容器 id 不一致静默不渲染（探针抓到）；cmPubTrendOption 漏 `tNow`（探针抓到）；movers 容器漏定高类；名次流动/进退步榜空态文案
+- [x] **打包（2026-10-11 二次）**：`_trash_win-unpacked-130b` 预移 → BUILD-OK attempt 1 → `out/class-manager-desktop-Setup-1.3.0.exe`（83.4MB）+ latest.yml 服 1.3.0；代理 off→**on 已恢复**；CM_SMOKE 冒烟 **PASS**（version/版本标逐字/向导交互/consoleErrors=[]），截图 `out/_smoke130.png`；`ClassManager-Setup.exe` 副本已同步 1.3.0
+- [ ] **发布**：老板装机审阅 → 明说「推送」→ gh release create 三件套
+- [ ] P3（可选）：学期报告长图（导出制品）cmInk 化重绘；`_dataviz_preview/` 审阅后可删
 
 ### v1.2.1（已完成：自动取码转正，已打包未发布）
 - [x] `main.js` `CM_PRO_CLAIM_API` 填入云函数 URL →「② 我已付款 · 自动获取激活码」按钮转正（未填时仍显示但点击提示 AUTO_OFF）

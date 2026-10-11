@@ -547,9 +547,9 @@
   var CM_TOUR_FLAG = 'cmSampleTour';
   var CM_TOUR_SNAP = 'cmSampleSnap';
   var CM_TOUR_STEPS = [
-    { page: 'dashboard', icon: '🏠', title: '工作台首页', text: '课表、班级人数、今日实到都在这里。示例班级「高2026级一班」已放好 6 名学生。' },
+    { page: 'dashboard', icon: '🏠', title: '工作台首页', text: '课表、班级人数、今日实到都在这里。示例班级「高2026级一班」已放好 6 名学生，学分分布图有真实形状。' },
     { page: 'students', icon: '👥', title: '学生名册', text: '示例学生列在这里。正式使用时到 设置 → 数据管理 →「批量导入学生表格」，Excel/CSV 一键导入真实名单。' },
-    { page: 'credits', icon: '⭐', title: '学分管理', text: '点学生加减分，全程留痕。示例里「陈曦」已有一条课堂表现 +2 的流水，可试撤销/恢复。' },
+    { page: 'credits', icon: '⭐', title: '学分管理', text: '点学生加减分，全程留痕。示例里已有 18 条流水可试撤销/恢复，「数据分析」的图表用的就是这份数据。' },
     { page: 'attendance', icon: '🗓️', title: '考勤请假', text: '登记请假自动算时长、销假自动恢复实到；值日、点名也从侧栏进入。' },
     { page: 'settings', icon: '⚙️', title: '设置 · 桌面版专属', text: '「🔐 安全（桌面版）」改密码、「关于本系统」检查更新、导出备份都在这里。' }
   ];
@@ -562,24 +562,68 @@
         classMotto: state.classMotto,
         nextId: state.nextId,
         nextOpId: state.nextOpId,
+        nextExamId: state.nextExamId,
         students: JSON.parse(JSON.stringify(state.students)),
-        operations: JSON.parse(JSON.stringify(state.operations))
+        operations: JSON.parse(JSON.stringify(state.operations)),
+        exams: JSON.parse(JSON.stringify(state.exams || []))
       };
       sessionStorage.setItem(CM_TOUR_SNAP, JSON.stringify(snap));
       lsSet(CM_TOUR_FLAG, '1');
       var names = ['陈曦', '林浩然', '苏雨桐', '王一鸣', '赵可欣', '周子墨'];
       for (var i = 0; i < names.length; i++) {
-        state.students.push({ id: 990001 + i, sid: 'S2026' + ('0' + (i + 1)).slice(-2), name: names[i], credit: i === 0 ? 102 : 100, tags: [] });
+        state.students.push({ id: 990001 + i, sid: 'S2026' + ('0' + (i + 1)).slice(-2), name: names[i], credit: 100, tags: [] });
       }
-      // 只放一条 +2 流水，且对应学生 credit 同步 +2，保证「基准+Σ流水=当前分」不变式，学分体检不报异常
-      state.operations.unshift({
-        id: 990001, studentId: 990001, studentName: '陈曦', amount: 2, coin: 2,
-        reason: '课堂表现优秀（示例）', time: Date.now() - 3600000
+      /* v1.3.0 示例升级：18 条流水铺满五档学分 + 一场期中考试（3 科，含 1 名两科不及格学生触发学业预警），
+         让首页分布 / 数据分析（成绩+学分）/ 学分公示的图表开箱即有真实形状。
+         不变式保持：credit = 100（基准）+ Σ本人流水；示例 id 全落 990001–990999；加分时总分均 ≥100 → coin 全额。 */
+      var opsData = [
+        [990001, 990001, '陈曦', 2, '课堂表现优秀', 0],
+        [990002, 990001, '陈曦', 5, '作业按时完成', 1],
+        [990003, 990001, '陈曦', 15, '期中考试进步显著', 3],
+        [990004, 990002, '林浩然', 10, '值日认真负责', 0],
+        [990005, 990002, '林浩然', 8, '帮同学讲解难题', 4],
+        [990006, 990003, '苏雨桐', 20, '作文比赛一等奖', 1],
+        [990007, 990003, '苏雨桐', 18, '期中考试年级前二十', 3],
+        [990008, 990003, '苏雨桐', 12, '课堂笔记被评为示范', 5],
+        [990009, 990003, '苏雨桐', 8, '主动帮忙布置教室', 6],
+        [990010, 990004, '王一鸣', -15, '上课讲话', 2],
+        [990011, 990004, '王一鸣', -12, '作业未交', 5],
+        [990012, 990005, '赵可欣', 20, '数学竞赛一等奖', 0],
+        [990013, 990005, '赵可欣', 20, '英语演讲比赛冠军', 2],
+        [990014, 990005, '赵可欣', 20, '期中考试班级第一', 4],
+        [990015, 990005, '赵可欣', 18, '运动会打破校纪录', 5],
+        [990016, 990005, '赵可欣', 22, '被评为市级三好学生', 6],
+        [990017, 990006, '周子墨', -20, '与同学冲突', 1],
+        [990018, 990006, '周子墨', -25, '多次未交作业', 6]
+      ];
+      opsData.forEach(function (r) {
+        state.operations.unshift({
+          id: r[0], studentId: r[1], studentName: r[2], amount: r[3],
+          coin: r[3] > 0 ? r[3] : 0,
+          reason: r[4] + '（示例）', time: Date.now() - r[5] * 86400000 - (r[0] % 9) * 1800000
+        });
       });
+      var finalCredits = { 990001: 122, 990002: 118, 990003: 158, 990004: 73, 990005: 200, 990006: 55 };
+      state.students.forEach(function (s) { if (finalCredits[s.id] !== undefined) s.credit = finalCredits[s.id]; });
+      var sd = new Date(); sd.setDate(sd.getDate() - 3);
+      var sdate = sd.getFullYear() + '-' + ('0' + (sd.getMonth() + 1)).slice(-2) + '-' + ('0' + sd.getDate()).slice(-2);
+      state.exams = state.exams || [];
+      state.exams.push({
+        id: 990001, name: '期中考试（示例）', date: sdate, subjects: ['语文', '数学', '英语'],
+        scores: {
+          990001: { '语文': 88, '数学': 92, '英语': 85 },
+          990002: { '语文': 76, '数学': 81, '英语': 79 },
+          990003: { '语文': 91, '数学': 95, '英语': 93 },
+          990004: { '语文': 65, '数学': 70, '英语': 68 },
+          990005: { '语文': 84, '数学': 88, '英语': 90 },
+          990006: { '语文': 48, '数学': 52, '英语': 61 }
+        }
+      });
+      state.nextExamId = Math.max(state.nextExamId || 1, 990002);
       state.className = '高2026级一班';
       state.classNameFull = '高2026级一班';
       state.nextId = Math.max(state.nextId, 990007);
-      state.nextOpId = Math.max(state.nextOpId, 990002);
+      state.nextOpId = Math.max(state.nextOpId, 990019);
       if (appFn('saveData')) saveData();
       if (appFn('renderAll')) renderAll();
       return true;
@@ -598,14 +642,18 @@
         state.classMotto = snap.classMotto;
         state.nextId = snap.nextId;
         state.nextOpId = snap.nextOpId;
+        state.nextExamId = snap.nextExamId;
         state.students = JSON.parse(JSON.stringify(snap.students));
         state.operations = JSON.parse(JSON.stringify(snap.operations));
+        state.exams = JSON.parse(JSON.stringify(snap.exams || []));
       } else {
         // 跨会话兜底：快照已不可得，按示例 id 区间（990001–990999）剔除
         state.students = state.students.filter(function (s) { return !(s.id >= 990001 && s.id <= 990999); });
         state.operations = state.operations.filter(function (o) { return !(o.id >= 990001 && o.id <= 990999); });
+        state.exams = (state.exams || []).filter(function (e) { return !(e.id >= 990001 && e.id <= 990999); });
         state.nextId = state.students.reduce(function (m, s) { return Math.max(m, s.id + 1); }, 1);
         state.nextOpId = state.operations.reduce(function (m, o) { return Math.max(m, o.id + 1); }, 1);
+        state.nextExamId = (state.exams || []).reduce(function (m, e) { return Math.max(m, e.id + 1); }, state.nextExamId || 1);
         state.classNameFull = '';
       }
       try { sessionStorage.removeItem(CM_TOUR_SNAP); } catch (e) {}
@@ -2379,6 +2427,7 @@
         var gp = document.getElementById('analyticsGradePanel');
         if (gp && gp.offsetParent !== null) window.renderGradeAnalyticsDetail();
         try { cmCreditChartsDirty = true; cmCreditFlushCharts(); } catch (e) {}   // 学分 tab 换肤/换皮肤也重渲染（v1.3.0 P1）
+        try { cmGxThemeExtras(); } catch (e) {}                                    // 首页/公示图表换肤重渲染（v1.3.0 P2）
       }, 160);
     });
     cmGradeThemeObs.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-skin'] });
@@ -2591,6 +2640,214 @@
     window.switchAnalyticsTab = w;
   }
 
+  /* ---------- v1.3.0 P2：首页学分分布 + 公示页四图（cmInk 统一）----------
+     口径逐字复刻网页版：首页 = drawDistChart 自适应八档（lo=floor(min/5)*5，hi=ceil((max+1)/5)*5，≥8 档）；
+     公示 = 趋势（30 天人均，流水反推）/ 每日（14 天加扣 diverging）/ 分布（五档）/ 原因（Top6 按条数）。
+     手法：canvas 原地隐藏 + 等尺寸 div 顶替（cmGxSwapCanvas），实例进共享表（cmGxDashDist / cmGxPub_* id）。
+     海报导出（drawPubPoster/drawWeeklyPoster）与荣誉证书 canvas 为导出自绘制品，不接管。 */
+  function cmGxPageLive(id) {
+    var p = document.getElementById(id);
+    return !!(p && p.classList && p.classList.contains('active') && p.offsetParent !== null);
+  }
+  function cmGxSwapCanvas(canvasId, boxId) {
+    var box = document.getElementById(boxId);
+    if (box) return box;                                     // 已顶替过
+    var cv = document.getElementById(canvasId);
+    if (!cv) return null;
+    if (cv.getBoundingClientRect().width < 10) return null;  // 未布局：调用方 rAF 重试（原实现同款）
+    box = el('div');
+    box.id = boxId;
+    box.className = 'cmGx-chart';
+    box.style.cssText = 'width:100%;height:' + Math.max(Math.round(cv.getBoundingClientRect().height), 120) + 'px';
+    cv.style.display = 'none';
+    cv.parentNode.appendChild(box);
+    return box;
+  }
+  function cmGxDropChart(id, box) {
+    var old = cmGradeCharts[id];
+    if (old) { try { old.dispose(); } catch (e) {} delete cmGradeCharts[id]; }
+    if (box) box.innerHTML = '<div class="cmGx-empty">暂无数据</div>';
+  }
+  function cmWrapDistChart() {
+    var orig = window.drawDistChart;
+    if (typeof orig !== 'function' || orig.__cmGxDist) return;
+    var wrapped = function (credits) {
+      var box = document.getElementById('cmGxDashDist') || cmGxSwapCanvas('distChart', 'cmGxDashDist');
+      if (!box) {
+        var cv = document.getElementById('distChart');
+        if (!cv) return;
+        requestAnimationFrame(function () { window.drawDistChart(credits); });   // 未布局重试（原实现同款）
+        return;
+      }
+      var nums = (credits || []).map(function (c) { var n = Number(c); return isNaN(n) ? 0 : n; });
+      if (!nums.length) { cmGxDropChart('cmGxDashDist', box); return; }
+      var maxv = Math.max.apply(null, nums.concat([10]));
+      var numBuckets = 8;
+      var lo = Math.floor(Math.min.apply(null, nums) / 5) * 5;
+      var hi = Math.ceil((maxv + 1) / 5) * 5;
+      if (!isFinite(lo) || !isFinite(hi)) { lo = 0; hi = 100; }
+      if (hi - lo < numBuckets) hi = lo + numBuckets;
+      var span = (hi - lo) / numBuckets;
+      var counts = [];
+      for (var bi = 0; bi < numBuckets; bi++) counts.push(0);
+      nums.forEach(function (c) { var idx = Math.floor((c - lo) / span); if (idx < 0) idx = 0; if (idx >= numBuckets) idx = numBuckets - 1; counts[idx]++; });
+      var bucketLabel = function (i) { return Math.round(lo + span * i) + '-' + Math.round(lo + span * (i + 1) - 1); };
+      var pri = cmCssVar('--primary', '#A63A2B');
+      cmGxChart('cmGxDashDist', {
+        tooltip: cmGxTT('axis'), grid: cmGxGrid({ left: 34, top: 24, bottom: 26 }),
+        xAxis: cmGxAxisX({ data: counts.map(function (v, i) { return bucketLabel(i); }), axisLabel: { color: cmCssVar('--text-muted', '#8C8577'), fontSize: 10, interval: 0 } }),
+        yAxis: cmGxAxisY({ minInterval: 1, max: Math.max.apply(null, counts) + 2 }),
+        series: [{ type: 'bar', barWidth: '60%', data: counts,
+          itemStyle: { borderRadius: [6, 6, 0, 0], color: cmGxVGrad(cmGxShade(pri, 0.18), cmGxShade(pri, -0.18)) },
+          label: { show: true, position: 'top', color: cmCssVar('--text-secondary', '#5C574F'), fontSize: 11, fontWeight: 600 },
+          tooltip: { valueFormatter: function (v) { return v + ' 人'; } },
+          animationDuration: 900, animationDelay: function (i) { return i * 60; } }]
+      });
+    };
+    wrapped.__cmGxDist = true;
+    window.drawDistChart = wrapped;
+  }
+  function cmPubTrendOption(students, operations) {
+    if (!students || !students.length) return null;
+    var dayMs = 86400000, days = 30;
+    var t0 = new Date(); t0.setHours(0, 0, 0, 0); var todayStart = t0.getTime();
+    var tNow = Date.now();                                   // 原版口径：当日流水全计入（time <= tNow）
+    var n = students.length;
+    var totalNow = 0; students.forEach(function (s) { var x = Number(s.credit); totalNow += isNaN(x) ? 0 : x; });
+    var xs = [], ys = [];
+    for (var i = days - 1; i >= 0; i--) {
+      var ts = todayStart - i * dayMs;
+      var gain = 0;
+      (operations || []).forEach(function (o) { if (o && o.time >= ts && o.time <= tNow) gain += (Number(o.amount) || 0); });
+      xs.push(new Date(ts));
+      ys.push(+((totalNow - gain) / n).toFixed(1));
+    }
+    var mn = Math.min.apply(null, ys), mx = Math.max.apply(null, ys);
+    if (mx - mn < 1) { mn -= 1; mx += 1; }
+    var pad = (mx - mn) * 0.12;
+    var success = cmCssVar('--success', '#2F7D5B');
+    return {
+      tooltip: cmGxTT('axis'), grid: cmGxGrid({ left: 34, right: 14, top: 14, bottom: 22 }),
+      xAxis: cmGxAxisX({ type: 'category', boundaryGap: false,
+        data: xs.map(function (d, i) { return i % 5 === 0 ? ((d.getMonth() + 1) + '/' + d.getDate()) : ''; }) }),
+      yAxis: cmGxAxisY({ min: Math.floor(mn - pad), max: Math.ceil(mx + pad) }),
+      series: [{ type: 'line', data: ys, symbol: 'none', lineStyle: { width: 2, color: success }, itemStyle: { color: success },
+        areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: cmGxRgba(success, 0.22) }, { offset: 1, color: cmGxRgba(success, 0.02) }] } },
+        animationDuration: 900 }]
+    };
+  }
+  function cmPubDailyOption(operations) {
+    if (!operations || !operations.length) return null;
+    var dayMs = 86400000, days = 14;
+    var t0 = new Date(); t0.setHours(0, 0, 0, 0); var todayStart = t0.getTime();
+    var data = [];
+    for (var i = days - 1; i >= 0; i--) data.push({ ts: todayStart - i * dayMs, add: 0, sub: 0 });
+    (operations || []).forEach(function (o) {
+      if (!o || typeof o.time !== 'number') return;
+      var idx = Math.floor((o.time - todayStart) / dayMs) + days - 1;
+      if (idx < 0 || idx >= days) return;
+      var a = Number(o.amount) || 0;
+      if (a > 0) data[idx].add += a; else if (a < 0) data[idx].sub -= a;
+    });
+    var success = cmCssVar('--success', '#2F7D5B'), danger = cmCssVar('--danger', '#B42318');
+    return {
+      tooltip: cmGxTT('axis'), grid: cmGxGrid({ left: 34, right: 14, top: 16, bottom: 22 }),
+      xAxis: cmGxAxisX({ data: data.map(function (d, i) { var dd = new Date(d.ts); return i % 2 === 0 ? ((dd.getMonth() + 1) + '/' + dd.getDate()) : ''; }) }),
+      yAxis: cmGxAxisY(),
+      series: [
+        { name: '加分', type: 'bar', stack: 'cmPub', barWidth: '55%', data: data.map(function (d) { return d.add; }),
+          itemStyle: { borderRadius: [4, 4, 0, 0], color: cmGxVGrad(cmGxShade(success, 0.2), success) }, animationDuration: 900 },
+        { name: '扣分', type: 'bar', stack: 'cmPub', barWidth: '55%', data: data.map(function (d) { return -d.sub; }),
+          itemStyle: { borderRadius: [0, 0, 4, 4], color: cmGxVGrad(danger, cmGxShade(danger, -0.3)) }, animationDuration: 900 },
+        { type: 'line', data: [], markLine: { symbol: 'none', silent: true, data: [{ yAxis: 0, lineStyle: { color: cmCssVar('--text-muted', '#8C8577'), width: 1 } }] } }
+      ]
+    };
+  }
+  function cmPubDistOption(students) {
+    if (!students || !students.length) return null;
+    var n = students.length;
+    var cols = cmCreditBucketCols();
+    var buckets = CM_CREDIT_BUCKETS.map(function (b, i) {
+      var count = students.filter(function (s) { var c = Number(s.credit); if (isNaN(c)) c = 0; return c >= b.min && c < b.max; }).length;
+      return { label: b.label, count: count, col: cols[i] };
+    });
+    return {
+      tooltip: cmGxTT('axis'), grid: cmGxGrid({ left: 30, top: 24, bottom: 26 }),
+      xAxis: cmGxAxisX({ data: buckets.map(function (b) { return b.label; }), boundaryGap: true }),
+      yAxis: cmGxAxisY({ minInterval: 1, max: Math.max.apply(null, buckets.map(function (b) { return b.count; })) + 2 }),
+      series: [{ type: 'bar', barWidth: '55%',
+        data: buckets.map(function (b) { return { value: b.count, itemStyle: { borderRadius: [6, 6, 0, 0], color: cmGxVGrad(cmGxShade(b.col, 0.18), b.col) } }; }),
+        label: { show: true, position: 'top', color: cmCssVar('--text-secondary', '#5C574F'), fontSize: 11, fontWeight: 600 },
+        tooltip: { formatter: function (p) {
+          var b = buckets[p.dataIndex];
+          return b.label + '：' + b.count + ' 人（' + (b.count / n * 100).toFixed(0) + '%）';
+        } },
+        animationDuration: 900, animationDelay: function (i) { return i * 80; } }]
+    };
+  }
+  function cmPubReasonOption(operations) {
+    if (!operations || !operations.length) return null;
+    var cnt = {};
+    (operations || []).forEach(function (o) { if (!o) return; var r = o.reason || '未填原因'; cnt[r] = (cnt[r] || 0) + 1; });
+    var arr = Object.keys(cnt).map(function (r) { return { label: r, n: cnt[r] }; }).sort(function (a, b) { return b.n - a.n; }).slice(0, 6);
+    var total = arr.reduce(function (s, x) { return s + x.n; }, 0);
+    if (!total) return null;
+    var palette = ['#2F7D5B', '#C08A2D', '#6B5B95', '#3B6E8F', '#B42318', '#8C6242'];
+    return {
+      tooltip: cmGxTT(),
+      legend: { bottom: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { color: cmCssVar('--text-secondary', '#5C574F'), fontSize: 10, fontFamily: cmGxFont() }, itemGap: 8 },
+      title: { text: total + ' 条', subtext: '原因分布', left: 'center', top: '34%',
+        textStyle: { fontSize: 17, fontWeight: 700, color: cmCssVar('--text', '#2B2B33'), fontFamily: cmGxFont() }, subtextStyle: { color: cmCssVar('--text-muted', '#8C8577'), fontSize: 10 } },
+      series: [{ type: 'pie', radius: ['46%', '68%'], center: ['50%', '42%'],
+        data: arr.map(function (x, i) { return { name: x.label + ' ' + x.n, value: x.n, itemStyle: { color: palette[i % palette.length] } }; }),
+        itemStyle: { borderRadius: 5, borderColor: cmCssVar('--card-bg', '#FFFDF7'), borderWidth: 2 },
+        label: { show: false }, emphasis: { scaleSize: 4 }, animationDuration: 900, animationEasing: 'cubicOut' }]
+    };
+  }
+  function cmWrapPubOne(fnName, canvasId, optFn) {
+    var orig = window[fnName];
+    if (typeof orig !== 'function' || orig.__cmGxPub) return;
+    var wrapped = function () {
+      var args = Array.prototype.slice.call(arguments);
+      var box = document.getElementById(canvasId + '__gx') || cmGxSwapCanvas(canvasId, canvasId + '__gx');
+      if (!box) {
+        var cv = document.getElementById(canvasId);
+        if (!cv) return;
+        requestAnimationFrame(function () { window[fnName].apply(null, args); });
+        return;
+      }
+      var opt = optFn(args);
+      if (opt) cmGxChart(canvasId + '__gx', opt);              // key = 容器 id（cmGxChart 按它找 DOM）
+      else cmGxDropChart(canvasId + '__gx', box);
+    };
+    wrapped.__cmGxPub = true;
+    window[fnName] = wrapped;
+  }
+  function cmWrapPubCharts() {
+    cmWrapPubOne('drawPubTrend', 'pubTrendChart', function (args) { return cmPubTrendOption(args[1], args[2]); });
+    cmWrapPubOne('drawPubDaily', 'pubDailyChart', function (args) { return cmPubDailyOption(args[1]); });
+    cmWrapPubOne('drawPubDist', 'pubDistChart', function (args) { return cmPubDistOption(args[1]); });
+    cmWrapPubOne('drawPubReason', 'pubReasonChart', function (args) {
+      var lg = document.getElementById(args[1]);                 // 原因图例并入 ECharts，原 HTML 图例退役
+      if (lg) lg.style.display = 'none';
+      return cmPubReasonOption(args[2]);
+    });
+  }
+  function cmGxThemeExtras() {                                  // 换肤/亮暗：可见页的首页与公示图表同步重渲染
+    if (!cmEchartsReady()) return;
+    var st = cmGxState();
+    if (!st) return;
+    if (cmGxPageLive('page-dashboard') && st.students && st.students.length) {
+      window.drawDistChart(st.students.map(function (s) { return s.credit; }));
+    }
+    if (cmGxPageLive('page-publicity')) {
+      window.drawPubTrend('pubTrendChart', st.students || [], st.operations || []);
+      window.drawPubDaily('pubDailyChart', st.operations || []);
+      window.drawPubDist('pubDistChart', st.students || []);
+      window.drawPubReason('pubReasonChart', 'pubReasonLegend', st.operations || []);
+    }
+  }
+
   /* ---------- 启动 ---------- */
   function boot() {
     // 上次会话示例体验未走完（中途关应用）→ 幂等清扫，绝不把示例数据留给正式使用
@@ -2617,6 +2874,8 @@
     cmGradeWatchTheme();                         // 亮/暗/皮肤切换自动重渲染图表
     cmWrapCreditRender();                        // v1.3.0 P1：学分 tab 图表迁移（KPI 六卡 + 四图）
     cmWrapCreditTabSwitch();                     // 切回学分 tab 时补渲染脏图表（链在 Pro gate 之上）
+    cmWrapDistChart();                           // v1.3.0 P2：首页学分分布接管（cmInk 八档直方图）
+    cmWrapPubCharts();                           // v1.3.0 P2：公示页四图接管（趋势/每日/分布/原因）
     silenceCloudPush();
     wrapNavigatePro();
     buildNavPro();
