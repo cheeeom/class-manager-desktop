@@ -24,7 +24,8 @@
 - [x] **反馈卡样式统一（老板实机报）**：`.cmDeskFeedback` 残留 v1.0.11 时代「关于卡内嵌盒」样式（row-bg+虚线框）压掉 settings-section 实心卡 → 删覆盖只留外距；探针 computed style 与「关于本系统」完全一致（bg rgb(255,253,247) + solid）。
 - [x] **向导模块卡图标统一（老板实机报）**：stepTour 六卡从 emoji（🏠 漏网 + swept 后 1em 过小）改为显式 `gxIc` 大图标（.cmDesk-tic 44px 朱砂底座 + 24px 描边图标，home 图标补提取 63 枚）；GX_EMOJI_MAP 补 🏠→home；指引气泡「完成体验 ✓ →」去箭头。
 - [x] 打包 BUILD-OK + CM_SMOKE PASS（v1.4.1）；ClassManager-Setup.exe 副本同步。
-- [ ] **PRO 卡预览等老板审阅**；**发布**：老板明说「推送」→ gh release create v1.4.1（内容含 1.3.0 图表引擎 + 1.4.0 界面重设计全量）。
+- [x] **PRO 卡预览等老板审阅**（现实现即图三 B 印章式设计，赞赏卡/满天弹窗激活后停发）；**已发布（2026-10-11 老板令「直接一起打包推送」）**：git 主线 merge 对齐远端（收编 v1.2.6 线 + 落地页水墨风改版 13be2f0）→ 合并树重建 27 套全绿 + 冒烟 PASS → push（git 死代理用 `-c http.proxy=` 绕过 + 直连抖动 HTTP/1.1 重试）→ [v1.4.1 Release](https://github.com/cheeeom/class-manager-desktop/releases/tag/v1.4.1) 三件套验收 ✓（exe×2 同字节 83,413,606 + latest.yml；稳定直链 200 @4.4MB/s；ghproxy 镜像服 1.4.1）。
+- [x] **自动发货序号加固（老板问序号机制后拍板做 C）**：旧云函数按「爱发电返回列表遍历顺序」数数——若 API 新单在前会倒挂/撞号。`D:/a/chee777/_afdian_shipper/web_express.js` 加固：全量拉已付订单（PLAN_ID 过滤防混算）→ 按 out_trade_no（流水号=日期时间前缀）升序显式排序 → 序号=同档位序列位次（早鸟 ¥49-68 / 常价 ¥69+ 分档互不占号）+ 早鸟限量 100 售罄闸；沙箱单测 6 用例 + 线上三连验收（格式拒/NOT_FOUND/心跳 alive）全 PASS，SCF 重部署 Active ✓（`scripts/_ship_hardened.py`，zip 内 app.js 替换）。**序号机制定论：KeyGen 手动签发与云函数自动发货是两套独立计数，测试号 №001/№002 不影响顾客——真实顾客按购买时间从 №001 起；KeyGen 手填序号可指定任意号**。
 - [ ] **下一轮：全工作台动效优化**（v1.5.0，老板已预告）。
 
 ### v1.4.0（完成编码：界面重设计四连，2026-10-11，并入 1.4.1 包）
