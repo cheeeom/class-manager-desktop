@@ -101,7 +101,7 @@ app.whenReady().then(async function () {
         return JSON.stringify({
           echarts: window.echarts ? window.echarts.version : null,
           wrapped: !!window.renderGradeAnalyticsDetail.__cmGradeEng,
-          kpis: document.querySelectorAll('.cmGx-kpi').length,
+          kpis: document.querySelectorAll('#analyticsGradePanel .cmGx-kpi').length,
           live: live, sized: w,
           legacyLeft: !!old,
           warnEl: !!document.getElementById('cmGxWarn'),
@@ -153,9 +153,49 @@ app.whenReady().then(async function () {
       fs.writeFileSync(path.join(__dirname, 'out', '_probe_dataviz_final.png'), img3.toPNG());
       console.log('[DV] 截图后 KPI =', kpiAfterShot);
 
+      STEP = '学分 tab（P1）：注入学分字段与流水';
+      const rOp = await jsx(`(function(){
+        state.students.forEach(function(s,i){ s.credit = 40 + (i*53)%230; });
+        var now = Date.now();
+        state.operations = [];
+        for (var i = 0; i < 42; i++) {
+          state.operations.push({id: 880001+i, studentId: 990001 + ((i*17) % state.students.length), studentName: 'x',
+            amount: (i%3===0?-1:1)*(2+(i%5)), coin: 0, reason: (i%2?'学习':'纪律'),
+            time: now - (i%7)*86400000 - i*60000, by:'cm', byName:'班主任', byPost:'班主任'});
+        }
+        state.nextOpId = 890000;
+        return 'ops='+state.operations.length;
+      })()`);
+      console.log('[DV] 流水 =', rOp);
+      await jsx('window.switchAnalyticsTab("credit");1');   // 切回学分 tab（链式补渲染路径）
+      await wait(600);
+      await jsx('window.renderAnalytics();1');              // 数据已变 → 全量重渲染（模拟 refreshCreditViews）
+      await wait(1800);
+      const r4 = await jsx(`(function(){
+        var ids=['cmGxCdRange','cmGxCdDonut','cmGxCdWk','cmGxCdMovers'];
+        var live=0;
+        ids.forEach(function(id){ var d=document.getElementById(id); if(d&&window.echarts.getInstanceByDom(d))live++; });
+        return JSON.stringify({
+          kpis: document.querySelectorAll('#analyticsCreditPanel .cmGx-kpi').length,
+          live: live,
+          legacyCanvas: !!document.getElementById('rangeChart'),
+          movers: (function(){ var d=document.getElementById('cmGxCdMovers'); if(!d) return 'missing';
+            var inst=window.echarts.getInstanceByDom(d); return inst?('live:'+inst.getWidth()+'x'+inst.getHeight()):d.textContent.slice(0,20); })()
+        });
+      })()`);
+      console.log('[DV] 学分 =', r4);
+      const rr4 = JSON.parse(r4);
+      if (rr4.kpis !== 6) throw new Error('学分 KPI 卡数量异常=' + rr4.kpis);
+      if (rr4.live < 4) throw new Error('学分图表实例不足=' + rr4.live);
+      if (rr4.legacyCanvas) throw new Error('旧 canvas 仍存在');
+      const mh = /live:\d+x(\d+)/.exec(rr4.movers);
+      if (mh && parseInt(mh[1], 10) < 100) throw new Error('进退步榜容器高度异常: ' + rr4.movers);
+      const img4 = await win.webContents.capturePage();
+      fs.writeFileSync(path.join(__dirname, 'out', '_probe_dataviz_credit.png'), img4.toPNG());
+
       console.log('[DV] consoleErrors=' + consoleErrors);
       if (consoleErrors > 0) throw new Error('console-error 计数 ' + consoleErrors);
-      console.log('[DV] VERDICT=PASS shots=out/_probe_dataviz_light.png + out/_probe_dataviz_dark.png');
+      console.log('[DV] VERDICT=PASS shots=out/_probe_dataviz_{light,dark,final,credit}.png');
       app.exit(0);
     } catch (e) {
       console.log('[DV] fatal at ' + STEP + ' = ' + (e && (e.message || e)));

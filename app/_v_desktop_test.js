@@ -530,6 +530,32 @@ t('⑮ 数据分析图表引擎', function () {
   has(p, 'id="cmGxHist"', '直方图容器');
   has(p, 'id="cmGxSlope"', '名次流动容器');
   ok(p.indexOf('cmWrapGradeDetail();') >= 0 && p.indexOf('cmGradeWatchTheme();') >= 0, 'boot 已接线（接管 + 主题观察）');
+  notHas(p, 'window.drawRangeChart', '逐函数接管不采用（学分 tab 走 renderAnalytics 接管，见 ⑯）');
+});
+
+/* ⑯ v1.3.0 P1：学分 tab 图表迁移（KPI 六卡 + 四图，cmInk） */
+t('⑯ 图表引擎 P1：学分 tab 迁移', function () {
+  const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
+  const css = fs.readFileSync(path.join(HERE, 'src', 'wizard.css'), 'utf8');
+  has(p, 'function cmWrapCreditRender', '学分 tab 接管函数');
+  has(p, 'window.renderAnalytics = wrapped', '接管挂 window.renderAnalytics');
+  has(p, 'wrapped.__cmGxCredit = true', '防双跑标记');
+  has(p, 'function cmWrapCreditTabSwitch', '切 tab 补渲染包装');
+  has(p, 'w.__cmGxTab = true', '切 tab 包装防双跑');
+  has(p, "if (tab === 'credit') cmCreditFlushCharts();", '切到学分 tab 补渲染脏图表');
+  has(p, 'Number(s.credit)', '学分口径同网页版（s.credit 数字规范化）');
+  has(p, "typeof CB_ALERT_MIN !== 'undefined'", '及格线读网页版常量 CB_ALERT_MIN');
+  has(p, "'cmGxCd'", '学分图表 id 前缀（按前缀释放，不误杀成绩图表）');
+  has(p, "CM_CREDIT_BUCKETS", '五档分桶表（预警/常规/进取/卓越/巅峰）');
+  has(p, '近7天暂无学分变动', '空态文案与原版一致');
+  ok(p.indexOf("o.state === 'revoked'") >= 0, '撤销流水过滤与原版一致');
+  has(p, 'weekAgo = now - 7 * 86400000', '进退步榜 7 天窗口同原版');
+  has(p, 'labelLayout', '斜率/横条布局无越界');
+  has(css, '.cmGx-kpis.cols6', '六卡 KPI 网格样式');
+  ok(p.indexOf('CM_GRADE_CHART_IDS') >= 0, '成绩图表释放改白名单（不误杀学分实例）');
+  ok(p.indexOf('cmWrapCreditRender();') >= 0 && p.indexOf('cmWrapCreditTabSwitch();') >= 0, 'boot 已接线（学分接管 + 切 tab 补渲染）');
+  ok(p.indexOf("cmWrapPro('switchAnalyticsTab', '数据分析')") < p.indexOf('cmWrapCreditTabSwitch();'), '学分 tab 包装链在 Pro gate 之上');
+  ok(distHtml && distHtml.indexOf('v1.3.0 桌面版') >= 0, '版本标仍为 1.3.0（P0+P1 同版）');
 });
 
 console.log('\n通过 ' + pass + ' 项，失败 ' + fail + ' 项');

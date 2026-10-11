@@ -1930,6 +1930,7 @@
   var cmEchartsCbs = [];
   var cmGradeCharts = {};                     // 容器 id → ECharts 实例
   var cmGradeThemeObs = null, cmGradeThemeT = 0, cmGradeResizeT = 0;
+  var CM_GRADE_CHART_IDS = ['cmGxHist', 'cmGxDist', 'cmGxSubj', 'cmGxRadar', 'cmGxTrend', 'cmGxSlope'];   // 学分图表（cmGxCd*）共用实例表，释放按白名单防误杀
 
   function cmEchartsReady() { return typeof window.echarts === 'object' && window.echarts && typeof window.echarts.init === 'function'; }
   /* 网页版 state 是顶层 let（词法全局，不挂 window）——必须裸名访问，window.state 永远 undefined */
@@ -2095,9 +2096,10 @@
     var muted = cmCssVar('--text-muted', '#8C8577');
     var ink = cmCssVar('--text', '#2B2B33');
 
-    /* 释放旧实例（detail 即将整体重写） */
-    for (var oldId in cmGradeCharts) { try { cmGradeCharts[oldId].dispose(); } catch (e) {} }
-    cmGradeCharts = {};
+    /* 释放旧实例（白名单：学分 tab 的 cmGxCd* 图表共用实例表，不许误杀） */
+    CM_GRADE_CHART_IDS.forEach(function (id) {
+      if (cmGradeCharts[id]) { try { cmGradeCharts[id].dispose(); } catch (e) {} delete cmGradeCharts[id]; }
+    });
 
     /* ---- HTML 骨架：KPI 带 + 六图卡 + 预警/排名 ---- */
     var h = '';
@@ -2374,13 +2376,219 @@
     cmGradeThemeObs = new MutationObserver(function () {
       clearTimeout(cmGradeThemeT);
       cmGradeThemeT = setTimeout(function () {
-        var p = document.getElementById('analyticsGradePanel');
-        if (!p || p.offsetParent === null) return;
-        window.renderGradeAnalyticsDetail();
+        var gp = document.getElementById('analyticsGradePanel');
+        if (gp && gp.offsetParent !== null) window.renderGradeAnalyticsDetail();
+        try { cmCreditChartsDirty = true; cmCreditFlushCharts(); } catch (e) {}   // 学分 tab 换肤/换皮肤也重渲染（v1.3.0 P1）
       }, 160);
     });
     cmGradeThemeObs.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-skin'] });
     window.addEventListener('resize', cmGradeResize);
+  }
+
+  /* ---------- v1.3.0 P1：学分 tab 图表迁移（cmInk）----------
+     口径与网页版逐字一致：学分 = Number(s.credit) 规范化；五档 = 预警<60 / 常规 60-110 / 进取 110-150 /
+     卓越 150-200 / 巅峰 ≥200（及格线读 CB_ALERT_MIN）；流水一律过滤 state==='revoked'。
+     接管 window.renderAnalytics（成绩 tab 激活时委托原函数重定向）；面板整体重建（旧 canvas/图例容器一并退役）；
+     面板不可见时只刷 DOM、图表记脏，切回 credit tab（switchAnalyticsTab 链式包装）或换肤时补渲染。 */
+  var cmCreditChartsDirty = false;
+  var CM_CREDIT_BUCKETS = [
+    { label: '预警', min: -Infinity, max: 60,      light: '#B42318', dark: '#D45A4A' },
+    { label: '常规', min: 60,        max: 110,     light: '#3B6E8F', dark: '#6FA3C8' },
+    { label: '进取', min: 110,       max: 150,     light: '#C0762B', dark: '#D08A45' },
+    { label: '卓越', min: 150,       max: 200,     light: '#C9971B', dark: '#D9B23E' },
+    { label: '巅峰', min: 200,       max: Infinity, light: '#A3301E', dark: '#CE5540' }
+  ];
+  function cmCreditCredits() {
+    var st = cmGxState();
+    var students = (st && st.students) || [];
+    return students.map(function (s) { var n = Number(s.credit); return isNaN(n) ? 0 : n; });
+  }
+  function cmCreditVisible() {
+    var p = document.getElementById('analyticsCreditPanel');
+    return !!(p && p.offsetParent !== null);
+  }
+  function cmCreditDispose() {
+    for (var id in cmGradeCharts) {
+      if (id.indexOf('cmGxCd') === 0) { try { cmGradeCharts[id].dispose(); } catch (e) {} delete cmGradeCharts[id]; }
+    }
+  }
+  function cmCreditBucketCols() {
+    return CM_CREDIT_BUCKETS.map(function (b) { return cmGxIsDark() ? b.dark : b.light; });
+  }
+  function cmCreditRender(panel) {
+    var credits = cmCreditCredits();
+    var n = credits.length;
+    if (!n) {
+      panel.innerHTML = '<div class="cmGx-empty" style="padding:60px 10px">📈 暂无数据，先在「学生管理」导入学生</div>';
+      cmCreditChartsDirty = false;
+      return;
+    }
+    cmCreditDispose();
+    var avg = credits.reduce(function (a, b) { return a + b; }, 0) / n;
+    var sorted = credits.slice().sort(function (a, b) { return a - b; });
+    var median = sorted.length % 2 === 0 ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2 : sorted[Math.floor(sorted.length / 2)];
+    var variance = credits.reduce(function (s2, c) { return s2 + Math.pow(c - avg, 2); }, 0) / n;
+    var std = Math.sqrt(variance);
+    var mx = Math.max.apply(null, credits), mn = Math.min.apply(null, credits);
+    var alertMin = 60;
+    try { if (typeof CB_ALERT_MIN !== 'undefined') alertMin = CB_ALERT_MIN; } catch (e) {}
+    var passRate = credits.filter(function (c) { return c >= alertMin; }).length / n * 100;
+    var advRate = credits.filter(function (c) { return c >= 110; }).length / n * 100;
+    var cntAlert = credits.filter(function (c) { return c < alertMin; }).length;
+    var cntTop = credits.filter(function (c) { return c >= 200; }).length;
+
+    var h = '';
+    h += '<div class="cmGx-kpis cols6">';
+    h += '<div class="cmGx-kpi"><div class="cmGx-klabel">平均学分</div><div class="cmGx-kvalue">' + avg.toFixed(1) + '</div><span class="cmGx-ktrend cmGx-flat">' + n + ' 人</span></div>';
+    h += '<div class="cmGx-kpi"><div class="cmGx-klabel">中位数</div><div class="cmGx-kvalue">' + median + '</div><span class="cmGx-ktrend cmGx-flat">极差 ' + (mx - mn) + '</span></div>';
+    h += '<div class="cmGx-kpi"><div class="cmGx-klabel">标准差</div><div class="cmGx-kvalue">' + std.toFixed(2) + '</div><span class="cmGx-ktrend cmGx-flat">最高 ' + mx + '</span></div>';
+    h += '<div class="cmGx-kpi"><div class="cmGx-klabel">极差</div><div class="cmGx-kvalue">' + (mx - mn) + '</div><span class="cmGx-ktrend cmGx-flat">最低 ' + mn + '</span></div>';
+    h += '<div class="cmGx-kpi"><div class="cmGx-klabel">及格率（≥' + alertMin + '）</div><div class="cmGx-kvalue">' + passRate.toFixed(0) + '<small>%</small></div><span class="cmGx-ktrend ' + (cntAlert > 0 ? 'cmGx-down' : 'cmGx-up') + '">预警 ' + cntAlert + ' 人</span></div>';
+    h += '<div class="cmGx-kpi"><div class="cmGx-klabel">进取率（≥110）</div><div class="cmGx-kvalue">' + advRate.toFixed(0) + '<small>%</small></div><span class="cmGx-ktrend cmGx-up">巅峰 ' + cntTop + ' 人</span></div>';
+    h += '</div>';
+    h += '<div class="cmGx-grid2">';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>学分区间分布</div><div class="cmGx-cap">五档口径与原版一致 · 悬停看人数与占比</div><div id="cmGxCdRange" class="cmGx-chart"></div></div>';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>五档构成</div><div class="cmGx-cap">预警 &lt;60 · 常规 60-110 · 进取 110-150 · 卓越 150-200 · 巅峰 ≥200</div><div id="cmGxCdDonut" class="cmGx-chart"></div></div>';
+    h += '</div>';
+    h += '<div class="cmGx-grid2">';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>近 7 天学分净变动</div><div class="cmGx-cap">全班逐日合计 · 绿为净加分 · 红为净扣分（不含已撤销）</div><div id="cmGxCdWk" class="cmGx-chart"></div></div>';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>本周进退步榜</div><div class="cmGx-cap">近 7 天净变动最大 8 人 · 不含已撤销</div><div id="cmGxCdMovers" class="cmGx-chart"><div class="cmGx-empty">近7天暂无学分变动</div></div></div>';
+    h += '</div>';
+    panel.innerHTML = h;
+
+    if (cmCreditVisible()) { cmCreditDrawCharts(credits); cmCreditChartsDirty = false; }
+    else cmCreditChartsDirty = true;             // 面板不可见：切回 credit tab / 换肤时补渲染
+  }
+  function cmCreditDrawCharts(credits) {
+    if (!cmEchartsReady() || !credits.length) return;
+    var n = credits.length;
+    var cols = cmCreditBucketCols();
+    var buckets = CM_CREDIT_BUCKETS.map(function (b, i) {
+      return { label: b.label, count: credits.filter(function (c) { return c >= b.min && c < b.max; }).length, col: cols[i] };
+    });
+    var muted = cmCssVar('--text-muted', '#8C8577');
+    var success = cmCssVar('--success', '#2F7D5B');
+    var danger = cmCssVar('--danger', '#B42318');
+
+    /* 区间分布柱 */
+    cmGxChart('cmGxCdRange', {
+      tooltip: cmGxTT('axis'), grid: cmGxGrid({ left: 34 }),
+      xAxis: cmGxAxisX({ data: buckets.map(function (b) { return b.label; }), boundaryGap: true }),
+      yAxis: cmGxAxisY({ minInterval: 1, max: Math.max.apply(null, buckets.map(function (b) { return b.count; })) + 2 }),
+      series: [{ type: 'bar', barWidth: '52%',
+        data: buckets.map(function (b) { return { value: b.count, itemStyle: { borderRadius: [6, 6, 0, 0], color: cmGxVGrad(cmGxShade(b.col, 0.18), b.col) } }; }),
+        label: { show: true, position: 'top', color: cmCssVar('--text-secondary', '#5C574F'), fontSize: 11, fontWeight: 600 },
+        tooltip: { formatter: function (p) {
+          var b = buckets[p.dataIndex];
+          return b.label + '：' + b.count + ' 人（' + (b.count / n * 100).toFixed(0) + '%）';
+        } },
+        animationDuration: 900, animationDelay: function (i) { return i * 90; } }]
+    });
+
+    /* 五档构成环形（原 pieChart + #pieLegend 一体化） */
+    cmGxChart('cmGxCdDonut', {
+      tooltip: cmGxTT(),
+      legend: { bottom: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { color: cmCssVar('--text-secondary', '#5C574F'), fontSize: 11, fontFamily: cmGxFont() }, itemGap: 12 },
+      title: { text: String(n), subtext: '总人数', left: 'center', top: '38%',
+        textStyle: { fontSize: 26, fontWeight: 700, color: cmCssVar('--text', '#2B2B33'), fontFamily: cmGxFont() }, subtextStyle: { color: muted, fontSize: 11 } },
+      series: [{ type: 'pie', radius: ['52%', '72%'], center: ['50%', '44%'],
+        data: buckets.map(function (b) { return { name: b.label + '（' + b.count + '人）', value: b.count, itemStyle: { color: b.col } }; }),
+        itemStyle: { borderRadius: 5, borderColor: cmCssVar('--card-bg', '#FFFDF7'), borderWidth: 2 },
+        label: { show: false }, emphasis: { scaleSize: 4 }, animationDuration: 900, animationEasing: 'cubicOut' }]
+    });
+
+    /* 近 7 天净变动 diverging 柱 */
+    var days = [];
+    for (var i = 6; i >= 0; i--) {
+      var d = new Date();
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() - i);
+      var start = d.getTime(), end = start + 86400000;
+      var ops = (((cmGxState() || {}).operations) || []).filter(function (o) { return o.time >= start && o.time < end && !(o.state === 'revoked'); });
+      days.push({ label: (d.getMonth() + 1) + '/' + d.getDate(), total: ops.reduce(function (s2, o) { return s2 + o.amount; }, 0) });
+    }
+    cmGxChart('cmGxCdWk', {
+      tooltip: cmGxTT('axis'), grid: cmGxGrid({ left: 40, top: 24 }),
+      xAxis: cmGxAxisX({ data: days.map(function (x) { return x.label; }) }),
+      yAxis: cmGxAxisY(),
+      series: [{ type: 'bar', barWidth: '46%',
+        data: days.map(function (x) { return { value: x.total,
+          label: { position: x.total >= 0 ? 'top' : 'bottom', formatter: x.total === 0 ? '' : (x.total > 0 ? '+' : '') + x.total, color: x.total >= 0 ? success : danger, fontSize: 10, fontWeight: 600 },
+          itemStyle: { borderRadius: x.total >= 0 ? [6, 6, 0, 0] : [0, 0, 6, 6],
+            color: x.total >= 0 ? cmGxVGrad(cmGxShade(success, 0.25), success) : cmGxVGrad(danger, cmGxShade(danger, -0.3)) } }; }),
+        markLine: { symbol: 'none', silent: true, data: [{ yAxis: 0, lineStyle: { color: muted, width: 1 } }] },
+        animationDuration: 900 }]
+    });
+
+    /* 本周进退步榜（近 7 天人均净变动，|net| 最大 8 人；原 renderProgressList 数据口径） */
+    var now = Date.now(), weekAgo = now - 7 * 86400000;
+    var students = (cmGxState() && cmGxState().students) || [];
+    var allops = ((cmGxState() && cmGxState().operations) || []);
+    var changes = students.map(function (s) {
+      var ops = allops.filter(function (o) { return o.studentId === s.id && o.time >= weekAgo && !(o.state === 'revoked'); });
+      return { name: s.name, net: ops.reduce(function (sum, o) { return sum + o.amount; }, 0), opCount: ops.length };
+    }).filter(function (c) { return c.opCount > 0; });
+    if (changes.length) {
+      var pick = changes.sort(function (a, b) { return Math.abs(b.net) - Math.abs(a.net); }).slice(0, 8)
+        .sort(function (a, b) { return a.net - b.net; });   // 横条自下而上：最大退步在底、最大进步在顶
+      cmGxChart('cmGxCdMovers', {
+        tooltip: { trigger: 'item', backgroundColor: cmCssVar('--card-bg', '#FFFDF7'), borderColor: cmCssVar('--border', '#E6DECD'), borderWidth: 1,
+          padding: [9, 13], textStyle: { color: cmCssVar('--text', '#2B2B33'), fontSize: 12, fontFamily: cmGxFont() },
+          extraCssText: 'box-shadow:0 8px 24px rgba(25,22,19,.14);border-radius:10px;',
+          formatter: function (p) {
+            var c = pick[p.dataIndex];
+            return cmGxEsc(c.name) + '<br>本周净 ' + (c.net > 0 ? '+' : '') + c.net + ' 分（' + c.opCount + ' 次操作）';
+          } },
+        grid: cmGxGrid({ left: 20, right: 56, top: 10, bottom: 10 }),
+        xAxis: cmGxAxisY({ show: false }),
+        yAxis: cmGxAxisX({ type: 'category', data: pick.map(function (c) { return c.name; }), axisLine: { show: false } }),
+        series: [{ type: 'bar', barWidth: 12,
+          data: pick.map(function (c) { return { value: c.net,
+            label: { position: c.net >= 0 ? 'right' : 'left', formatter: function (p) { return (p.value > 0 ? '+' : '') + p.value; }, color: c.net >= 0 ? success : danger, fontSize: 11, fontWeight: 600 },
+            itemStyle: { borderRadius: 6, color: c.net >= 0 ? cmGxVGrad(cmGxShade(success, 0.2), success, true) : cmGxVGrad(danger, cmGxShade(danger, -0.3), true) } }; }),
+          animationDuration: 900, animationDelay: function (i) { return i * 60; } }]
+      });
+    } else {
+      document.getElementById('cmGxCdMovers').innerHTML = '<div class="cmGx-empty">近7天暂无学分变动</div>';
+    }
+  }
+  function cmCreditFlushCharts() {
+    if (!cmCreditChartsDirty || !cmCreditVisible()) return;
+    var credits = cmCreditCredits();
+    if (!credits.length || !document.getElementById('cmGxCdRange')) return;
+    cmCreditDrawCharts(credits);
+    cmCreditChartsDirty = false;
+  }
+  function cmWrapCreditRender() {
+    var orig = window.renderAnalytics;
+    if (typeof orig !== 'function' || orig.__cmGxCredit) return;
+    var wrapped = function () {
+      var gradeActive = false;
+      try { gradeActive = document.getElementById('tab-grade').classList.contains('active'); } catch (e) {}
+      if (gradeActive) return orig.apply(this, arguments);   // 成绩 tab：原函数自带重定向到 renderGradeAnalytics（已被图表引擎接管）
+      var panel = document.getElementById('analyticsCreditPanel');
+      if (!panel) return orig.apply(this, arguments);
+      var st = cmGxState();
+      if (!st || !st.students || !st.students.length) {
+        panel.innerHTML = '<div class="cmGx-empty" style="padding:60px 10px">📈 暂无数据，先在「学生管理」导入学生</div>';
+        cmCreditChartsDirty = false;
+        return;
+      }
+      cmCreditRender(panel);
+    };
+    wrapped.__cmGxCredit = true;
+    window.renderAnalytics = wrapped;
+  }
+  function cmWrapCreditTabSwitch() {
+    var prev = window.switchAnalyticsTab;
+    if (typeof prev !== 'function' || prev.__cmGxTab) return;
+    var w = function (tab) {
+      var r = prev.apply(this, arguments);
+      try { if (tab === 'credit') cmCreditFlushCharts(); } catch (e) {}
+      return r;
+    };
+    w.__cmGxTab = true;
+    window.switchAnalyticsTab = w;
   }
 
   /* ---------- 启动 ---------- */
@@ -2407,6 +2615,8 @@
     buildLeaveExportBtn();
     cmWrapGradeDetail();                         // v1.3.0：成绩 tab ECharts 图表引擎接管（含降级回退）
     cmGradeWatchTheme();                         // 亮/暗/皮肤切换自动重渲染图表
+    cmWrapCreditRender();                        // v1.3.0 P1：学分 tab 图表迁移（KPI 六卡 + 四图）
+    cmWrapCreditTabSwitch();                     // 切回学分 tab 时补渲染脏图表（链在 Pro gate 之上）
     silenceCloudPush();
     wrapNavigatePro();
     buildNavPro();

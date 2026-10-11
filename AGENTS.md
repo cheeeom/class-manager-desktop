@@ -67,7 +67,7 @@ set CM_SMOKE=1 && out\win-unpacked\班主任工作台.exe    # 冒烟：交互�
 
 ## 6. 测试体系
 
-- `node _v_desktop_test.js`（先 build.js）：**23 套**——①线上零改动（root sha256==HEAD 且不含桌面标记）②产物标记 + **三处版本位=桌面版版本号** ②b dist 与 src 一致 ③/③b/③c/③e 注入层契约（含 **③d 向导按钮绑定回归**：foot 区按钮一律 `w.foot.querySelector`；**③e 更新弹窗 + 按钮居中排版 + toast CSS**）④/④b 版权合规（`© 2026 chee` ≥4 处 + 署名声明）⑤主进程安全基线（`autoDownload = false` + `cm-upd-download` 通道）⑥更新链接线（先问后下）⑦⑨⑩⑪⑫⑬ Pro/锁/心跳/开发者模式 ⑭ v1.2.6 七件套 **⑮ 图表引擎契约**（echarts 许可头/接管+降级回退/CSS 变量取色/五档色对齐/boot 接线/版本 1.3.0）。
+- `node _v_desktop_test.js`（先 build.js）：**24 套**——①线上零改动（root sha256==HEAD 且不含桌面标记）②产物标记 + **三处版本位=桌面版版本号** ②b dist 与 src 一致 ③/③b/③c/③e 注入层契约（含 **③d 向导按钮绑定回归**：foot 区按钮一律 `w.foot.querySelector`；**③e 更新弹窗 + 按钮居中排版 + toast CSS**）④/④b 版权合规（`© 2026 chee` ≥4 处 + 署名声明）⑤主进程安全基线（`autoDownload = false` + `cm-upd-download` 通道）⑥更新链接线（先问后下）⑦⑨⑩⑪⑫⑬ Pro/锁/心跳/开发者模式 ⑭ v1.2.6 七件套 **⑮ 图表引擎契约**（echarts 许可头/接管+降级回退/CSS 变量取色/五档色对齐/boot 接线/版本 1.3.0）**⑯ 学分 tab 迁移契约**（renderAnalytics 接管/切 tab 补渲染/credit 口径/实例表白名单释放/链序）。
 - `CM_SMOKE=1` 冒烟：5 秒后探针——desktopFlag/登录浮层/**版本标逐字 `'v' + app.getVersion() + ' 桌面版'`**、模拟点击「开始配置」必须翻到第 2 步、console-error 计零、截图存 `out/_smoke.png`。
 - `_probe_dataviz.js`（v1.3.0）：图表引擎端到端——一次性密钥真码激活 → 注入 45 生 3 考试 → 成绩 tab 断言接管/6 图实例/KPI/无旧 CSS 图残留 → 暗色重渲染 → 切考试斜率图 live → console-error 零（跑前 `set "ELECTRON_RUN_AS_NODE="`）。
 - 视觉探针 `_probe_settings.js`：`env -u ELECTRON_RUN_AS_NODE ./node_modules/electron/dist/electron.exe _probe_settings.js`（隔离 userData，拍设置页 + toast 样品）。
@@ -88,7 +88,7 @@ set CM_SMOKE=1 && out\win-unpacked\班主任工作台.exe    # 冒烟：交互�
 
 ## 8. 已知问题与修复史
 
-- **v1.3.0（编码完成，未发布）**：数据分析图表引擎——成绩 tab 整体重设计（ECharts 6 + cmInk 主题）。铁律维持：接管挂在 `window.renderGradeAnalyticsDetail` 原函数名下，Pro 页级锁（`CM_PRO_PAGES.analytics` + `cmWrapPro('switchAnalyticsTab')`）不动；echarts 加载失败/超时/空数据静默回退原实现。**学分 tab 手绘图（drawRangeChart/drawPieChart/drawTrendChart）本轮未接管 = P1**；新图表全在 Pro 锁内。
+- **v1.3.0（编码完成，未发布）**：数据分析图表引擎——成绩 tab + 学分 tab 整体重设计（ECharts 6 + cmInk 主题）。铁律维持：成绩 tab 接管挂 `window.renderGradeAnalyticsDetail` 原函数名下、学分 tab 接管挂 `window.renderAnalytics`（成绩 tab 激活时委托原函数重定向），Pro 页级锁（`CM_PRO_PAGES.analytics` + `cmWrapPro('switchAnalyticsTab')`）不动；echarts 加载失败/超时/空数据静默回退原实现。**图表实例表共享（cmGradeCharts），释放按白名单 CM_GRADE_CHART_IDS / 前缀 cmGxCd\*——重渲染一方不许误杀另一方**；学分面板不可见时图表记脏，`cmWrapCreditTabSwitch`（链在 Pro gate 之上）切回补渲染。学分口径：`Number(s.credit)` 规范化、及格线读 `CB_ALERT_MIN`、流水过滤 `state==='revoked'`、7 天窗口。
 - **v1.0.1 P0（已修）**：向导首屏按钮无响应——按钮渲染在 foot 区却用 `w.body.querySelector` 绑定（绑定落在 null）；换步遮罩堆叠逐层变暗。修复后加 ③d 断言 + 冒烟交互探针，此类问题永久拦截。
 - **GitHub Release 资产名剥中文（已绕）**：中文直链 404 → 稳定副本改英文名 `ClassManager-Setup.exe`，落地页两处直链已替换。
 - **v1.0.2 安装包名对齐（已修）**：artifactName 从中文改名 `${name}-Setup-${version}`，使 latest.yml 的 url 诚实（更新器下载目标逐字一致，否则更新链断）。
