@@ -1,5 +1,5 @@
-/* 一次性诊断探针：登录页左上角乱码取证（v1.4.0 老板实机截图复现）
-   全新 profile → 不进工作台 → 截登录页 → elementsFromPoint 探查左上角元素栈 */
+/* 一次性诊断/视觉探针：登录页取证 + 设置页卡片一致性截图
+   全新 profile → 截登录页 → 进工作台 → 设置页滚到反馈卡截图（v1.4.1 卡片样式统一验证） */
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const os = require('os');
@@ -26,17 +26,33 @@ app.whenReady().then(function () {
         });
         var b = document.getElementById('eolBanner');
         out.eolBanner = b ? ('exists「' + String(b.textContent).slice(0,40) + '」') : 'removed';
-        var sp = document.querySelector('.side-panel');
-        out.sidePanel = sp ? 'exists' : 'none';
-        out.appOffset = (function(){ var a = document.querySelector('.app'); return a ? getComputedStyle(a).paddingTop || getComputedStyle(a).top : 'none'; })();
         out.loginOverlayOffset = (function(){ var l = document.getElementById('loginOverlay'); return l ? getComputedStyle(l).top + '/' + getComputedStyle(l).transform : 'none'; })();
-        out.bodyFirst = document.body.firstChild ? (document.body.firstChild.nodeName + '#' + (document.body.firstChild.id||'') + '.' + (document.body.firstChild.className||'')) : 'none';
         return JSON.stringify(out);
       })()`);
       console.log('[BUG] ' + info);
       const img = await win.webContents.capturePage();
       fs.writeFileSync(path.join(__dirname, 'out', '_probe_login_bug.png'), img.toPNG());
       console.log('[BUG] shot=out/_probe_login_bug.png');
+
+      // v1.4.1：设置页卡片一致性（反馈卡应与关于本系统同为实心卡）
+      await win.webContents.executeJavaScript('localStorage.setItem("cm_onboarded","1");localStorage.setItem("cm_nopwd","1");location.reload();1');
+      await wait(1800);
+      await win.webContents.executeJavaScript('var b=document.getElementById("cmDeskEnter");b?b.click():0;1');
+      await wait(1200);
+      await win.webContents.executeJavaScript('window.navigateTo("settings");1');
+      await wait(900);
+      const fb = await win.webContents.executeJavaScript(`(function(){
+        var f = document.querySelector('.cmDeskFeedback');
+        var a = document.getElementById('settingsAbout');
+        function styleOf(e){ if(!e) return null; var s = getComputedStyle(e); return { bg: s.backgroundColor, border: s.borderStyle + ' ' + s.borderWidth }; }
+        if (f) f.scrollIntoView({ block: 'center' });
+        return JSON.stringify({ feedback: styleOf(f), about: styleOf(a) });
+      })()`);
+      console.log('[BUG] cards ' + fb);
+      await wait(600);
+      const img2 = await win.webContents.capturePage();
+      fs.writeFileSync(path.join(__dirname, 'out', '_probe_settings_cards.png'), img2.toPNG());
+      console.log('[BUG] shot=out/_probe_settings_cards.png');
       app.exit(0);
     } catch (e) {
       console.log('[BUG] fatal ' + (e && e.message));
@@ -44,3 +60,4 @@ app.whenReady().then(function () {
     }
   });
 });
+

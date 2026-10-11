@@ -23,6 +23,7 @@
 - [x] **安全卡 v2**：登录密码/管理员密码均可 **修改 + 关闭**；修改/关闭登录密码、修改/关闭管理员密码前需验证管理员密码（gxAdminVerify 链）；未设管理员密码时直接操作；关闭登录密码回零密码模式；双字段密码弹窗 gxPwdModal（6 位校验/一致性/弱口令）。
 - [x] 测试 +⑲（dist 无 eolBanner/单机清空/云端静默/安全卡 v2 全要素）；探针扩展：登录页三断言 + 安全卡三按钮 + 清空全链（纸墨风闸 → 输入「清空」→ wipe → 单机 toast）全 PASS。
 - [x] **PRO 专属卡预览（待老板审阅后确认实施）**：`_dataviz_preview/pro-card-preview.html` + shots（亮/暗 × 早鸟/常价）——激活后赞赏卡整体替换为 B 印章式专属卡（现有 buildProActiveCard 实现即图三设计，赞赏卡/满天弹窗/打赏入口不再出现）；**老板点头后**：核对现实现与预览一致 + 提交。
+- [x] **反馈卡样式统一（老板实机报）**：`.cmDeskFeedback` 残留 v1.0.11 时代「关于卡内嵌盒」样式（row-bg+虚线框）压掉 settings-section 实心卡 → 删覆盖只留外距；探针 computed style 与「关于本系统」完全一致（bg rgb(255,253,247) + solid）。
 - [x] 打包 BUILD-OK + CM_SMOKE PASS（v1.4.1）；ClassManager-Setup.exe 副本同步。
 - [ ] **PRO 卡预览等老板审阅**；**发布**：老板明说「推送」→ gh release create v1.4.1（内容含 1.3.0 图表引擎 + 1.4.0 界面重设计全量）。
 - [ ] **下一轮：全工作台动效优化**（v1.5.0，老板已预告）。
