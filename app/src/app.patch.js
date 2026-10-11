@@ -2285,7 +2285,7 @@
     h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>成绩排名 · 前 10</div><div class="cmGx-cap">条长 = 总分 / 班级最高</div><div id="cmGxTop"></div></div>';
     h += '</div>';
     detail.innerHTML = h;
-    gxCountKpis(detail);
+    gxCountAnnotate(detail);
 
     /* ---- 总分直方图（分数刻度基准线挂隐藏二轴） ---- */
     var lo = Math.floor(agg.mn / 50) * 50, hi = Math.ceil(agg.mx / 50) * 50;
@@ -2617,7 +2617,7 @@
     h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>本周进退步榜</div><div class="cmGx-cap">近 7 天净变动最大 8 人 · 不含已撤销</div><div id="cmGxCdMovers" class="cmGx-chart"><div class="cmGx-empty">近7天暂无学分变动</div></div></div>';
     h += '</div>';
     panel.innerHTML = h;
-    gxCountKpis(panel);
+    gxCountAnnotate(panel);
 
     cmCreditChartsDirty = true;                    // 先记脏：flush 内部判定就绪与可见，未就绪不误清
     if (cmCreditVisible()) cmCreditFlushCharts();  // v1.5.0 修复：echarts 未就绪时保持脏标记，加载完成自动补画
@@ -3011,24 +3011,38 @@
     mask.classList.add('gx-closing');
     setTimeout(function () { if (mask.parentNode) mask.parentNode.removeChild(mask); }, 180);
   }
-  /* KPI 数字滚动：解析 .cmGx-kvalue 首个数字文本 → 640ms ease-out 递增到目标值 */
-  function gxCountKpis(root) {
-    if (!gxMotionOn() || !root || !root.querySelectorAll) return;
+  /* KPI 数字滚动（v1.5.1 重设计）：渲染时只「标注」目标值（文本保持最终值——
+     后台渲染/隐藏窗口不产生冻结的 0）；页面可见时才播放 0→目标 的滚动。
+     旧实现在渲染时直接起 rAF 动画，隐藏窗口 rAF 冻结 → KPI 永远显示 0（老板实机抓到）。 */
+  function gxCountAnnotate(root) {
+    if (!root || !root.querySelectorAll) return;
     var els = root.querySelectorAll('.cmGx-kvalue');
     for (var i = 0; i < els.length; i++) {
       var el = els[i];
       var node = el.firstChild;
       var m = String((node && node.nodeValue) || '').match(/^[\d.]+/);
       if (!m) continue;
-      var target = parseFloat(m[0]);
-      if (isNaN(target)) continue;
-      var dec = (m[0].split('.')[1] || '').length;
+      el.setAttribute('data-gx-count', m[0]);
+      el.setAttribute('data-gx-dec', String((m[0].split('.')[1] || '').length));
+    }
+  }
+  function gxPlayCounters(root) {
+    if (!gxMotionOn() || !root || !root.querySelectorAll) return;
+    var els = root.querySelectorAll('.cmGx-kvalue[data-gx-count]');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (el.getAttribute('data-gx-played') === '1') continue;
+      el.setAttribute('data-gx-played', '1');
+      var node = el.firstChild;
+      var target = parseFloat(el.getAttribute('data-gx-count'));
+      var dec = parseInt(el.getAttribute('data-gx-dec') || '0', 10);
+      if (isNaN(target) || !node) continue;
       var t0 = performance.now(), dur = 640;
       (function tick(t) {
         var p = Math.min(1, (t - t0) / dur);
         var e2 = 1 - Math.pow(1 - p, 3);
         node.nodeValue = (target * e2).toFixed(dec);
-        if (p < 1) requestAnimationFrame(tick); else node.nodeValue = m[0];
+        if (p < 1) requestAnimationFrame(tick); else node.nodeValue = target.toFixed(dec);
       })(t0);
     }
   }
@@ -3132,7 +3146,9 @@
   function gxWrapNavigate() {
     var prev = window.navigateTo;
     if (typeof prev !== 'function' || prev.__gx) return;
-    var w = function () { var r = prev.apply(this, arguments); gxSweepSoon(); return r; };
+    var w = function () { var r = prev.apply(this, arguments); gxSweepSoon();
+      try { var pg = document.querySelector('.page.active'); if (pg) gxPlayCounters(pg); } catch (e) {}   // v1.5.1：进页播数字
+      return r; };
     w.__gx = true;
     window.navigateTo = w;
   }
