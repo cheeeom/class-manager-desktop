@@ -4,14 +4,29 @@
 
 ## 一、当前状态速览
 
+- **编码中**：**v1.3.0 数据分析图表引擎（2026-10-11 老板拍板开工）**——成绩 tab ECharts 6 重设计已全量完成（23 套断言全绿 + `_probe_dataviz.js` 端到端 PASS），未打包未发布。
 - **线上 Release**：**v1.2.6 = Latest**（2026-10-10 七件套版；v1.2.2…v1.2.5 在档；v1.2.1 已删——换钥前坏版）。
-- **测试**：`_v_desktop_test.js` **22 套全绿**（+⑭ v1.2.6 七件套段；沙箱跑法 = bash 预取 HEAD 写文件 + `CM_HEAD_FILE` 逃生舱）；打包冒烟 **PASS**（v1.2.6，`CM_SMOKE_SHOT` 指定落点才能存图——打包版 `__dirname` 在 asar 里写不进 out/）。
-- **v1.2.6 内容**：向导按钮重排（上一步左/下一步右/去箭头）；第 5 步改「导入学生名单」（CSV 模板下载 + 劫持预览直接注入 + 导入后不再给示例数据）；激活后侧栏去 PRO 角标、左上角亮烫金 PRO 徽标（cmDesk-proemblem，buildNavPro 状态感知化）；考勤请假/课堂点名转免费 + 新增「导出请假流水」（CSV，Pro gate，班委拦截）；反馈卡独立成卡；关于卡改本版更新简要（≤100 字，无网页版字样）；满天弹窗/打赏卡文案跟上 Pro 时代；激活弹窗重排（复制钮右置主色、购买/已付款 300px 居中对齐、激活居中放大）+ 可选邮箱框（cmProMail 真实入链）；Pro 已激活卡 B 印章式定稿（早鸟 № 钢印 + BY: chee 署名 + 复制激活码按钮）；KeyGen ②b 换机重签自动核对（邮箱指纹/设备指纹/沿用序号）+ ③发货记录查询框。
+- **测试**：`_v_desktop_test.js` **23 套全绿**（+⑮ 图表引擎契约段）；`_probe_dataviz.js` 端到端 PASS（激活→注数据→成绩 tab→6 图实例+暗色重渲染+切考试重渲染+console-error 零）。
+- **v1.3.0 内容（P0）**：`src/echarts.min.js`（6.1.0，Apache-2.0，1.12MB，build.js 复制进 dist）；`app.patch.js` 新增「数据分析图表引擎」分节——接管 `renderGradeAnalyticsDetail`（cmWrapGradeDetail，挂原函数名下，Pro 页级锁不动）：KPI 环比带（均分/及格率/优秀率/标准差/最高最低，vs 上一场）、总分直方图（均分/及格/优秀三基准线挂隐藏二轴）、五档环形、各科均分横条（60/85 基准线）、单科得分率雷达（本场 vs 上一场）、多场趋势双轴折线、名次流动斜率图（|Δ|≥4）、学业预警（单科不及格≥2 科 / 总分环比下滑≥10 分）、排名前 10 数据条；cmInk 主题全部运行时读 CSS 变量（亮/暗/皮肤自适应，MutationObserver 重渲染）；echarts 加载失败/超时/空数据静默回退原实现。学分 tab 三图迁移 = P1 待做。
+- **v1.2.6 内容（已发布）**：向导按钮重排（上一步左/下一步右/去箭头）；第 5 步改「导入学生名单」（CSV 模板下载 + 劫持预览直接注入 + 导入后不再给示例数据）；激活后侧栏去 PRO 角标、左上角亮烫金 PRO 徽标（cmDesk-proemblem，buildNavPro 状态感知化）；考勤请假/课堂点名转免费 + 新增「导出请假流水」（CSV，Pro gate，班委拦截）；反馈卡独立成卡；关于卡改本版更新简要（≤100 字，无网页版字样）；满天弹窗/打赏卡文案跟上 Pro 时代；激活弹窗重排（复制钮右置主色、购买/已付款 300px 居中对齐、激活居中放大）+ 可选邮箱框（cmProMail 真实入链）；Pro 已激活卡 B 印章式定稿（早鸟 № 钢印 + BY: chee 署名 + 复制激活码按钮）；KeyGen ②b 换机重签自动核对（邮箱指纹/设备指纹/沿用序号）+ ③发货记录查询框。
+- **⚠️ v1.3.0 踩坑（重要）**：网页版 `state` 是**顶层 `let`**（词法全局不挂 window）——注入层必须裸名访问（`cmGxState()` 助手），`window.state` 永远 undefined 会静默回退；cmd `set X= && …` 尾随空格会让 ELECTRON_RUN_AS_NODE 陷阱复活，用 `set "X="`。
 - **⚠️ 换钥事故（2026-10-10 凌晨）**：App 旧公钥 4e4f3a71 对应的私钥在 KeyGen 页被「生成新私钥」覆盖丢失（页面显示的 3714294d 与云函数 PRO_PRIV=3938d60b 才是真配对）。处理：CM_PRO_PUB 改 **3714294d**（v1.2.2 已发），云函数不动；KeyGen 页 gen 按钮加双确认+生成后强提醒导出；老板本机旧激活失效需重签。教训：**烧进 App 的公钥对应的私钥必须「导出备份」双份保存，KeyGen 页 localStorage 是唯一存储太脆**。
 - **⚠️ 打包坑（v1.2.6 实测）**：electron-builder 清空 `out/win-unpacked` 被安全删除钩子拦（批量删除超阈值）→ **打包前先 `mv out/win-unpacked out/_trash_*`**。
 - **发货机已上线**（2026-10-09）：腾讯云函数 `cm-pro-shipper`（ap-shanghai，Nodejs12.16 Web 函数），URL `https://1466839507-gqk4mefrq0.ap-shanghai.tencentscf.com/?req=`；4 环境变量全齐（含 PRO_PRIV）；线上实测：格式拒 + 合法 payload → `NOT_FOUND`（爱发电翻页查单链路通）。部署改走 **SCF REST API**（`scripts/_scf_api.py` TC3 签名，密钥 `scripts/_tencent_creds.txt` 严禁入仓）；浏览器代操作在本机不可行（GUI 进程被系统收割，试 3 次全灭）。
 
 ## 二、待办队列
+
+### v1.3.0（完成编码：数据分析图表引擎 P0，2026-10-11，未打包未发布）
+- [x] 方案与预览（老板过目拍板）：`app/_dataviz_preview/DATAVIZ-PLAN.md` + `preview.html`（选型 ECharts 6，落选 Chart.js/ApexCharts/AntV 理由在案）
+- [x] `src/echarts.min.js` 6.1.0 → build.js 复制清单 + dist 断言（缺文件即 die）
+- [x] `app.patch.js` 图表引擎分节：cmLoadEcharts 按需加载（15s 挂死兜底）/ cmWrapGradeDetail 接管 / cmGx* 主题工具（CSS 变量取色）/ 六图 + KPI + 预警 + 排名 / MutationObserver 亮暗皮肤重渲染 / resize
+- [x] `wizard.css` `.cmGx-*` 样式段（KPI 带/图卡/预警/排名，全 CSS 变量带纸墨回退）
+- [x] 版本升 1.3.0（独立版本号铁律）；测试 +⑮ 契约段（接管/降级/许可头/五档色对齐/boot 接线/版本）
+- [x] `_probe_dataviz.js` 端到端：一次性密钥真码激活 → 注入 45 生 3 考试 → 成绩 tab → 断言 wrapped/live≥5/KPI=5/无旧 CSS 图残留 → 暗色重渲染 → 切期中斜率图 live → console-error 零；截图 out/_probe_dataviz_{light,dark,final}.png
+- [x] 修复：`window.state`→`cmGxState()`（顶层 let 陷阱，探针抓到）；名次流动空态文案（±4 名内/首场提示）
+- [ ] **P1：学分 tab 三图迁移**（drawRangeChart/drawPieChart/drawTrendChart → cmInk）+ KPI 升级 + 进退步榜 diverging bar
+- [ ] **打包**：`mv out/win-unpacked out/_trash_*` → `_build_retry.js` → CM_SMOKE 冒烟（v1.3.0）→ 发版两段式（老板明说「推送」才发）
+- [ ] P2（可选）：公示页 4 图 / 学期报告长图复用 cmInk 主题；`_dataviz_preview/` 审阅后可删
 
 ### v1.2.1（已完成：自动取码转正，已打包未发布）
 - [x] `main.js` `CM_PRO_CLAIM_API` 填入云函数 URL →「② 我已付款 · 自动获取激活码」按钮转正（未填时仍显示但点击提示 AUTO_OFF）

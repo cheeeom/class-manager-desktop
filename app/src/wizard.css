@@ -241,3 +241,43 @@ html.dark .cmDesk-proemblem{background:linear-gradient(145deg,#3A2A14,#241808)}
 .cmDesk-devrow{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
 .cmDesk-devnote{font-size:11px;color:#7A8899;line-height:1.6}
 .cmDesk-devcard .btn.active{outline:2px solid #3A6EA5;outline-offset:1px}
+
+/* ---------- v1.3.0 数据分析图表引擎（成绩 tab ECharts 重设计 · cmInk 纸墨主题） ---------- */
+.cmGx-loading{padding:46px;text-align:center;color:var(--text-muted,#8C8577);font-size:13px}
+.cmGx-empty{padding:30px 10px;text-align:center;color:var(--text-muted,#8C8577);font-size:12.5px}
+.cmGx-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.cmGx-kpi{position:relative;overflow:hidden;background:var(--card-bg,#FFFDF7);border:1px solid var(--border,#E6DECD);border-radius:14px;padding:13px 15px}
+.cmGx-kpi::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--primary,#A63A2B);opacity:.85}
+.cmGx-klabel{font-size:11px;color:var(--text-muted,#8C8577);letter-spacing:1px}
+.cmGx-kvalue{font-size:26px;font-weight:700;line-height:1.15;margin:3px 0 2px;font-variant-numeric:tabular-nums;color:var(--text,#2B2B33)}
+.cmGx-kvalue small{font-size:12px;font-weight:400;color:var(--text-muted,#8C8577);margin-left:3px}
+.cmGx-ktrend{font-size:10.5px;font-weight:600;border-radius:999px;display:inline-block;padding:2px 8px;margin-top:2px}
+.cmGx-up{color:var(--success,#2F7D5B);background:rgba(47,125,91,.10)}
+.cmGx-down{color:var(--danger,#B42318);background:rgba(180,35,24,.09)}
+.cmGx-flat{color:var(--text-muted,#8C8577);background:rgba(140,133,119,.10)}
+.cmGx-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0}
+.cmGx-card{background:var(--card-bg,#FFFDF7);border:1px solid var(--border,#E6DECD);border-radius:14px;padding:14px 16px 10px;margin-bottom:12px}
+.cmGx-grid2 .cmGx-card{margin-bottom:0}
+.cmGx-title{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:7px;color:var(--text,#2B2B33)}
+.cmGx-title i{width:8px;height:8px;background:var(--primary,#A63A2B);border-radius:2px;transform:rotate(45deg);flex:none}
+.cmGx-cap{font-size:11px;color:var(--text-muted,#8C8577);margin:2px 0 4px;padding-left:15px}
+.cmGx-chart{height:250px;width:100%}
+.cmGx-chart.tall{height:300px}
+.cmGx-warn{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:10px;margin-bottom:6px;background:rgba(180,35,24,.05);border:1px solid rgba(180,35,24,.12)}
+.cmGx-warn.amber{background:rgba(192,138,45,.06);border-color:rgba(192,138,45,.18)}
+.cmGx-chip{font-size:10px;padding:2px 7px;border-radius:6px;background:rgba(180,35,24,.10);color:var(--danger,#B42318);font-weight:600;flex:none;white-space:nowrap}
+.cmGx-chip.amber{background:rgba(192,138,45,.13);color:var(--warning,#C08A2D)}
+.cmGx-rank{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:10px}
+.cmGx-rank:hover{background:rgba(166,58,43,.04)}
+.cmGx-rnum{width:23px;height:23px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:#fff;flex:none}
+.cmGx-rnum.r1{background:var(--gold,#C9A227)}
+.cmGx-rnum.r2{background:#A8A29A}
+.cmGx-rnum.r3{background:#C08A2D}
+.cmGx-rnum.rn{background:var(--bg,#F6F2E9);color:var(--text-secondary,#5C574F);border:1px solid var(--border,#E6DECD)}
+.cmGx-rmain{flex:1;min-width:0}
+.cmGx-rname{font-size:12.5px;font-weight:600;color:var(--text,#2B2B33)}
+.cmGx-rbar{height:4.5px;border-radius:3px;background:var(--bg,#F6F2E9);margin-top:3px;overflow:hidden}
+.cmGx-rbar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--primary-light,#C25B4A),var(--primary,#A63A2B))}
+.cmGx-rsubs{font-size:10px;color:var(--text-muted,#8C8577);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmGx-rscore{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;min-width:40px;text-align:right;color:var(--text,#2B2B33)}
+@media(max-width:1100px){.cmGx-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.cmGx-grid2{grid-template-columns:1fr}}

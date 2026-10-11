@@ -1,6 +1,7 @@
 /* 班主任工作台 · 桌面版注入层（仅桌面构建加载；线上版不含本文件，零影响）
    职责：首启向导（密码可跳=零密码模式）/ 无密码登录面板 / 清空数据管理员闸 /
-        云同步界面裁剪 / 桌面版安全设置卡 / 关于卡版权增强。
+        云同步界面裁剪 / 桌面版安全设置卡 / 关于卡版权增强 /
+        数据分析图表引擎（v1.3.0：成绩 tab ECharts 重设计，cmInk 主题）。
    依赖：主应用脚本已在本文件之前加载（hashPwd/enterApp/importData/saveData 等全局可用）。 */
 (function () {
   'use strict';
@@ -1919,6 +1920,469 @@
     }
   }
 
+  /* ---------- 数据分析图表引擎（v1.3.0）：成绩 tab ECharts 重设计（cmInk 纸墨主题） ----------
+     铁律：网页版零改动——接管 window.renderGradeAnalyticsDetail（挂原函数名下，Pro 页级锁不受影响）。
+     echarts.min.js 按需加载（首次渲染成绩分析才注 <script>，file:// 本地毫秒级；失败/超时静默回退原实现）；
+     数据为空 → 交给原实现渲染空态。颜色全部运行时读 CSS 变量（亮/暗/皮肤自适应），
+     html class / data-skin 变化自动重渲染。口径与网页版一致：及格=人均≥60，优秀=人均≥85，满分=科数×100。 */
+  var CM_ECHARTS_TIMEOUT = 15000;
+  var cmEchartsState = '';                    // '' | 'loading' | 'ok' | 'fail'
+  var cmEchartsCbs = [];
+  var cmGradeCharts = {};                     // 容器 id → ECharts 实例
+  var cmGradeThemeObs = null, cmGradeThemeT = 0, cmGradeResizeT = 0;
+
+  function cmEchartsReady() { return typeof window.echarts === 'object' && window.echarts && typeof window.echarts.init === 'function'; }
+  /* 网页版 state 是顶层 let（词法全局，不挂 window）——必须裸名访问，window.state 永远 undefined */
+  function cmGxState() { try { return typeof state !== 'undefined' ? state : null; } catch (e) { return null; } }
+  function cmLoadEcharts(cb) {
+    if (cmEchartsState === 'ok') return cb(true);
+    if (cmEchartsState === 'fail') return cb(false);
+    cmEchartsCbs.push(cb);
+    if (cmEchartsState === 'loading') return;
+    cmEchartsState = 'loading';
+    var done = false;
+    var finish = function (okFlag) {
+      if (done) return;
+      done = true;
+      cmEchartsState = okFlag ? 'ok' : 'fail';
+      var list = cmEchartsCbs.splice(0);
+      for (var i = 0; i < list.length; i++) { try { list[i](okFlag); } catch (e) {} }
+    };
+    var s = document.createElement('script');
+    s.src = './echarts.min.js';
+    s.onload = function () { finish(cmEchartsReady()); };
+    s.onerror = function () { finish(false); };
+    document.head.appendChild(s);
+    setTimeout(function () { finish(cmEchartsReady()); }, CM_ECHARTS_TIMEOUT);   // 挂死兜底（本地库损坏等极端情况）
+  }
+  function cmCssVar(n, fb) {
+    try { var v = getComputedStyle(document.documentElement).getPropertyValue(n).trim(); return v || fb; } catch (e) { return fb; }
+  }
+  function cmGxIsDark() { return document.documentElement.classList.contains('dark'); }
+  function cmGxFont() { try { return getComputedStyle(document.body).fontFamily || 'sans-serif'; } catch (e) { return 'sans-serif'; } }
+  function cmGxPal() {
+    return cmGxIsDark()
+      ? ['#CE6B52', '#6FA3C8', '#4F9E77', '#D9A94E', '#9B86C2', '#93A5B3']
+      : ['#A63A2B', '#3B6E8F', '#2F7D5B', '#C08A2D', '#6B5B95', '#7A8B99'];
+  }
+  function cmGxBucket() {                     // 五档色 = 网页版成绩五档原色，暗色提亮
+    return cmGxIsDark()
+      ? ['#D45A4A', '#D9A94E', '#6FA3C8', '#4F9E77', '#9B86C2']
+      : ['#B42318', '#C08A2D', '#3B6E8F', '#2F7D5B', '#6B5B95'];
+  }
+  function cmGxShade(hex, f) {                // f>0 提亮 / f<0 压暗（渐变端点用）
+    var s = String(hex || '');
+    if (s.charAt(0) !== '#' || s.length !== 7) return s;
+    var n = parseInt(s.slice(1), 16);
+    if (isNaN(n)) return s;
+    var ch = function (c) { return Math.round(Math.max(0, Math.min(255, f > 0 ? c + (255 - c) * f : c * (1 + f)))); };
+    var r = ch((n >> 16) & 255), g = ch((n >> 8) & 255), b = ch(n & 255);
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  }
+  function cmGxVGrad(top, bottom, horizontal) {
+    var g = { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: top }, { offset: 1, color: bottom }] };
+    if (horizontal) { g.x2 = 1; g.y2 = 0; }
+    return g;
+  }
+  function cmGxRgba(hex, a) {
+    var s = String(hex || '');
+    if (s.charAt(0) !== '#' || s.length !== 7) return s;
+    var n = parseInt(s.slice(1), 16);
+    if (isNaN(n)) return s;
+    return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+  function cmGxEsc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function cmGxTT(trigger) {
+    return {
+      trigger: trigger || 'item', backgroundColor: cmCssVar('--card-bg', '#FFFDF7'),
+      borderColor: cmCssVar('--border', '#E6DECD'), borderWidth: 1, padding: [9, 13],
+      textStyle: { color: cmCssVar('--text', '#2B2B33'), fontSize: 12, fontFamily: cmGxFont() },
+      extraCssText: 'box-shadow:0 8px 24px rgba(25,22,19,.14);border-radius:10px;'
+    };
+  }
+  function cmGxGrid(o) {
+    var g = { left: 46, right: 24, top: 36, bottom: 30, containLabel: true };
+    for (var k in (o || {})) g[k] = o[k];
+    return g;
+  }
+  function cmGxAxisX(o) {
+    var a = { type: 'category', axisLabel: { color: cmCssVar('--text-muted', '#8C8577'), fontSize: 11 }, axisLine: { lineStyle: { color: cmCssVar('--border', '#E6DECD') } }, axisTick: { show: false } };
+    for (var k in (o || {})) a[k] = o[k];
+    return a;
+  }
+  function cmGxAxisY(o) {
+    var a = { type: 'value', axisLabel: { color: cmCssVar('--text-muted', '#8C8577'), fontSize: 11 }, axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: cmGxIsDark() ? 'rgba(234,228,214,.07)' : 'rgba(43,43,51,.06)' } } };
+    for (var k in (o || {})) a[k] = o[k];
+    return a;
+  }
+  function cmGxChart(id, option) {
+    var dom = document.getElementById(id);
+    if (!dom || !cmEchartsReady()) return;
+    var old = window.echarts.getInstanceByDom(dom);
+    if (old) { try { old.dispose(); } catch (e) {} }
+    var c = window.echarts.init(dom);
+    c.setOption(option);
+    cmGradeCharts[id] = c;
+  }
+  /* 参考人数>0 的成绩聚合（口径同网页版：按学生 id 取分，缺科记 0，无分学生剔除） */
+  function cmGxExamResults(exam) {
+    var out = [];
+    var st = cmGxState();
+    var students = (st && st.students) || [];
+    var scores = exam.scores || {};
+    for (var i = 0; i < students.length; i++) {
+      var sc = scores[students[i].id];
+      if (!sc) continue;
+      var keys = 0; for (var k in sc) keys++;
+      if (!keys) continue;
+      var total = 0, subs = exam.subjects || [];
+      for (var j = 0; j < subs.length; j++) total += (sc[subs[j]] || 0);
+      out.push({ stu: students[i], scores: sc, total: total });
+    }
+    return out;
+  }
+  function cmGxAgg(results, subsLen) {
+    var n = results.length;
+    if (!n || !subsLen) return null;
+    var totals = results.map(function (r) { return r.total; });
+    var sum = totals.reduce(function (a, b) { return a + b; }, 0);
+    var avg = sum / n;
+    var sq = totals.reduce(function (a, b) { return a + b * b; }, 0);
+    var passLine = 60 * subsLen, excLine = 85 * subsLen;
+    return {
+      n: n, avg: avg, sd: Math.sqrt(sq / n - avg * avg),
+      mx: Math.max.apply(null, totals), mn: Math.min.apply(null, totals),
+      passLine: passLine, excLine: excLine,
+      passRate: totals.filter(function (t) { return t >= passLine; }).length / n * 100,
+      excRate: totals.filter(function (t) { return t >= excLine; }).length / n * 100,
+      totals: totals
+    };
+  }
+  /* 上一场 = 按日期排序后有成绩的考试里，当前考试的前一场 */
+  function cmGxPrevExam(exam) {
+    var exams = (cmGxState() && cmGxState().exams) || [];
+    var withData = exams.filter(function (e) { return cmGxExamResults(e).length > 0; })
+      .sort(function (a, b) { return String(a.date || '').localeCompare(String(b.date || '')); });
+    for (var i = 0; i < withData.length; i++) {
+      if (withData[i].id === exam.id) return i > 0 ? withData[i - 1] : null;
+    }
+    return null;
+  }
+  function cmGxChip(cur, prev, goodUp, unit) {
+    if (prev === null || prev === undefined || isNaN(prev)) return '<span class="cmGx-ktrend cmGx-flat">首场基准</span>';
+    var d = cur - prev, up = d > 0.005, down = d < -0.005;
+    var cls = (goodUp ? up : down) ? 'cmGx-up' : ((goodUp ? down : up) ? 'cmGx-down' : 'cmGx-flat');
+    var arr = up ? '▲' : (down ? '▼' : '—');
+    var txt = Math.abs(d) >= 100 ? String(Math.round(Math.abs(d))) : Math.abs(d).toFixed(1);
+    return '<span class="cmGx-ktrend ' + cls + '">' + arr + ' ' + txt + (unit || '') + ' vs 上一场</span>';
+  }
+  function cmGradeRender(exam, detail) {
+    var subs = exam.subjects || [];
+    var subsLen = subs.length;
+    var results = cmGxExamResults(exam);
+    if (!results.length || !subsLen) return false;
+    results.sort(function (a, b) { return b.total - a.total; });
+    var agg = cmGxAgg(results, subsLen);
+    if (!agg) return false;
+    var maxPossible = subsLen * 100;
+    var prevExam = cmGxPrevExam(exam);
+    var prevAgg = prevExam ? cmGxAgg(cmGxExamResults(prevExam), (prevExam.subjects || []).length) : null;
+    var pri = cmCssVar('--primary', '#A63A2B');
+    var muted = cmCssVar('--text-muted', '#8C8577');
+    var ink = cmCssVar('--text', '#2B2B33');
+
+    /* 释放旧实例（detail 即将整体重写） */
+    for (var oldId in cmGradeCharts) { try { cmGradeCharts[oldId].dispose(); } catch (e) {} }
+    cmGradeCharts = {};
+
+    /* ---- HTML 骨架：KPI 带 + 六图卡 + 预警/排名 ---- */
+    var h = '';
+    h += '<div class="cmGx-kpis">';
+    h += '<div class="cmGx-kpi"><div class="cmGx-klabel">总分均分</div><div class="cmGx-kvalue">' + agg.avg.toFixed(1) + '<small>分</small></div>' + cmGxChip(agg.avg, prevAgg && prevAgg.avg, true) + '</div>';
+    h += '<div class="cmGx-kpi"><div class="cmGx-klabel">及格率（人均≥60）</div><div class="cmGx-kvalue">' + agg.passRate.toFixed(0) + '<small>%</small></div>' + cmGxChip(agg.passRate, prevAgg && prevAgg.passRate, true, ' pp') + '</div>';
+    h += '<div class="cmGx-kpi"><div class="cmGx-klabel">优秀率（人均≥85）</div><div class="cmGx-kvalue">' + agg.excRate.toFixed(0) + '<small>%</small></div>' + cmGxChip(agg.excRate, prevAgg && prevAgg.excRate, true, ' pp') + '</div>';
+    h += '<div class="cmGx-kpi"><div class="cmGx-klabel">标准差</div><div class="cmGx-kvalue">' + agg.sd.toFixed(1) + '<small>分</small></div>' + cmGxChip(agg.sd, prevAgg && prevAgg.sd, false) + '</div>';
+    h += '<div class="cmGx-kpi"><div class="cmGx-klabel">最高 / 最低</div><div class="cmGx-kvalue">' + agg.mx + '<small>/ ' + agg.mn + ' 分</small></div><span class="cmGx-ktrend cmGx-flat">' + agg.n + ' 人参考</span></div>';
+    h += '</div>';
+    h += '<div class="cmGx-grid2">';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>总分直方图</div><div class="cmGx-cap">班级均分 / 及格线 / 优秀线一目了然 · 悬停查看区间人数</div><div id="cmGxHist" class="cmGx-chart"></div></div>';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>分数段构成</div><div class="cmGx-cap">五档口径与原版一致（按总分占满分比）</div><div id="cmGxDist" class="cmGx-chart"></div></div>';
+    h += '</div>';
+    h += '<div class="cmGx-grid2">';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>各科均分</div><div class="cmGx-cap">基准线：60 及格 · 85 优秀 · 悬停看最高 / 最低 / 及格率</div><div id="cmGxSubj" class="cmGx-chart tall"></div></div>';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>单科得分率雷达</div><div class="cmGx-cap">' + (prevExam ? '本场 vs 上一场 · 看强弱科与进步面' : '各科均分均衡度（首场暂无对比）') + '</div><div id="cmGxRadar" class="cmGx-chart tall"></div></div>';
+    h += '</div>';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>多场考试趋势</div><div class="cmGx-cap">总分均分（左轴）+ 及格率 / 优秀率（右轴）</div><div id="cmGxTrend" class="cmGx-chart"></div></div>';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>名次流动</div><div class="cmGx-cap">' + (prevExam ? '本场 vs 上一场 · 只显示变动 ≥ 4 名的学生 · 绿升红降' : '需要至少两场考试才能对比名次') + '</div><div id="cmGxSlope" class="cmGx-chart"></div></div>';
+    h += '<div class="cmGx-grid2">';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>学业预警</div><div class="cmGx-cap">口径：单科不及格 ≥ 2 科 · 或总分环比下滑 ≥ 10 分</div><div id="cmGxWarn"></div></div>';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>成绩排名 · 前 10</div><div class="cmGx-cap">条长 = 总分 / 班级最高</div><div id="cmGxTop"></div></div>';
+    h += '</div>';
+    detail.innerHTML = h;
+
+    /* ---- 总分直方图（分数刻度基准线挂隐藏二轴） ---- */
+    var lo = Math.floor(agg.mn / 50) * 50, hi = Math.ceil(agg.mx / 50) * 50;
+    if (hi <= lo) hi = lo + 50;
+    var bins = [];
+    for (var b = lo; b < hi; b += 50) bins.push({ lo: b, hi: b + 50, c: 0 });
+    agg.totals.forEach(function (t) {
+      for (var i = 0; i < bins.length; i++) { if (t >= bins[i].lo && t < bins[i].hi) { bins[i].c++; return; } }
+      bins[bins.length - 1].c++;               // 恰好等于 hi 的极端值归末档
+    });
+    var y2max = Math.ceil(Math.max(agg.mx, agg.excLine, agg.avg) * 1.08 / 50) * 50;
+    cmGxChart('cmGxHist', {
+      tooltip: cmGxTT('axis'), grid: cmGxGrid({ left: 34 }),
+      xAxis: cmGxAxisX({ data: bins.map(function (x) { return x.lo + '–' + x.hi; }), boundaryGap: true }),
+      yAxis: [cmGxAxisY({ minInterval: 1, max: Math.max.apply(null, bins.map(function (x) { return x.c; })) + 2 }),
+              { type: 'value', min: 0, max: y2max, show: false }],
+      series: [{ type: 'bar', barWidth: '55%', data: bins.map(function (x) { return x.c; }),
+        itemStyle: { borderRadius: [6, 6, 0, 0], color: cmGxVGrad(pri, cmGxShade(pri, -0.42)) },
+        label: { show: true, position: 'top', color: cmCssVar('--text-secondary', '#5C574F'), fontSize: 11, fontWeight: 600 },
+        tooltip: { valueFormatter: function (v) { return v + ' 人'; } } },
+        { type: 'line', data: [], yAxisIndex: 1,
+          markLine: { symbol: 'none', silent: true, data: [
+            { yAxis: agg.avg, lineStyle: { color: pri, width: 2 }, label: { formatter: '均分 ' + agg.avg.toFixed(0), color: pri, fontSize: 10, position: 'insideEndTop', fontWeight: 700 } },
+            { yAxis: agg.passLine, lineStyle: { color: cmCssVar('--warning', '#C08A2D'), type: 'dashed', width: 1.2 }, label: { formatter: '及格 ' + agg.passLine, color: cmCssVar('--warning', '#C08A2D'), fontSize: 10, position: 'insideEndTop' } },
+            { yAxis: agg.excLine, lineStyle: { color: cmCssVar('--success', '#2F7D5B'), type: 'dashed', width: 1.2 }, label: { formatter: '优秀 ' + agg.excLine, color: cmCssVar('--success', '#2F7D5B'), fontSize: 10, position: 'insideEndTop' } }
+          ] } }]
+    });
+
+    /* ---- 分数段构成（五档环形） ---- */
+    var bDefs = [
+      { l: '0-40%', k: function (t) { return t < 0.4 * maxPossible; } },
+      { l: '40-60%', k: function (t) { return t >= 0.4 * maxPossible && t < 0.6 * maxPossible; } },
+      { l: '60-75%', k: function (t) { return t >= 0.6 * maxPossible && t < 0.75 * maxPossible; } },
+      { l: '75-85%', k: function (t) { return t >= 0.75 * maxPossible && t < 0.85 * maxPossible; } },
+      { l: '85%+', k: function (t) { return t >= 0.85 * maxPossible; } }
+    ];
+    var bCols = cmGxBucket();
+    var distData = bDefs.map(function (d, i) {
+      var c = agg.totals.filter(d.k).length;
+      return { name: d.l + '（' + c + '人）', value: c, itemStyle: { color: bCols[i] } };
+    });
+    cmGxChart('cmGxDist', {
+      tooltip: cmGxTT(),
+      legend: { bottom: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { color: cmCssVar('--text-secondary', '#5C574F'), fontSize: 11, fontFamily: cmGxFont() }, itemGap: 12 },
+      title: { text: String(agg.n), subtext: '参考人数', left: 'center', top: '38%',
+        textStyle: { fontSize: 26, fontWeight: 700, color: ink, fontFamily: cmGxFont() }, subtextStyle: { color: muted, fontSize: 11 } },
+      series: [{ type: 'pie', radius: ['52%', '72%'], center: ['50%', '44%'], data: distData,
+        itemStyle: { borderRadius: 5, borderColor: cmCssVar('--card-bg', '#FFFDF7'), borderWidth: 2 },
+        label: { show: false }, emphasis: { scaleSize: 4 }, animationDuration: 900, animationEasing: 'cubicOut' }]
+    });
+
+    /* ---- 各科均分（横向条 + 60/85 基准线） ---- */
+    var subj = subs.map(function (sj) {
+      var arr = results.map(function (r) { return r.scores[sj]; }).filter(function (v) { return v !== undefined && v !== null; });
+      if (!arr.length) return { s: sj, avg: 0, max: 0, min: 0, pass: 0 };
+      return { s: sj, avg: arr.reduce(function (a, b) { return a + b; }, 0) / arr.length,
+        max: Math.max.apply(null, arr), min: Math.min.apply(null, arr),
+        pass: arr.filter(function (v) { return v >= 60; }).length / arr.length * 100 };
+    }).sort(function (a, b) { return a.avg - b.avg; });
+    cmGxChart('cmGxSubj', {
+      tooltip: cmGxTT(),
+      grid: cmGxGrid({ left: 30, top: 38, bottom: 16 }),
+      xAxis: cmGxAxisY({ max: 100 }),
+      yAxis: cmGxAxisX({ data: subj.map(function (x) { return x.s; }), axisLine: { show: false } }),
+      series: [{ type: 'bar', barWidth: 13, data: subj.map(function (x) { return +x.avg.toFixed(1); }),
+        itemStyle: { borderRadius: [0, 7, 7, 0], color: cmGxVGrad(cmGxShade(pri, 0.12), cmGxShade(pri, -0.28), true) },
+        label: { show: true, position: 'right', color: cmCssVar('--text-secondary', '#5C574F'), fontSize: 11, fontWeight: 600 },
+        tooltip: { formatter: function (p) {
+          var d = subj[p.dataIndex];
+          return d.s + '<br>均分 <b>' + d.avg.toFixed(1) + '</b> · 最高 ' + d.max + ' · 最低 ' + d.min + '<br>及格率 ' + d.pass.toFixed(0) + '%';
+        } },
+        markLine: { symbol: 'none', silent: true, data: [
+          { xAxis: 60, lineStyle: { color: cmCssVar('--warning', '#C08A2D'), type: 'dashed', width: 1.2 }, label: { formatter: '及格 60', color: cmCssVar('--warning', '#C08A2D'), fontSize: 10, position: 'end', distance: 8 } },
+          { xAxis: 85, lineStyle: { color: cmCssVar('--success', '#2F7D5B'), type: 'dashed', width: 1.2 }, label: { formatter: '优秀 85', color: cmCssVar('--success', '#2F7D5B'), fontSize: 10, position: 'end', distance: 8 } }
+        ] } }]
+    });
+
+    /* ---- 单科得分率雷达（本场 vs 上一场） ---- */
+    function subjAvg(ex) {
+      var rs = cmGxExamResults(ex);
+      return subs.map(function (sj) {
+        var arr = rs.map(function (r) { return r.scores[sj]; }).filter(function (v) { return v !== undefined && v !== null; });
+        return arr.length ? +(arr.reduce(function (a, b) { return a + b; }, 0) / arr.length).toFixed(1) : 0;
+      });
+    }
+    var radarSeries = [{ name: '本场 · ' + exam.name, value: subjAvg(exam),
+      lineStyle: { width: 2.5, color: pri }, itemStyle: { color: pri },
+      areaStyle: { color: cmGxVGrad(cmGxShade(pri, 0.35), cmGxShade(pri, -0.1)), opacity: 0.30 }, symbol: 'circle', symbolSize: 4 }];
+    var radarLegend = ['本场 · ' + exam.name];
+    if (prevExam) {
+      radarSeries.push({ name: '上一场 · ' + prevExam.name, value: subjAvg(prevExam),
+        lineStyle: { width: 1.6, color: muted, type: 'dashed' }, itemStyle: { color: muted }, areaStyle: { opacity: 0.05 }, symbol: 'none' });
+      radarLegend.push('上一场 · ' + prevExam.name);
+    }
+    cmGxChart('cmGxRadar', {
+      tooltip: cmGxTT(),
+      legend: { bottom: 0, icon: 'roundRect', itemWidth: 14, itemHeight: 4, data: radarLegend, textStyle: { color: cmCssVar('--text-secondary', '#5C574F'), fontSize: 11, fontFamily: cmGxFont() }, itemGap: 16 },
+      radar: { indicator: subs.map(function (s) { return { name: s, max: 100 }; }), radius: '62%', center: ['50%', '46%'], splitNumber: 4,
+        axisName: { color: muted, fontSize: 11 },
+        splitLine: { lineStyle: { color: cmGxIsDark() ? 'rgba(234,228,214,.10)' : 'rgba(43,43,51,.08)' } },
+        splitArea: { areaStyle: { color: [cmGxIsDark() ? 'rgba(206,107,82,.04)' : 'rgba(166,58,43,.03)', 'transparent'] } },
+        axisLine: { lineStyle: { color: cmGxIsDark() ? 'rgba(234,228,214,.10)' : 'rgba(43,43,51,.08)' } } },
+      series: [{ type: 'radar', data: radarSeries, animationDuration: 900 }]
+    });
+
+    /* ---- 多场考试趋势（有成绩的考试按日期排） ---- */
+    var trendExams = ((cmGxState() && cmGxState().exams) || []).filter(function (e) { return cmGxExamResults(e).length > 0; })
+      .sort(function (a, b) { return String(a.date || '').localeCompare(String(b.date || '')); });
+    var trendAggs = trendExams.map(function (e) { return cmGxAgg(cmGxExamResults(e), (e.subjects || []).length); });
+    var avgs = trendAggs.map(function (a) { return +a.avg.toFixed(1); });
+    var passes = trendAggs.map(function (a) { return +a.passRate.toFixed(0); });
+    var excs = trendAggs.map(function (a) { return +a.excRate.toFixed(0); });
+    cmGxChart('cmGxTrend', {
+      tooltip: cmGxTT('axis'),
+      legend: { top: 0, right: 0, icon: 'roundRect', itemWidth: 14, itemHeight: 4, textStyle: { color: cmCssVar('--text-secondary', '#5C574F'), fontSize: 11, fontFamily: cmGxFont() }, itemGap: 16 },
+      grid: cmGxGrid({ left: 40, top: 34 }),
+      xAxis: cmGxAxisX({ data: trendExams.map(function (e) { return e.name; }), boundaryGap: false }),
+      yAxis: [cmGxAxisY({ min: Math.floor((Math.min.apply(null, avgs) - 25) / 50) * 50, name: '分', nameTextStyle: { color: muted, fontSize: 10 } }),
+              cmGxAxisY({ min: 0, max: 100, name: '%', nameTextStyle: { color: muted, fontSize: 10 }, splitLine: { show: false } })],
+      series: [
+        { name: '总分均分', type: 'line', smooth: true, symbol: 'circle', symbolSize: 8, data: avgs,
+          lineStyle: { width: 3, color: pri }, itemStyle: { color: pri, borderColor: cmCssVar('--card-bg', '#FFFDF7'), borderWidth: 2 },
+          areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: cmGxRgba(pri, 0.22) }, { offset: 1, color: cmGxRgba(pri, 0) }] } },
+          label: { show: true, color: pri, fontWeight: 700, fontSize: 11 }, animationDuration: 900 },
+        { name: '及格率', type: 'line', yAxisIndex: 1, smooth: true, symbol: 'circle', symbolSize: 6, data: passes, lineStyle: { width: 2, color: cmGxPal()[1] }, itemStyle: { color: cmGxPal()[1] }, animationDuration: 1000 },
+        { name: '优秀率', type: 'line', yAxisIndex: 1, smooth: true, symbol: 'circle', symbolSize: 6, data: excs, lineStyle: { width: 2, color: cmGxPal()[2] }, itemStyle: { color: cmGxPal()[2] }, animationDuration: 1100 }
+      ]
+    });
+
+    /* ---- 名次流动（斜率图，|Δ|≥4 取前 10） ---- */
+    var rankNow = {};
+    results.forEach(function (r, i) { rankNow[r.stu.id] = i + 1; });
+    var movers = [];
+    if (prevExam) {
+      var prevResults = cmGxExamResults(prevExam).sort(function (a, b) { return b.total - a.total; });
+      var rankPrev = {};
+      prevResults.forEach(function (r, i) { rankPrev[r.stu.id] = i + 1; });
+      results.forEach(function (r, i) {
+        var pr = rankPrev[r.stu.id];
+        if (pr && Math.abs(pr - (i + 1)) >= 4) movers.push({ name: r.stu.name, pr: pr, nr: i + 1, d: pr - (i + 1) });
+      });
+      movers.sort(function (a, b) { return Math.abs(b.d) - Math.abs(a.d); });
+      movers = movers.slice(0, 10);
+    }
+    if (movers.length) {
+      cmGxChart('cmGxSlope', {
+        tooltip: { trigger: 'item', backgroundColor: cmCssVar('--card-bg', '#FFFDF7'), borderColor: cmCssVar('--border', '#E6DECD'), borderWidth: 1,
+          padding: [9, 13], textStyle: { color: ink, fontSize: 12, fontFamily: cmGxFont() },
+          extraCssText: 'box-shadow:0 8px 24px rgba(25,22,19,.14);border-radius:10px;',
+          formatter: function (p) {
+            var m = movers[p.seriesIndex];
+            return cmGxEsc(m.name) + '<br>上次第 ' + m.pr + ' 名 → 本次第 ' + m.nr + ' 名（' + (m.d > 0 ? '+' : '') + m.d + '）';
+          } },
+        grid: cmGxGrid({ left: 20, right: 120, top: 20, bottom: 26 }),
+        xAxis: cmGxAxisX({ data: ['上一场 · ' + prevExam.name, '本场 · ' + exam.name], boundaryGap: true }),
+        yAxis: cmGxAxisY({ inverse: true, min: 0, max: results.length + 1, interval: 10, splitLine: { lineStyle: { color: cmGxIsDark() ? 'rgba(234,228,214,.05)' : 'rgba(43,43,51,.05)' } } }),
+        series: movers.map(function (m) {
+          var col = m.d > 0 ? cmCssVar('--success', '#2F7D5B') : cmCssVar('--danger', '#B42318');
+          return { type: 'line', data: [[0, m.pr], [1, m.nr]], symbol: 'circle', symbolSize: 5,
+            lineStyle: { width: 2, color: col, opacity: 0.8 }, itemStyle: { color: col },
+            label: { show: true, fontSize: 10, color: col, fontWeight: 600,
+              formatter: function (p) { return p.dataIndex === 0 ? ('第' + m.pr) : (cmGxEsc(m.name) + ' 第' + m.nr); } },
+            labelLayout: { moveOverlap: 'shiftY' },
+            animationDuration: 900, animationDelay: function (i) { return i * 120; } };
+        })
+      });
+    } else if (prevExam) {
+      document.getElementById('cmGxSlope').innerHTML = '<div class="cmGx-empty">本场名次变动都在 ±4 名内，班级格局稳定 ✨</div>';
+    } else {
+      document.getElementById('cmGxSlope').innerHTML = '<div class="cmGx-empty">考完下一场后，这里会画出每个人的名次升降</div>';
+    }
+
+    /* ---- 学业预警 ---- */
+    var warns = [];
+    results.forEach(function (r) {
+      var fails = subs.filter(function (sj) { var v = r.scores[sj]; return v !== undefined && v !== null && v < 60; });
+      if (fails.length >= 2) warns.push({ type: 'fail', name: r.stu.name, n: fails.length, subs: fails.slice(0, 3).join('、') + (fails.length > 3 ? ' 等' : ''), total: r.total });
+    });
+    if (prevExam) {
+      var prevTotals = {};
+      cmGxExamResults(prevExam).forEach(function (r) { prevTotals[r.stu.id] = r.total; });
+      results.forEach(function (r) {
+        var pt = prevTotals[r.stu.id];
+        if (pt !== undefined && pt - r.total >= 10) warns.push({ type: 'drop', name: r.stu.name, n: pt - r.total, subs: '上次 ' + pt + ' → 本次 ' + r.total, total: r.total });
+      });
+    }
+    warns.sort(function (a, b) { return (b.type === 'fail' ? b.n * 1000 : b.n) - (a.type === 'fail' ? a.n * 1000 : a.n); });
+    var warnHtml = '';
+    if (!warns.length) warnHtml = '<div class="cmGx-empty">✨ 本轮无预警学生</div>';
+    else {
+      warnHtml = warns.slice(0, 7).map(function (w) {
+        if (w.type === 'fail') return '<div class="cmGx-warn"><span class="cmGx-rname" style="min-width:52px">' + cmGxEsc(w.name) + '</span><span class="cmGx-chip">' + w.n + ' 科不及格</span><span style="font-size:11px;color:var(--text-secondary,#5C574F);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + cmGxEsc(w.subs) + '</span><span style="font-size:11px;color:' + muted + ';flex:none">总分 ' + w.total + '</span></div>';
+        return '<div class="cmGx-warn amber"><span class="cmGx-rname" style="min-width:52px">' + cmGxEsc(w.name) + '</span><span class="cmGx-chip amber">↓ ' + w.n + ' 分</span><span style="font-size:11px;color:var(--text-secondary,#5C574F);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + cmGxEsc(w.subs) + '</span><span style="font-size:11px;color:' + muted + ';flex:none">环比下滑</span></div>';
+      }).join('');
+      if (warns.length > 7) warnHtml += '<div style="font-size:11px;color:' + muted + ';padding-left:10px">… 另有 ' + (warns.length - 7) + ' 人，见完整名单</div>';
+    }
+    document.getElementById('cmGxWarn').innerHTML = warnHtml;
+
+    /* ---- 排名前 10（数据条 + 奖牌色徽） ---- */
+    var topHtml = results.slice(0, 10).map(function (r, i) {
+      var cls = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : 'rn';
+      var subsDet = subs.map(function (sj) { var v = r.scores[sj]; return sj + ' ' + (v !== undefined ? v : '—'); }).join(' · ');
+      return '<div class="cmGx-rank"><div class="cmGx-rnum ' + cls + '">' + (i + 1) + '</div>' +
+        '<div class="cmGx-rmain"><div class="cmGx-rname">' + cmGxEsc(r.stu.name) + '</div>' +
+        '<div class="cmGx-rbar"><i style="width:' + (r.total / agg.mx * 100).toFixed(1) + '%"></i></div>' +
+        '<div class="cmGx-rsubs">' + cmGxEsc(subsDet) + '</div></div>' +
+        '<div class="cmGx-rscore">' + r.total + '</div></div>';
+    }).join('');
+    document.getElementById('cmGxTop').innerHTML = topHtml;
+    return true;
+  }
+  function cmWrapGradeDetail() {
+    var orig = window.renderGradeAnalyticsDetail;
+    if (typeof orig !== 'function' || orig.__cmGradeEng) return;
+    var wrapped = function () {
+      var sel = document.getElementById('gradeAnalyticsExamSelect');
+      var detail = document.getElementById('gradeAnalyticsDetail');
+      if (!sel || !detail) { try { return orig.apply(this, arguments); } catch (e) {} return; }
+      var exam = null;
+      try {
+        var exams = (cmGxState() && cmGxState().exams) || [];
+        var eid = parseInt(sel.value, 10);
+        for (var i = 0; i < exams.length; i++) { if (exams[i].id === eid) { exam = exams[i]; break; } }
+      } catch (e) {}
+      if (!exam || !exam.subjects || !exam.subjects.length) { try { return orig.apply(this, arguments); } catch (e) {} return; }
+      if (!cmGxExamResults(exam).length) { try { return orig.apply(this, arguments); } catch (e) {} return; }   // 空态走原实现
+      if (!cmEchartsReady()) {
+        detail.innerHTML = '<div class="cmGx-loading">📊 图表引擎加载中…</div>';
+        cmLoadEcharts(function (okFlag) {
+          if (!okFlag) { try { orig(); } catch (e) {} return; }
+          var p = document.getElementById('analyticsGradePanel');
+          if (p && p.offsetParent !== null) window.renderGradeAnalyticsDetail();   // 就绪且成绩页仍在视野 → 重渲染
+        });
+        return;
+      }
+      cmGradeRender(exam, detail);
+    };
+    wrapped.__cmGradeEng = true;
+    window.renderGradeAnalyticsDetail = wrapped;
+  }
+  function cmGradeResize() {
+    clearTimeout(cmGradeResizeT);
+    cmGradeResizeT = setTimeout(function () {
+      for (var id in cmGradeCharts) { try { cmGradeCharts[id].resize(); } catch (e) {} }
+    }, 120);
+  }
+  function cmGradeWatchTheme() {
+    if (cmGradeThemeObs || !window.MutationObserver) return;
+    cmGradeThemeObs = new MutationObserver(function () {
+      clearTimeout(cmGradeThemeT);
+      cmGradeThemeT = setTimeout(function () {
+        var p = document.getElementById('analyticsGradePanel');
+        if (!p || p.offsetParent === null) return;
+        window.renderGradeAnalyticsDetail();
+      }, 160);
+    });
+    cmGradeThemeObs.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-skin'] });
+    window.addEventListener('resize', cmGradeResize);
+  }
+
   /* ---------- 启动 ---------- */
   function boot() {
     // 上次会话示例体验未走完（中途关应用）→ 幂等清扫，绝不把示例数据留给正式使用
@@ -1941,6 +2405,8 @@
     cmWrapPro('exportWeeklyReport', '学分周报导出');
     cmWrapPro('cmExportLeaveFlow', '请假流水导出');   // v1.2.6：考勤页新按钮（原则：所有导出皆 Pro）
     buildLeaveExportBtn();
+    cmWrapGradeDetail();                         // v1.3.0：成绩 tab ECharts 图表引擎接管（含降级回退）
+    cmGradeWatchTheme();                         // 亮/暗/皮肤切换自动重渲染图表
     silenceCloudPush();
     wrapNavigatePro();
     buildNavPro();

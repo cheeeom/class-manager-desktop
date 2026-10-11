@@ -486,6 +486,52 @@ t('⑭ v1.2.6 七件套', function () {
   ok(!/\.cmDesk-wfoot \.btn \.arr/.test(css), 'wfoot 箭头死规则已清');
 });
 
+/* ⑮ v1.3.0 数据分析图表引擎：ECharts 成绩 tab 重设计（cmInk 主题） */
+t('⑮ 数据分析图表引擎', function () {
+  const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
+  const css = fs.readFileSync(path.join(HERE, 'src', 'wizard.css'), 'utf8');
+  const bjs = fs.readFileSync(path.join(HERE, 'build.js'), 'utf8');
+  // 库文件落位与分发
+  const ech = fs.readFileSync(path.join(HERE, 'src', 'echarts.min.js'), 'utf8');
+  ok(ech.length > 500 * 1024, 'echarts.min.js 体积异常（<500KB）');
+  has(ech, 'Apache License, Version 2.0', 'Apache-2.0 许可头（echarts.min.js ASF banner）');
+  has(bjs, "'src/echarts.min.js'", 'build.js dist 复制清单已含 echarts');
+  ok(fs.existsSync(path.join(HERE, 'dist', 'echarts.min.js')), 'dist 缺 echarts.min.js——重跑 build.js');
+  // 接管与降级：挂原函数名下 + 加载失败回退 + 空态走原实现
+  has(p, 'function cmWrapGradeDetail', '接管函数');
+  has(p, 'window.renderGradeAnalyticsDetail = wrapped', '接管挂 window.renderGradeAnalyticsDetail（Pro 页级锁不受影响）');
+  has(p, 'wrapped.__cmGradeEng = true', '防双跑标记');
+  ok((p.match(/orig\.apply\(this, arguments\)/g) || []).length >= 3, '选择器/考试/空态缺失均回退原实现');
+  has(p, "cmLoadEcharts(function (okFlag) {", 'echarts 就绪回调');
+  has(p, "if (!okFlag) { try { orig(); } catch (e) {} return; }", 'echarts 加载失败静默回退');
+  has(p, 'CM_ECHARTS_TIMEOUT', '加载挂死兜底超时');
+  has(p, "s.src = './echarts.min.js'", '按需加载走 dist 相对路径');
+  // cmInk 主题：颜色运行时读 CSS 变量（亮/暗/皮肤自适应）
+  has(p, 'function cmCssVar', 'CSS 变量取色');
+  has(p, "attributeFilter: ['class', 'data-skin']", '亮/暗/皮肤变化自动重渲染');
+  has(p, 'function cmGxBucket', '五档色与网页版对齐');
+  has(p, "cmGxIsDark()", '暗色感知');
+  // 接管范围：只动成绩 tab（学分 tab 三图留给 P1），Pro 锁原样
+  notHas(p, 'window.drawRangeChart', '学分 tab 手绘图本轮不接管（P1）');
+  has(p, "cmWrapPro('switchAnalyticsTab', '数据分析')", 'Pro 锁原样保留');
+  // 版本口径
+  const pkg = JSON.parse(fs.readFileSync(path.join(HERE, 'package.json'), 'utf8'));
+  ok(pkg.version === '1.3.0', '版本号应为 1.3.0（独立版本号铁律）');
+  ok(distHtml && distHtml.indexOf('v1.3.0 桌面版') >= 0, 'dist 版本标已升 1.3.0');
+  // 样式与骨架
+  has(css, '.cmGx-kpis', 'KPI 带样式');
+  has(css, '.cmGx-chart', '图表容器样式');
+  has(css, '.cmGx-warn', '预警行样式');
+  has(css, '.cmGx-rnum', '排名奖牌徽样式');
+  has(p, 'cmGxExamResults', '成绩聚合（口径同网页版）');
+  has(p, 'cmGxPrevExam', '上一场解析（按日期排序）');
+  has(p, 'labelLayout: { moveOverlap: \'shiftY\' }', '名次流动标签防重叠');
+  has(p, '学业预警', '预警中心落地（Pro 卖点兑现）');
+  has(p, 'id="cmGxHist"', '直方图容器');
+  has(p, 'id="cmGxSlope"', '名次流动容器');
+  ok(p.indexOf('cmWrapGradeDetail();') >= 0 && p.indexOf('cmGradeWatchTheme();') >= 0, 'boot 已接线（接管 + 主题观察）');
+});
+
 console.log('\n通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 console.log(`结果：${pass} 通过，${fail} 失败`);
 if (fail) { console.log('\n失败项：'); failures.forEach(f => console.log('  · ' + f)); }

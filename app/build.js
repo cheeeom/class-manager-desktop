@@ -68,7 +68,7 @@ for (const [oldS, newS, cnt, tag] of patches) {
 const dist = path.join(HERE, 'dist');
 fs.mkdirSync(dist, { recursive: true });
 fs.writeFileSync(path.join(dist, 'index.html'), html);
-for (const f of ['src/app.patch.js', 'src/wizard.css', 'src/ed25519.cjs', 'src/pro.core.cjs']) {
+for (const f of ['src/app.patch.js', 'src/wizard.css', 'src/ed25519.cjs', 'src/pro.core.cjs', 'src/echarts.min.js']) {
   fs.copyFileSync(path.join(HERE, f), path.join(dist, path.basename(f)));
 }
 // 登录页背景海报（AI 生成，已裁水印）
@@ -99,6 +99,7 @@ for (const [needle, minCnt] of must) {
   if (n < minCnt) die('dist 标记断言失败: ' + needle + ' 出现 ' + n + ' 次（期望 ≥' + minCnt + '）');
 }
 if (/serviceWorker\.register/.test(distHtml)) die('dist 仍含 serviceWorker.register');
+if (!fs.existsSync(path.join(dist, 'echarts.min.js'))) die('dist 缺 echarts.min.js（数据分析图表引擎依赖）');
 log('✓ dist 标记断言通过');
 
 /* ---------- 4. package.json.baseWeb 跟版 ---------- */

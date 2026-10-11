@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>数据分析 · 图表改造预览（cmInk 主题）</title>
+<style>
+  :root{
+    --bg:#F6F2E9; --card:#FFFDF7; --ink:#2B2B33; --text2:#5C574F; --muted:#8C8577;
+    --border:#E6DECD; --primary:#A63A2B; --success:#2F7D5B; --warning:#C08A2D;
+    --danger:#B42318; --gold:#C9A227;
+    --shadow:0 1px 2px rgba(25,22,19,.04),0 6px 20px rgba(25,22,19,.05);
+  }
+  html.dark{
+    --bg:#191613; --card:#23201A; --ink:#EAE4D6; --text2:#B7AE9E; --muted:#8C8577;
+    --border:#3A352C; --primary:#CE6B52; --success:#4F9E77; --warning:#D9A94E; --danger:#D45A4A;
+    --shadow:0 1px 2px rgba(0,0,0,.25),0 8px 24px rgba(0,0,0,.28);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink); min-height:100vh;
+    font-family:'Segoe UI','Microsoft YaHei',-apple-system,sans-serif;
+    font-size:14px; padding:22px 28px 48px; transition:background .35s,color .35s;
+  }
+  header{max-width:1180px;margin:0 auto 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .seal{width:14px;height:14px;background:var(--primary);border-radius:3px;transform:rotate(45deg);flex-shrink:0}
+  h1{font-size:20px;font-weight:700;font-family:Georgia,'Noto Serif SC','SimSun',serif;letter-spacing:1px}
+  .sub{font-size:12px;color:var(--muted)}
+  .hd-sp{flex:1}
+  .tab{padding:7px 18px;border-radius:999px;border:1px solid var(--border);background:var(--card);
+       cursor:pointer;font-size:13px;color:var(--text2);transition:all .2s}
+  .tab.active{background:var(--primary);border-color:var(--primary);color:#FFFDF7;font-weight:600}
+  .note{max-width:1180px;margin:0 auto 16px;padding:9px 16px;border:1px dashed var(--border);border-radius:10px;
+        font-size:12px;color:var(--muted);background:var(--card)}
+  main{max-width:1180px;margin:0 auto}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px 14px;
+        box-shadow:var(--shadow);margin-bottom:16px;transition:background .35s,border-color .35s}
+  .sec-title{font-size:14px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;
+             font-family:Georgia,'Noto Serif SC','SimSun',serif;letter-spacing:.5px}
+  .sec-title .dot{width:8px;height:8px;background:var(--primary);border-radius:2px;transform:rotate(45deg);flex-shrink:0}
+  .sec-cap{font-size:11px;color:var(--muted);margin-bottom:8px;padding-left:16px}
+  .chart{height:280px;width:100%}
+  .chart.tall{height:330px}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid-2 .card{margin-bottom:16px}
+  @media(max-width:920px){.grid-2{grid-template-columns:1fr}}
+  /* KPI */
+  .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:16px}
+  @media(max-width:920px){.kpi-row{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);
+       position:relative;overflow:hidden;transition:background .35s,border-color .35s}
+  .kpi::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--primary);opacity:.85}
+  .k-label{font-size:11px;color:var(--muted);letter-spacing:1px}
+  .k-value{font-size:30px;font-weight:700;font-family:Georgia,'Noto Serif SC',serif;margin:4px 0 2px;
+           font-variant-numeric:tabular-nums;line-height:1.1}
+  .k-value .unit{font-size:12px;font-weight:400;color:var(--muted);margin-left:3px}
+  .k-trend{font-size:11px;font-weight:600;border-radius:999px;display:inline-block;padding:2px 9px;margin-top:2px}
+  .k-trend.up{color:var(--success);background:rgba(47,125,91,.10)}
+  .k-trend.down{color:var(--danger);background:rgba(180,35,24,.09)}
+  .k-trend.flat{color:var(--muted);background:rgba(140,133,119,.10)}
+  /* 考试选择行 */
+  .exam-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;font-size:13px;color:var(--text2)}
+  .exam-row select{padding:6px 12px;border-radius:9px;border:1px solid var(--border);background:var(--card);
+                   color:var(--ink);font-size:13px;outline:none}
+  .exam-row .hint{font-size:11px;color:var(--muted)}
+  /* 预警 */
+  .warn-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;margin-bottom:7px;
+             background:rgba(180,35,24,.05);border:1px solid rgba(180,35,24,.12)}
+  .warn-item.tag2{background:rgba(192,138,45,.06);border-color:rgba(192,138,45,.18)}
+  .warn-name{font-weight:600;font-size:13px;min-width:56px}
+  .chip{font-size:10px;padding:2px 7px;border-radius:6px;background:rgba(180,35,24,.10);color:var(--danger);font-weight:600}
+  .chip.amber{background:rgba(192,138,45,.13);color:var(--warning)}
+  .warn-note{font-size:11px;color:var(--muted);margin-left:auto;flex-shrink:0}
+  .empty-warn{padding:26px;text-align:center;color:var(--muted);font-size:13px}
+  /* 排名 */
+  .rank-item{display:flex;align-items:center;gap:11px;padding:7px 8px;border-radius:10px}
+  .rank-item:hover{background:rgba(166,58,43,.04)}
+  .rank-num{width:24px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+            font-size:12px;font-weight:700;color:#FFFDF7;flex-shrink:0}
+  .rank-num.r1{background:var(--gold)} .rank-num.r2{background:#A8A29A} .rank-num.r3{background:#C08A2D}
+  .rank-num.rn{background:var(--bg);color:var(--text2);border:1px solid var(--border)}
+  .rank-main{flex:1;min-width:0}
+  .rank-name{font-size:13px;font-weight:600}
+  .rank-bar{height:5px;border-radius:3px;background:var(--bg);margin-top:4px;overflow:hidden}
+  .rank-bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--primary-light,#C25B4A),var(--primary))}
+  .rank-score{font-size:15px;font-weight:700;font-family:Georgia,serif;font-variant-numeric:tabular-nums;min-width:44px;text-align:right}
+  .rank-subs{font-size:10px;color:var(--muted);margin-top:1px}
+  footer{max-width:1180px;margin:26px auto 0;text-align:center;font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <span class="seal"></span>
+  <h1>数据分析 · 图表改造预览</h1>
+  <span class="sub">cmInk 主题 · Apache ECharts 6</span>
+  <span class="hd-sp"></span>
+  <button class="tab active" id="tabGrade" onclick="showPage('grade')">📝 成绩分析</button>
+  <button class="tab" id="tabCredit" onclick="showPage('credit')">📊 学分分析</button>
+  <button class="tab" id="btnTheme" onclick="toggleTheme()">🌙 暗色</button>
+</header>
+<div class="note">本页为桌面版「数据分析」改造目标形态预览（模拟数据：高2026级一班 · 45人 · 8科满分100 · 3场考试）。正式版颜色将随应用主题（亮色 / 暗色 / 皮肤）自动适配，Pro 锁与现有页面级权限完全一致。</div>
+<main>
+  <!-- ================= 成绩分析 ================= -->
+  <section id="page-grade">
+    <div class="exam-row">
+      考试：<select id="examSel" onchange="buildGrade()"></select>
+      <span class="hint">环比 = 与上一场考试对比 · 数据为模拟</span>
+    </div>
+    <div class="kpi-row" id="gradeKpi"></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="sec-title"><span class="dot"></span>总分直方图</div>
+        <div class="sec-cap">班级均分 / 及格线 / 优秀线一目了然 · 悬停查看区间明细</div>
+        <div id="cHist" class="chart"></div>
+      </div>
+      <div class="card">
+        <div class="sec-title"><span class="dot"></span>分数段构成</div>
+        <div class="sec-cap">五档口径与现版一致（按总分占满分比）</div>
+        <div id="cDonut" class="chart"></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="sec-title"><span class="dot"></span>各科均分</div>
+        <div class="sec-cap">基准线：60 及格 · 85 优秀 · 悬停看最高 / 最低 / 及格率</div>
+        <div id="cSubj" class="chart tall"></div>
+      </div>
+      <div class="card">
+        <div class="sec-title"><span class="dot"></span>单科得分率雷达</div>
+        <div class="sec-cap">本场 vs 上一场 · 看强弱科与进步面</div>
+        <div id="cRadar" class="chart tall"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="sec-title"><span class="dot"></span>多场考试趋势</div>
+      <div class="sec-cap">总分均分（左轴）+ 及格率 / 优秀率（右轴）</div>
+      <div id="cTrend" class="chart"></div>
+    </div>
+    <div class="card">
+      <div class="sec-title"><span class="dot"></span>名次流动</div>
+      <div class="sec-cap">本场 vs 上一场 · 只显示变动 ≥ 4 名的学生 · 绿升红降</div>
+      <div id="cSlope" class="chart"></div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="sec-title"><span class="dot"></span>学业预警</div>
+        <div class="sec-cap">口径：单科不及格 ≥ 2 科 · 或总分环比下滑 ≥ 10 分</div>
+        <div id="warnList" style="margin-top:6px"></div>
+      </div>
+      <div class="card">
+        <div class="sec-title"><span class="dot"></span>成绩排名 · 前 10</div>
+        <div class="sec-cap">条长 = 总分 / 班级最高</div>
+        <div id="topList" style="margin-top:6px"></div>
+      </div>
+    </div>
+  </section>
+  <!-- ================= 学分分析 ================= -->
+  <section id="page-credit" hidden>
+    <div class="kpi-row" id="creditKpi"></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="sec-title"><span class="dot"></span>学分区间分布</div>
+        <div class="sec-cap">五档口径与现版一致（预警 / 常规 / 进取 / 卓越 / 巅峰）</div>
+        <div id="cCd" class="chart"></div>
+      </div>
+      <div class="card">
+        <div class="sec-title"><span class="dot"></span>加减分大类占比</div>
+        <div class="sec-cap">本学期全部有效流水（已剔除撤销）</div>
+        <div id="cCat" class="chart"></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="sec-title"><span class="dot"></span>近 7 天学分净变动</div>
+        <div class="sec-cap">全班逐日合计 · 绿为净加分 · 红为净扣分</div>
+        <div id="cWk" class="chart"></div>
+      </div>
+      <div class="card">
+        <div class="sec-title"><span class="dot"></span>本周进退步榜</div>
+        <div class="sec-cap">7 天净变动最大 / 最小各 4 人</div>
+        <div id="cMovers" class="chart"></div>
+      </div>
+    </div>
+  </section>
+</main>
+<footer>班主任工作台 · 桌面版 v1.3.0（拟）数据分析图表引擎 · cmInk 主题预览 · 生成于 2026-10-11</footer>
+
+<script src="./echarts.min.js"></script>
+<script>
+/* ================= 模拟数据 ================= */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+var rnd=mulberry32(20261011);
+function gauss(){var u=0,v=0;while(!u)u=rnd();while(!v)v=rnd();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function clamp(v,a,b){return Math.min(b,Math.max(a,v))}
+
+var NAMES=['王梓涵','李思远','张若曦','刘宇轩','陈雨桐','杨浩然','赵欣怡','黄子墨','周诗琪','吴俊杰',
+'徐静姝','孙志远','马嘉禾','朱思睿','胡欣然','郭明轩','林清越','何紫萱','高子涵','罗一鸣',
+'郑晓萌','梁宇航','谢雨欣','宋知远','唐书瑶','许博文','韩冰玉','冯天翼','邓芷晴','曹俊驰',
+'彭雅雯','曾子航','肖沐辰','田雨澄','董思成','潘奕辰','袁明哲','蔡文静','蒋亦菲','余承泽',
+'杜若飞','叶知秋','程雪宁','苏子瞻','吕星辰'];
+var SUBJECTS=['语文','数学','英语','物理','化学','生物','政治','历史'];
+var EXAMS=[{name:'月考一',date:'09-20'},{name:'月考二',date:'10-18'},{name:'期中考试',date:'11-15'}];
+
+var students=NAMES.map(function(n,i){return {id:i,name:n,ability:clamp(0.66+gauss()*0.12,0.42,0.96)}});
+var subjOff=students.map(function(){return SUBJECTS.map(function(){return gauss()*4.5})});
+var scores=EXAMS.map(function(e,ei){
+  var m={};
+  students.forEach(function(s,si){
+    var row={};
+    SUBJECTS.forEach(function(subj,ki){
+      var drift=ei*0.9+gauss()*1.6;
+      row[subj]=clamp(Math.round(s.ability*100+subjOff[si][ki]+gauss()*4+drift),24,100);
+    });
+    m[s.id]=row;
+  });
+  return m;
+});
+function totalsOf(ei){
+  return students.map(function(s){
+    var row=scores[ei][s.id];
+    return {stu:s,total:SUBJECTS.reduce(function(a,k){return a+row[k]},0)};
+  }).filter(function(r){return true}).sort(function(a,b){return b.total-a.total});
+}
+var TOTALS=EXAMS.map(function(e,ei){return totalsOf(ei)});
+
+/* 学分数据 */
+var CATS=['学习','纪律','卫生','活动','作业'];
+var catCount={};CATS.forEach(function(c){catCount[c]=0});
+var credit=students.map(function(s,i){
+  var base=55+s.ability*150+gauss()*16;
+  if(i%15===2) base-=75;
+  return clamp(Math.round(base),28,262);
+});
+var weekNet=students.map(function(s,si){
+  var net=0;
+  for(var d=0;d<7;d++){
+    var n=Math.floor(rnd()*3);
+    for(var k=0;k<n;k++){
+      var amt=rnd()<0.64?(1+Math.floor(rnd()*5))-(rnd()<0.2?3:0):-(1+Math.floor(rnd()*4));
+      net+=amt;
+      catCount[CATS[Math.floor(rnd()*CATS.length)]]+=Math.abs(amt);
+    }
+  }
+  return net;
+});
+var dayNet=[];for(var d=6;d>=0;d--){dayNet.push({label:d===0?'今天':d+' 天前',v:Math.round(gauss()*22)+(rnd()<0.3?-8:10)})}
+
+/* ================= 主题与工具 ================= */
+function V(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function isDark(){return document.documentElement.classList.contains('dark')}
+function PAL(){return isDark()
+  ?['#CE6B52','#6FA3C8','#4F9E77','#D9A94E','#9B86C2','#93A5B3']
+  :['#A63A2B','#3B6E8F','#2F7D5B','#C08A2D','#6B5B95','#7A8B99']}
+var BUCKET_COLORS=function(){return isDark()
+  ?['#D45A4A','#D9A94E','#6FA3C8','#4F9E77','#9B86C2']
+  :['#B42318','#C08A2D','#3B6E8F','#2F7D5B','#6B5B95']};
+function TT(trigger){return {trigger:trigger||'item',backgroundColor:V('--card'),borderColor:V('--border'),borderWidth:1,
+  padding:[9,13],textStyle:{color:V('--ink'),fontSize:12},extraCssText:'box-shadow:0 8px 24px rgba(25,22,19,.14);border-radius:10px;'}}
+function grid(o){return Object.assign({left:46,right:24,top:36,bottom:30,containLabel:true},o||{})}
+function axisX(o){var m=V('--muted');return Object.assign({type:'category',
+  axisLabel:{color:m,fontSize:11},axisLine:{lineStyle:{color:V('--border')}},axisTick:{show:false}},o||{})}
+function axisY(o){var m=V('--muted');return Object.assign({type:'value',
+  axisLabel:{color:m,fontSize:11},axisLine:{show:false},axisTick:{show:false},
+  splitLine:{lineStyle:{color:isDark()?'rgba(234,228,214,.07)':'rgba(43,43,51,.06)'}}},o||{})}
+function vGrad(hexTop,hexBottom,vertical){
+  var g={type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:hexTop},{offset:1,color:hexBottom}]};
+  if(vertical===false){g.x2=1;g.y2=0}
+  return g;
+}
+function shade(hex,f){/* 提亮/压暗 */
+  var n=parseInt(hex.slice(1),16),r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  r=Math.round(clamp(r+(f>0?(255-r)*f:r*f),0,255));g=Math.round(clamp(g+(f>0?(255-g)*f:g*f),0,255));b=Math.round(clamp(b+(f>0?(255-b)*f:b*f),0,255));
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
+function rgba(hex,a){var n=parseInt(hex.slice(1),16);return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')'}
+var charts={};
+function mk(id,build){
+  var el=document.getElementById(id); if(!el) return;
+  if(charts[id]){charts[id].dispose()}
+  var c=echarts.init(el,null,{renderer:'canvas'});
+  c.setOption(build());
+  charts[id]=c;
+}
+window.addEventListener('resize',function(){Object.keys(charts).forEach(function(k){try{charts[k].resize()}catch(e){}})});
+
+/* ================= 成绩 tab ================= */
+var examIdx=2;
+var sel=document.getElementById('examSel');
+EXAMS.forEach(function(e,i){var o=document.createElement('option');o.value=i;o.textContent=e.name+' · '+e.date;sel.appendChild(o)});
+sel.value=examIdx;
+
+function chip(cur,prev,goodWhenUp,unit){
+  if(prev===null||prev===undefined) return '<span class="k-trend flat">首场基准</span>';
+  var d=cur-prev, up=d>0.005, down=d<-0.005;
+  var good=goodWhenUp?up:down, bad=goodWhenUp?down:up;
+  var cls=good?'up':(bad?'down':'flat');
+  var arrow=up?'▲':(down?'▼':'—');
+  var txt=Math.abs(d)>=100?Math.round(Math.abs(d)):Math.abs(d).toFixed(1);
+  return '<span class="k-trend '+cls+'">'+arrow+' '+txt+unit+' vs 上一场</span>';
+}
+
+function buildGrade(){
+  examIdx=parseInt(sel.value);
+  var hasPrev=examIdx>0;
+  var rows=TOTALS[examIdx], n=rows.length;
+  var totals=rows.map(function(r){return r.total});
+  var avg=totals.reduce(function(a,b){return a+b},0)/n;
+  var sd=Math.sqrt(totals.reduce(function(a,b){return a+b*b},0)/n-avg*avg);
+  var mx=totals[0], mn=totals[n-1];
+  var maxPossible=SUBJECTS.length*100;
+  var passLine=60*SUBJECTS.length, excLine=85*SUBJECTS.length;
+  var passRate=totals.filter(function(t){return t>=passLine}).length/n*100;
+  var excRate=totals.filter(function(t){return t>=excLine}).length/n*100;
+
+  var prev=null;
+  if(hasPrev){
+    var pRows=TOTALS[examIdx-1], pTotals=pRows.map(function(r){return r.total});
+    prev={avg:pTotals.reduce(function(a,b){return a+b},0)/pTotals.length,
+      pass:pTotals.filter(function(t){return t>=passLine}).length/pTotals.length*100,
+      exc:pTotals.filter(function(t){return t>=excLine}).length/pTotals.length*100,
+      sd:Math.sqrt(pTotals.reduce(function(a,b){return a+b*b},0)/pTotals.length-(pTotals.reduce(function(a,b){return a+b},0)/pTotals.length)**2)};
+  }
+
+  /* KPI */
+  document.getElementById('gradeKpi').innerHTML=
+    '<div class="kpi"><div class="k-label">总分均分</div><div class="k-value">'+avg.toFixed(1)+'<span class="unit">分</span></div>'+chip(avg,prev&&prev.avg,true,'')+'</div>'+
+    '<div class="kpi"><div class="k-label">及格率（人均 ≥60）</div><div class="k-value">'+passRate.toFixed(0)+'<span class="unit">%</span></div>'+chip(passRate,prev&&prev.pass,true,' pp')+'</div>'+
+    '<div class="kpi"><div class="k-label">优秀率（人均 ≥85）</div><div class="k-value">'+excRate.toFixed(0)+'<span class="unit">%</span></div>'+chip(excRate,prev&&prev.exc,true,' pp')+'</div>'+
+    '<div class="kpi"><div class="k-label">标准差</div><div class="k-value">'+sd.toFixed(1)+'<span class="unit">分</span></div>'+chip(sd,prev&&prev.sd,false,'')+'</div>'+
+    '<div class="kpi"><div class="k-label">最高 / 最低</div><div class="k-value">'+mx+'<span class="unit">/ '+mn+' 分</span></div><span class="k-trend flat">'+n+' 人参考</span></div>';
+
+  /* 直方图 */
+  var lo=Math.floor(mn/50)*50, hi=Math.ceil(mx/50)*50, bins=[];
+  for(var b=lo;b<hi;b+=50) bins.push({lo:b,hi:b+50,c:0});
+  totals.forEach(function(t){for(var i=0;i<bins.length;i++){if(t>=bins[i].lo&&t<bins[i].hi){bins[i].c++;break}}});
+  var pri=V('--primary');
+  mk('cHist',function(){return {
+    tooltip:TT('axis'),
+    grid:grid({left:34}),
+    xAxis:axisX({data:bins.map(function(b){return b.lo+'–'+b.hi}),boundaryGap:true}),
+    yAxis:[axisY({minInterval:1,max:Math.max.apply(null,bins.map(function(b){return b.c}))+2}),
+           {type:'value',min:0,max:850,show:false}],
+    series:[{type:'bar',barWidth:'55%',data:bins.map(function(b){return b.c}),
+      itemStyle:{borderRadius:[6,6,0,0],color:vGrad(pri,shade(pri,-0.42))},
+      label:{show:true,position:'top',color:V('--text2'),fontSize:11,fontWeight:600},
+      tooltip:{valueFormatter:function(v){return v+' 人'}}},
+      {type:'line',data:[],yAxisIndex:1,
+      markLine:{symbol:'none',silent:true,data:[
+        {yAxis:avg,lineStyle:{color:pri,width:2},label:{formatter:'均分 '+avg.toFixed(0),color:pri,fontSize:10,position:'insideEndTop',fontWeight:700}},
+        {yAxis:passLine,lineStyle:{color:V('--warning'),type:'dashed',width:1.2},label:{formatter:'及格 '+passLine,color:V('--warning'),fontSize:10,position:'insideEndTop'}},
+        {yAxis:excLine,lineStyle:{color:V('--success'),type:'dashed',width:1.2},label:{formatter:'优秀 '+excLine,color:V('--success'),fontSize:10,position:'insideEndTop'}}
+      ]}}]
+  }});
+
+  /* 五档环形 */
+  var bucketDefs=[{l:'<40%',k:function(t){return t<0.4*maxPossible}},{l:'40~60%',k:function(t){return t>=0.4*maxPossible&&t<0.6*maxPossible}},
+    {l:'60~75%',k:function(t){return t>=0.6*maxPossible&&t<0.75*maxPossible}},{l:'75~85%',k:function(t){return t>=0.75*maxPossible&&t<0.85*maxPossible}},
+    {l:'85%+',k:function(t){return t>=0.85*maxPossible}}];
+  var bc=BUCKET_COLORS();
+  var donutData=bucketDefs.map(function(b,i){var c=totals.filter(b.k).length;return {name:b.l+'（'+c+'人）',value:c,itemStyle:{color:bc[i]}}});
+  mk('cDonut',function(){return {
+    tooltip:TT(),legend:{bottom:0,icon:'circle',itemWidth:8,itemHeight:8,textStyle:{color:V('--text2'),fontSize:11},itemGap:14},
+    title:{text:String(n),subtext:'参考人数',left:'center',top:'38%',
+      textStyle:{fontSize:28,fontWeight:700,color:V('--ink'),fontFamily:'Georgia,serif'},subtextStyle:{color:V('--muted'),fontSize:11}},
+    series:[{type:'pie',radius:['52%','72%'],center:['50%','44%'],data:donutData,
+      itemStyle:{borderRadius:5,borderColor:V('--card'),borderWidth:2},
+      label:{show:false},emphasis:{scaleSize:4},
+      animationDuration:900,animationEasing:'cubicOut'}]
+  }});
+
+  /* 各科均分横条 */
+  var subj=SUBJECTS.map(function(subj){
+    var arr=rows.map(function(r){return scores[examIdx][r.stu.id][subj]});
+    var a=arr.reduce(function(x,y){return x+y},0)/arr.length;
+    return {s:subj,avg:a,max:Math.max.apply(null,arr),min:Math.min.apply(null,arr),
+      pass:arr.filter(function(v){return v>=60}).length/arr.length*100};
+  }).sort(function(a,b){return a.avg-b.avg});
+  mk('cSubj',function(){return {
+    tooltip:TT('item'),
+    grid:grid({left:30,top:38,bottom:16}),
+    xAxis:axisY({max:100,splitLine:{lineStyle:{color:isDark()?'rgba(234,228,214,.07)':'rgba(43,43,51,.06)'}}}),
+    yAxis:axisX({type:'category',data:subj.map(function(x){return x.s}),axisLine:{show:false}}),
+    series:[{type:'bar',data:subj.map(function(x){return x.avg.toFixed(1)}),barWidth:13,
+      itemStyle:{borderRadius:[0,7,7,0],color:vGrad(shade(pri,0.12),shade(pri,-0.28),false)},
+      label:{show:true,position:'right',color:V('--text2'),fontSize:11,fontWeight:600,formatter:function(p){return p.value}},
+      tooltip:{valueFormatter:function(){return ''}},
+      markLine:{symbol:'none',silent:true,data:[
+        {xAxis:60,lineStyle:{color:V('--warning'),type:'dashed',width:1.2},label:{formatter:'及格 60',color:V('--warning'),fontSize:10,position:'end',distance:8}},
+        {xAxis:85,lineStyle:{color:V('--success'),type:'dashed',width:1.2},label:{formatter:'优秀 85',color:V('--success'),fontSize:10,position:'end',distance:8}}
+      ]}}]
+  }});
+
+  /* 雷达 */
+  var radarCur=SUBJECTS.map(function(subj){
+    var arr=rows.map(function(r){return scores[examIdx][r.stu.id][subj]});
+    return +(arr.reduce(function(x,y){return x+y},0)/arr.length).toFixed(1)});
+  var radarPrev=SUBJECTS.map(function(subj){
+    var arr=TOTALS[examIdx-1].map(function(r){return scores[examIdx-1][r.stu.id][subj]});
+    return +(arr.reduce(function(x,y){return x+y},0)/arr.length).toFixed(1)});
+  mk('cRadar',function(){return {
+    tooltip:TT(),
+    legend:{bottom:0,icon:'roundRect',itemWidth:14,itemHeight:4,textStyle:{color:V('--text2'),fontSize:11},itemGap:18},
+    radar:{indicator:SUBJECTS.map(function(s){return {name:s,max:100}}),radius:'62%',center:['50%','46%'],splitNumber:4,
+      axisName:{color:V('--muted'),fontSize:11},
+      splitLine:{lineStyle:{color:isDark()?'rgba(234,228,214,.10)':'rgba(43,43,51,.08)'}},
+      splitArea:{areaStyle:{color:[isDark()?'rgba(206,107,82,.04)':'rgba(166,58,43,.03)','transparent']}},
+      axisLine:{lineStyle:{color:isDark()?'rgba(234,228,214,.10)':'rgba(43,43,51,.08)'}}},
+    series:[{type:'radar',data:[
+      {name:'本场 · '+EXAMS[examIdx].name,value:radarCur,lineStyle:{width:2.5,color:pri},itemStyle:{color:pri},
+       areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:shade(pri,0.35)},{offset:1,color:shade(pri,-0.1)}]},opacity:0.30},symbol:'circle',symbolSize:4},
+      {name:'上一场 · '+(hasPrev?EXAMS[examIdx-1].name:'—'),value:hasPrev?radarPrev:radarCur.map(function(){return 0}),
+       lineStyle:{width:1.6,color:V('--muted'),type:'dashed'},itemStyle:{color:V('--muted')},areaStyle:{opacity:0.05},symbol:'none'}
+    ],animationDuration:900}]
+  }});
+
+  /* 趋势 */
+  var avgs=EXAMS.map(function(e,i){var t=TOTALS[i].map(function(r){return r.total});return +(t.reduce(function(a,b){return a+b},0)/t.length).toFixed(1)});
+  var passes=EXAMS.map(function(e,i){var t=TOTALS[i].map(function(r){return r.total});return +(t.filter(function(x){return x>=passLine}).length/t.length*100).toFixed(0)});
+  var excs=EXAMS.map(function(e,i){var t=TOTALS[i].map(function(r){return r.total});return +(t.filter(function(x){return x>=excLine}).length/t.length*100).toFixed(0)});
+  mk('cTrend',function(){return {
+    tooltip:TT('axis'),
+    legend:{top:0,right:0,icon:'roundRect',itemWidth:14,itemHeight:4,textStyle:{color:V('--text2'),fontSize:11},itemGap:16},
+    grid:grid({left:40,top:34}),
+    xAxis:axisX({data:EXAMS.map(function(e){return e.name}),boundaryGap:false}),
+    yAxis:[axisY({min:Math.floor((Math.min.apply(null,avgs)-25)/50)*50,name:'分',nameTextStyle:{color:V('--muted'),fontSize:10}}),
+           axisY({min:0,max:100,name:'%',nameTextStyle:{color:V('--muted'),fontSize:10},
+             splitLine:{show:false}})],
+    series:[
+      {name:'总分均分',type:'line',smooth:true,symbol:'circle',symbolSize:8,data:avgs,
+       lineStyle:{width:3,color:pri},itemStyle:{color:pri,borderColor:V('--card'),borderWidth:2},
+       areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:rgba(pri,0.22)},{offset:1,color:rgba(pri,0)}]}},
+       label:{show:true,color:pri,fontWeight:700,fontSize:11,formatter:function(p){return p.value}},
+       animationDuration:900},
+      {name:'及格率',type:'line',yAxisIndex:1,smooth:true,symbol:'circle',symbolSize:6,data:passes,
+       lineStyle:{width:2,color:PAL()[1]},itemStyle:{color:PAL()[1]},animationDuration:1000},
+      {name:'优秀率',type:'line',yAxisIndex:1,smooth:true,symbol:'circle',symbolSize:6,data:excs,
+       lineStyle:{width:2,color:PAL()[2]},itemStyle:{color:PAL()[2]},animationDuration:1100}
+    ]
+  }});
+
+  /* 名次流动 */
+  var prevRankMap={};
+  if(hasPrev){TOTALS[examIdx-1].forEach(function(r,i){prevRankMap[r.stu.id]=i+1})}
+  var movers=[];
+  if(hasPrev){
+    rows.forEach(function(r,i){
+      var pr=prevRankMap[r.stu.id];
+      if(pr&&Math.abs(pr-(i+1))>=4) movers.push({name:r.stu.name,pr:pr,nr:i+1,d:pr-(i+1)});
+    });
+    movers.sort(function(a,b){return Math.abs(b.d)-Math.abs(a.d)});movers=movers.slice(0,10);
+  }
+  mk('cSlope',function(){return {
+    tooltip:{trigger:'item',backgroundColor:V('--card'),borderColor:V('--border'),borderWidth:1,padding:[9,13],
+      textStyle:{color:V('--ink'),fontSize:12},extraCssText:'box-shadow:0 8px 24px rgba(25,22,19,.14);border-radius:10px;',
+      formatter:function(p){var m=movers[p.seriesIndex];
+        return m.name+'<br>上次第 '+m.pr+' 名 → 本次第 '+m.nr+' 名（'+(m.d>0?'+':'')+m.d+'）'}},
+    grid:grid({left:20,right:120,top:20,bottom:26}),
+    xAxis:axisX({data:[hasPrev?'上一场 · '+EXAMS[examIdx-1].name:'—','本场 · '+EXAMS[examIdx].name],boundaryGap:true,axisLine:{lineStyle:{color:V('--border')}}}),
+    yAxis:axisY({inverse:true,min:0,max:n+1,interval:10,splitLine:{lineStyle:{color:isDark()?'rgba(234,228,214,.05)':'rgba(43,43,51,.05)'}}}),
+    series:movers.map(function(m){
+      var col=m.d>0?V('--success'):V('--danger');
+      return {type:'line',data:[[0,m.pr],[1,m.nr]],symbol:'circle',symbolSize:5,
+        lineStyle:{width:2,color:col,opacity:.8},itemStyle:{color:col},
+        label:{show:true,fontSize:10,color:col,fontWeight:600,
+          formatter:function(p){return p.dataIndex===0?('第'+m.pr):m.name+' 第'+m.nr}},
+        labelLayout:{moveOverlap:'shiftY'},
+        animationDuration:900,animationDelay:function(i){return i*120}}
+    })
+  }});
+
+  /* 预警 */
+  var warn=[];
+  rows.forEach(function(r){
+    var sc=scores[examIdx][r.stu.id];
+    var fails=SUBJECTS.filter(function(sj){return sc[sj]<60});
+    if(fails.length>=2) warn.push({name:r.stu.name,type:'fail',n:fails.length,subs:fails.slice(0,3).join('、'),total:r.total});
+  });
+  if(hasPrev){
+    rows.forEach(function(r){
+      var pr=prevRankMap[r.stu.id];var pTot=TOTALS[examIdx-1].find(function(x){return x.stu.id===r.stu.id});
+      if(pTot&&pTot.total-r.total>=10) warn.push({name:r.stu.name,type:'drop',n:pTot.total-r.total,subs:'上次 '+pTot.total+' → 本次 '+r.total,total:r.total});
+    });
+  }
+  warn.sort(function(a,b){return (b.type==='fail'?b.n*1000:b.n)-(a.type==='fail'?a.n*1000:a.n)});
+  var wl=document.getElementById('warnList');
+  if(warn.length===0){wl.innerHTML='<div class="empty-warn">✨ 本轮无预警学生</div>';}
+  else{
+    wl.innerHTML=warn.slice(0,7).map(function(w){
+      if(w.type==='fail') return '<div class="warn-item"><span class="warn-name">'+w.name+'</span><span class="chip">'+w.n+' 科不及格</span><span style="font-size:11px;color:var(--text2)">'+w.subs+(w.n>3?' 等':'')+'</span><span class="warn-note">总分 '+w.total+'</span></div>';
+      return '<div class="warn-item tag2"><span class="warn-name">'+w.name+'</span><span class="chip amber">↓ '+w.n+' 分</span><span style="font-size:11px;color:var(--text2)">'+w.subs+'</span><span class="warn-note">环比下滑</span></div>';
+    }).join('')+(warn.length>7?'<div style="font-size:11px;color:var(--muted);padding-left:10px">… 另有 '+(warn.length-7)+' 人，见完整名单</div>':'');
+  }
+
+  /* 排名前10 */
+  var mxAll=totals[0];
+  document.getElementById('topList').innerHTML=rows.slice(0,10).map(function(r,i){
+    var cls=i===0?'r1':i===1?'r2':i===2?'r3':'rn';
+    var subs=SUBJECTS.slice(0,4).map(function(sj){return sj+' '+scores[examIdx][r.stu.id][sj]}).join(' · ');
+    return '<div class="rank-item"><div class="rank-num '+cls+'">'+(i+1)+'</div>'+
+      '<div class="rank-main"><div class="rank-name">'+r.stu.name+'</div>'+
+      '<div class="rank-bar"><i style="width:'+(r.total/mxAll*100).toFixed(1)+'%"></i></div>'+
+      '<div class="rank-subs">'+subs+'</div></div>'+
+      '<div class="rank-score">'+r.total+'</div></div>';
+  }).join('');
+}
+
+/* ================= 学分 tab ================= */
+function buildCredit(){
+  var n=students.length;
+  var avg=credit.reduce(function(a,b){return a+b},0)/n;
+  var sorted=credit.slice().sort(function(a,b){return a-b});
+  var median=(sorted[n>>1]+sorted[(n-1)>>1])/2;
+  var sd=Math.sqrt(credit.reduce(function(a,b){return a+b*b},0)/n-avg*avg);
+  var passRate=credit.filter(function(c){return c>=60}).length/n*100;
+  var advRate=credit.filter(function(c){return c>=110}).length/n*100;
+  document.getElementById('creditKpi').innerHTML=
+    '<div class="kpi"><div class="k-label">平均学分</div><div class="k-value">'+avg.toFixed(1)+'</div><span class="k-trend up">▲ 6.2 本学期</span></div>'+
+    '<div class="kpi"><div class="k-label">中位数</div><div class="k-value">'+median.toFixed(0)+'</div><span class="k-trend flat">较上期 —</span></div>'+
+    '<div class="kpi"><div class="k-label">标准差</div><div class="k-value">'+sd.toFixed(1)+'</div><span class="k-trend down">▼ 3.4 更均衡</span></div>'+
+    '<div class="kpi"><div class="k-label">及格率（≥60）</div><div class="k-value">'+passRate.toFixed(0)+'<span class="unit">%</span></div><span class="k-trend up">▲ 2 pp</span></div>'+
+    '<div class="kpi"><div class="k-label">进取率（≥110）</div><div class="k-value">'+advRate.toFixed(0)+'<span class="unit">%</span></div><span class="k-trend up">▲ 4 pp</span></div>';
+
+  var buckets=[{l:'预警 <60',k:function(c){return c<60}},{l:'常规 60-110',k:function(c){return c>=60&&c<110}},
+    {l:'进取 110-150',k:function(c){return c>=110&&c<150}},{l:'卓越 150-200',k:function(c){return c>=150&&c<200}},
+    {l:'巅峰 ≥200',k:function(c){return c>=200}}];
+  var bc=BUCKET_COLORS(), pri=V('--primary');
+  var counts=buckets.map(function(b){return credit.filter(b.k).length});
+  mk('cCd',function(){return {
+    tooltip:TT('axis'),
+    grid:grid({left:34}),
+    xAxis:axisX({data:counts.map(function(c,i){return buckets[i].l+' · '+c+'人'})}),
+    yAxis:axisY({minInterval:1}),
+    series:[{type:'bar',barWidth:'52%',data:counts.map(function(c,i){return {value:c,itemStyle:{borderRadius:[6,6,0,0],
+      color:vGrad(shade(bc[i],0.18),bc[i])}}}),
+      label:{show:true,position:'top',color:V('--text2'),fontSize:11,fontWeight:600},
+      animationDuration:900,animationDelay:function(i){return i*90}}]
+  }});
+
+  var catData=CATS.map(function(c,i){return {name:c,value:catCount[c],itemStyle:{color:PAL()[i%PAL().length]}}});
+  mk('cCat',function(){return {
+    tooltip:TT(),legend:{bottom:0,icon:'circle',itemWidth:8,itemHeight:8,textStyle:{color:V('--text2'),fontSize:11},itemGap:14},
+    title:{text:String(Object.values(catCount).reduce(function(a,b){return a+b},0)),subtext:'总流水次数',left:'center',top:'38%',
+      textStyle:{fontSize:26,fontWeight:700,color:V('--ink'),fontFamily:'Georgia,serif'},subtextStyle:{color:V('--muted'),fontSize:11}},
+    series:[{type:'pie',radius:['52%','72%'],center:['50%','44%'],data:catData,
+      itemStyle:{borderRadius:5,borderColor:V('--card'),borderWidth:2},label:{show:false},
+      animationDuration:900,animationEasing:'cubicOut'}]
+  }});
+
+  mk('cWk',function(){return {
+    tooltip:TT('axis'),
+    grid:grid({left:34}),
+    xAxis:axisX({data:dayNet.map(function(x){return x.label})}),
+    yAxis:axisY(),
+    series:[{type:'bar',barWidth:'48%',data:dayNet.map(function(x){return {value:x.v,
+      itemStyle:{borderRadius:x.v>=0?[6,6,0,0]:[0,0,6,6],
+      color:x.v>=0?vGrad(shade(V('--success'),0.25),V('--success')):vGrad(V('--danger'),shade(V('--danger'),-0.3))}}}),
+      markLine:{symbol:'none',silent:true,data:[{yAxis:0,lineStyle:{color:V('--muted'),width:1}}]},
+      animationDuration:900}]
+  }});
+
+  var mv=students.map(function(s,i){return {name:s.name,v:weekNet[i]}})
+    .sort(function(a,b){return a.v-b.v});
+  var pick=mv.slice(0,4).concat(mv.slice(-4));
+  mk('cMovers',function(){return {
+    tooltip:{trigger:'item',backgroundColor:V('--card'),borderColor:V('--border'),borderWidth:1,padding:[9,13],
+      textStyle:{color:V('--ink'),fontSize:12},extraCssText:'box-shadow:0 8px 24px rgba(25,22,19,.14);border-radius:10px;',
+      formatter:function(p){return p.name+'<br>本周净 '+(p.value>=0?'+':'')+p.value+' 分'}},
+    grid:grid({left:20,right:44,top:10,bottom:10}),
+    xAxis:axisY({show:false}),
+    yAxis:axisX({type:'category',data:pick.map(function(x){return x.name}),axisLine:{show:false}}),
+    series:[{type:'bar',barWidth:12,data:pick.map(function(x){return {value:x.v,
+      label:{position:x.v>=0?'right':'left',formatter:function(p){return (p.value>=0?'+':'')+p.value},color:x.v>=0?V('--success'):V('--danger'),fontSize:11,fontWeight:600},
+      itemStyle:{borderRadius:6,color:x.v>=0?vGrad(shade(V('--success'),0.2),V('--success'),false):vGrad(V('--danger'),shade(V('--danger'),-0.3),false)}}}),
+      animationDuration:900,animationDelay:function(i){return i*60}}]
+  }});
+}
+
+/* ================= 页面与主题切换 ================= */
+function showPage(p){
+  document.getElementById('page-grade').hidden=(p!=='grade');
+  document.getElementById('page-credit').hidden=(p!=='credit');
+  document.getElementById('tabGrade').classList.toggle('active',p==='grade');
+  document.getElementById('tabCredit').classList.toggle('active',p==='credit');
+  if(p==='grade') buildGrade(); else buildCredit();
+}
+function toggleTheme(){
+  var dark=document.documentElement.classList.toggle('dark');
+  document.getElementById('btnTheme').textContent=dark?'☀️ 亮色':'🌙 暗色';
+  if(document.getElementById('page-grade').hidden) buildCredit(); else buildGrade();
+}
+buildGrade();
+</script>
+</body>
+</html>

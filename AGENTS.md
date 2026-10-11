@@ -1,7 +1,7 @@
 # AGENTS.md — 班主任工作台 · 桌面版（class-manager-desktop）
 
 > 知识入口。任何 AI 工具接手前先读本文件 + `PROGRESS.md`。网页版本体的知识库在 `…\workspace\default\class-manager\AGENTS.md`，两仓不要混。
-> 基准：main `3ca16d4`（v1.0.2）· baseWeb v3.4.0 · 2026-10-07 校准。
+> 基准：main `fb30638`（v1.2.6 整线入库 + v1.3.0 图表引擎编码）· baseWeb v3.4.0 · 2026-10-11 校准。
 
 ## 1. 项目定位
 
@@ -20,7 +20,9 @@ class-manager-desktop/            ← GitHub 仓（cheeeom/class-manager-desktop
    ├─ main.js                     ← 主进程：BrowserWindow / 安全基线 / electron-updater 接线 / CM_SMOKE 冒烟
    ├─ preload.js                  ← 受控桥：__CM_DESKTOP（版本/版权）+ __CM_UPDATER（check/download/install/onEvent）
    ├─ src/app.patch.js            ← ★ 注入层（桌面版全部页面侧逻辑）：首启向导 6 步 / 零密码面板 /
-   │                                清空数据管理员闸 / 云同步 UI 裁剪 / 安全设置卡 / 关于卡+更新弹窗
+   │                                清空数据管理员闸 / 云同步 UI 裁剪 / 安全设置卡 / 关于卡+更新弹窗 /
+   │                                数据分析图表引擎（v1.3.0：接管成绩 tab，cmInk 主题，ECharts 6）
+   ├─ src/echarts.min.js          ← ECharts 6.1.0（Apache-2.0，1.12MB；build.js 复制进 dist，按需加载）
    ├─ src/wizard.css              ← 注入层样式（向导/模态/安全卡）
    ├─ build.js                    ← 构建脚本（见 §3）
    ├─ _v_desktop_test.js          ← 桌面断言 11 项（不进网页版 _runall，独立跑）
@@ -38,7 +40,7 @@ class-manager-desktop/            ← GitHub 仓（cheeeom/class-manager-desktop
 
 1. **root 完整性闸**：读同级 `…\workspace\default\class-manager\index.html`，sha256 对比其 git HEAD——不一致直接 die（线上文件被改过就不许构建）。
 2. **补丁表**：9 条 `(old, new, 期望次数)` 精确替换——禁 SW、去 manifest/apple-icon、**三处版本位换成桌面版版本号**（登录页 `.login-version` / 左下角 `.sidebar-footer` / 设置徽标，来源 `package.json.version`，变量 `deskVer`）、速览标题注明「网页版」、`</body>` 前注入 wizard.css + app.patch.js。**锚点次数失配即失败**（网页版改版后补丁表要跟着校准）。
-3. **dist 断言**：标记齐全（wizard.css/app.patch.js/禁 SW/「桌面版」≥3）+ 不许残留 serviceWorker.register；顺带把 pdf.min.js/worker 从网页版仓复制过来。
+3. **dist 产物与断言**：dist 复制清单 = `app.patch.js / wizard.css / ed25519.cjs / pro.core.cjs / echarts.min.js`（v1.3.0 起，缺失即 die）+ 登录背景/打赏码（可选）+ pdf 库（从网页版仓复制）；标记断言（wizard.css/app.patch.js/禁 SW/「桌面版」≥3/echarts.min.js 存在）+ 不许残留 serviceWorker.register。
 4. **baseWeb 跟版**：`package.json.baseWeb` 自动写成网页版登录页版本串（现 v3.4.0）。
 
 版本串规则：登录页显示 `v3.4.0 桌面版`（网页版版本 + 桌面壳版本解耦，**冒烟断言是逐字精确匹配** `'v' + app.getVersion() + ' 桌面版'`）。
@@ -65,8 +67,9 @@ set CM_SMOKE=1 && out\win-unpacked\班主任工作台.exe    # 冒烟：交互�
 
 ## 6. 测试体系
 
-- `node _v_desktop_test.js`（先 build.js）：护六层——①线上零改动（root sha256==HEAD 且不含桌面标记）②产物标记 + **三处版本位=桌面版版本号** ②b dist 与 src 一致 ③/③b/③c/③e 注入层契约（含 **③d 向导按钮绑定回归**：foot 区按钮一律 `w.foot.querySelector`；**③e 更新弹窗 + 按钮居中排版 + toast CSS**）④/④b 版权合规（`© 2026 chee` ≥4 处 + 署名声明）⑤主进程安全基线（`autoDownload = false` + `cm-upd-download` 通道）⑥更新链接线（先问后下）。
+- `node _v_desktop_test.js`（先 build.js）：**23 套**——①线上零改动（root sha256==HEAD 且不含桌面标记）②产物标记 + **三处版本位=桌面版版本号** ②b dist 与 src 一致 ③/③b/③c/③e 注入层契约（含 **③d 向导按钮绑定回归**：foot 区按钮一律 `w.foot.querySelector`；**③e 更新弹窗 + 按钮居中排版 + toast CSS**）④/④b 版权合规（`© 2026 chee` ≥4 处 + 署名声明）⑤主进程安全基线（`autoDownload = false` + `cm-upd-download` 通道）⑥更新链接线（先问后下）⑦⑨⑩⑪⑫⑬ Pro/锁/心跳/开发者模式 ⑭ v1.2.6 七件套 **⑮ 图表引擎契约**（echarts 许可头/接管+降级回退/CSS 变量取色/五档色对齐/boot 接线/版本 1.3.0）。
 - `CM_SMOKE=1` 冒烟：5 秒后探针——desktopFlag/登录浮层/**版本标逐字 `'v' + app.getVersion() + ' 桌面版'`**、模拟点击「开始配置」必须翻到第 2 步、console-error 计零、截图存 `out/_smoke.png`。
+- `_probe_dataviz.js`（v1.3.0）：图表引擎端到端——一次性密钥真码激活 → 注入 45 生 3 考试 → 成绩 tab 断言接管/6 图实例/KPI/无旧 CSS 图残留 → 暗色重渲染 → 切考试斜率图 live → console-error 零（跑前 `set "ELECTRON_RUN_AS_NODE="`）。
 - 视觉探针 `_probe_settings.js`：`env -u ELECTRON_RUN_AS_NODE ./node_modules/electron/dist/electron.exe _probe_settings.js`（隔离 userData，拍设置页 + toast 样品）。
 - 网页版自己的回归（`node _runall.js`）与桌面无关，别混跑。
 
@@ -77,11 +80,15 @@ set CM_SMOKE=1 && out\win-unpacked\班主任工作台.exe    # 冒烟：交互�
 - **沙箱环境 Node 起不了子进程**：build.js/测试支持 `CM_HEAD_FILE` 逃生舱口（bash 预取 `git show HEAD:index.html` 写文件再指进去）；打包 `_build_retry.js` 无逃生口，须本机真环境跑。
 - **`ELECTRON_RUN_AS_NODE` 陷阱**：AI 工具环境若设了它，electron.exe 退化成纯 Node（`--version` 打出 Node 版本号即中招）→ 跑冒烟/探针前先卸掉。
 - cmd 内联多行 `node -e` 静默失败——一律写脚本文件。
+- **cmd `set X= && …` 陷阱**：`=` 后的空格会存成值（变量仍生效）——清环境变量必须 `set "X="`（v1.3.0 探针实测 ELECTRON_RUN_AS_NODE 复活）。
+- **网页版 `state` 是顶层 `let`**（词法全局，不挂 window）——注入层/探针访问数据必须裸名 `state`（v1.3.0 有 `cmGxState()` 助手），`window.state` 永远 undefined 且**静默回退不报错**（探针抓到）。
+- **隐藏窗口（show:false）截图可能拿到陈旧合成帧**——探针里状态切换后多等一会或先触发一次 class 变化再 capturePage，断言一律以 executeJavaScript 读 DOM 为准。
 - out/ 里同名多份 Setup.exe 是发版命名迭代的残留，认准 latest.yml 的 url 同名那份。
 - electron-builder 无签名（未购买证书），SmartScreen 拦截属正常，quitAndInstall 静默参数一般不触发。
 
 ## 8. 已知问题与修复史
 
+- **v1.3.0（编码完成，未发布）**：数据分析图表引擎——成绩 tab 整体重设计（ECharts 6 + cmInk 主题）。铁律维持：接管挂在 `window.renderGradeAnalyticsDetail` 原函数名下，Pro 页级锁（`CM_PRO_PAGES.analytics` + `cmWrapPro('switchAnalyticsTab')`）不动；echarts 加载失败/超时/空数据静默回退原实现。**学分 tab 手绘图（drawRangeChart/drawPieChart/drawTrendChart）本轮未接管 = P1**；新图表全在 Pro 锁内。
 - **v1.0.1 P0（已修）**：向导首屏按钮无响应——按钮渲染在 foot 区却用 `w.body.querySelector` 绑定（绑定落在 null）；换步遮罩堆叠逐层变暗。修复后加 ③d 断言 + 冒烟交互探针，此类问题永久拦截。
 - **GitHub Release 资产名剥中文（已绕）**：中文直链 404 → 稳定副本改英文名 `ClassManager-Setup.exe`，落地页两处直链已替换。
 - **v1.0.2 安装包名对齐（已修）**：artifactName 从中文改名 `${name}-Setup-${version}`，使 latest.yml 的 url 诚实（更新器下载目标逐字一致，否则更新链断）。
