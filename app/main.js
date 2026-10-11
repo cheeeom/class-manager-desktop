@@ -52,11 +52,19 @@ if (process.env.CM_SMOKE) {
   app.setPath('userData', path.join(os.tmpdir(), 'cm_smoke_' + Date.now()));
 }
 
+/* ---------- Microsoft Store 版检测（v1.4.2）----------
+   MSIX 容器内运行的 exe 位于 WindowsApps 目录。商店版：更新由商店接管（禁用 electron-updater，
+   容器内 NSIS 更新链也不可用）；本地调试可用 CM_FORCE_STORE=1 强制走商店分支。 */
+const isStoreBuild = (app.isPackaged && /WindowsApps/i.test(process.execPath)) || process.env.CM_FORCE_STORE === '1';
+global.__cmStoreBuild = isStoreBuild;
+
 /* ---------- 应用内更新（electron-updater，GitHub Releases 作源） ----------
    开发模式（electron .）无 app-update.yml，自动跳过；仅打包运行时生效。
-   策略：启动静默检查 → 发现新版自动后台下载 → 下载完提示（重启即装 / 退出时自动装）。 */
+   策略：启动静默检查 → 发现新版自动后台下载 → 下载完提示（重启即装 / 退出时自动装）。
+   Microsoft Store 版：整段跳过（见 isStoreBuild），检查更新 IPC 由商店口径 stub 应答。 */
 let autoUpdater = null;
 function setupUpdater() {
+  if (isStoreBuild) return null; // 商店版：更新由商店自动管理
   if (!app.isPackaged && !process.env.CM_UPDTEST) return null; // dev 跳过；CM_UPDTEST=1 强制启用（择源端到端验证用）
   try {
     const { autoUpdater: au } = require('electron-updater');
@@ -183,6 +191,12 @@ app.whenReady().then(function () {
     }
   } catch (e) { console.log('[updater] leftover cleanup skipped: ' + e.message); }
   setupUpdater();
+  if (isStoreBuild) {
+    /* 商店版 stub：关于卡「检查更新」得到商店口径应答（不再命中 electron-updater 的 IPC） */
+    ipcMain.handle('cm-upd-check', function () { return { ok: false, message: 'Microsoft Store 版：更新由商店自动管理，无需手动检查' }; });
+    ipcMain.handle('cm-upd-download', function () { return { ok: false, message: 'Microsoft Store 版：更新由商店自动管理' }; });
+    ipcMain.handle('cm-upd-install', function () {});
+  }
   createWindow();
 
   // CM_UPDTEST=1：择源 + setFeedURL + checkForUpdates 端到端验证（dev，独立于冒烟）

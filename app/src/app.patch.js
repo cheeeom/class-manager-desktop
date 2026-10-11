@@ -881,9 +881,22 @@
     var about = document.getElementById('settingsAbout');
     if (!about || about.querySelector('.cmDeskAbout')) return;
 
-    /* 检查更新栏：关于卡第一栏（紧随标题），按钮加大突出 */
+    /* 检查更新栏：关于卡第一栏（紧随标题），按钮加大突出；
+       Microsoft Store 版（v1.4.2）：不渲染检查更新按钮，改为商店渠道说明行。 */
     var btn = null, status = null;
-    if (window.__CM_UPDATER) {
+    if (window.__CM_UPDATER && D.store) {
+      var srow = el('div', 'cmDeskUpd');
+      srow.style.cssText = 'margin:12px 0 4px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 14px;background:var(--row-bg,#FBF8F1);border:1px solid var(--border,#E6DECD);border-radius:10px';
+      var schip = el('span', 'cmDeskStoreBadge', 'Microsoft Store 版');
+      schip.style.cssText = 'display:inline-flex;align-items:center;padding:4px 14px;border-radius:999px;background:rgba(201,162,39,.10);border:1px solid var(--gold,#C9A227);color:var(--gold,#C9A227);font-weight:700;font-size:12.5px;letter-spacing:.5px';
+      status = el('span', 'cmDeskUpdStatus');
+      status.style.cssText = 'font-size:13px;color:var(--text-secondary,#5F5E5A)';
+      status.textContent = '当前版本 v' + D.version + ' · 更新由 Microsoft Store 自动管理';
+      srow.appendChild(schip); srow.appendChild(status);
+      var sah3 = about.querySelector('h3');
+      if (sah3) sah3.parentNode.insertBefore(srow, sah3.nextSibling);
+      else about.appendChild(srow);
+    } else if (window.__CM_UPDATER) {
       var row = el('div', 'cmDeskUpd');
       row.style.cssText = 'margin:12px 0 4px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 14px;background:var(--row-bg,#FBF8F1);border:1px solid var(--border,#E6DECD);border-radius:10px';
       btn = el('button', 'btn btn-primary', '🔄 检查更新');
@@ -902,7 +915,7 @@
     intro.style.cssText = 'margin:10px 0 12px;padding:10px 12px;background:var(--row-bg,#FBF8F1);border:1px dashed var(--border,#E6DECD);border-radius:10px;font-size:12.5px;color:var(--text-secondary,#5F5E5A);line-height:1.9';
     intro.innerHTML =
       '📦 <b>桌面版 v' + D.version + ' 更新</b>：向导新增「导入学生名单」；请假管理、课堂点名转免费；新增导出请假流水（Pro）；激活后侧栏亮 PRO 徽标。<br>' +
-      '🖥️ 单机版：数据仅保存在这台电脑上；自动更新——发现新版左下角弹窗询问后进行。<br>' +
+      '🖥️ 单机版：数据仅保存在这台电脑上；' + (D.store ? '通过 Microsoft Store 安装，更新由商店自动管理。' : '自动更新——发现新版左下角弹窗询问后进行。') + '<br>' +
       '<span style="color:var(--text-muted,#8C8577)">' + COPYRIGHT + ' · 转发分享请保留开发者署名</span>';
     var rows = about.querySelectorAll(':scope > div');
     var badgeRow = null;
@@ -924,8 +937,8 @@
     /* 反馈卡（v1.0.11）：邮件直达作者 + 点邮箱一键复制 */
     buildFeedbackRow(about);
 
-    // 应用内更新逻辑（仅桌面且有更新桥时接线）
-    if (!window.__CM_UPDATER) return;
+    /* 应用内更新逻辑（仅 NSIS 直装版接线；Microsoft Store 版 btn=null 跳过——更新由商店管理） */
+    if (!window.__CM_UPDATER || !btn) return;
 
     function setStatus(txt, color) { status.textContent = txt; status.style.color = color || 'var(--text-muted)'; }
     var handling = false;
@@ -1129,6 +1142,13 @@
      验签在主进程（__CM_PRO 桥），渲染层只做展示与状态缓存。 */
   var CM_PRO_LS = 'cmProCache';
   var CM_PRO_BUY_URL = 'https://afdian.com/item/e4cf1936c3d611f19ca752540025c377';   // 爱发电 Pro 商品页（2026-10-09 老板开店后替换）
+  /* v1.4.2 Microsoft Store 版合规：商店政策限制「应用内直链站外购买数字商品」——
+     商店版构建把升级 Pro 的购买入口指向官网落地页（落地页有爱发电入口），NSIS 直装版保持直连爱发电。 */
+  function cmBuyUrl() {
+    return (window.__CM_DESKTOP && window.__CM_DESKTOP.store)
+      ? 'https://cheeeom.github.io/class-manager-desktop/'
+      : CM_PRO_BUY_URL;
+  }
   var CM_PRO_SESSION = {};                                // 本会话已弹过的功能
   /* 开发者模式（v1.2.4）：渲染层模拟激活/未激活，不碰真实激活文件。
      入口 = 3 秒内连点侧栏版本文字 5 次；badge 常驻右下角，点开浮动面板。 */
@@ -1395,7 +1415,7 @@
       '<div class="cmDesk-pro-req"><span>① 复制申请码（已含本机标识）</span><button class="btn btn-primary btn-sm" id="cmProReqCopy">复制</button></div>' +
       '<input id="cmProReq" readonly value="' + req + '">' +
       '<div class="cmDesk-pro-act">' +
-      '<a class="btn btn-primary" id="cmProBuy" href="' + CM_PRO_BUY_URL + '?custom_order_id=' + encodeURIComponent(req) + '" target="_blank" rel="noopener">🛒 购买激活（微信 / 支付宝）</a>' +
+      '<a class="btn btn-primary" id="cmProBuy" href="' + cmBuyUrl() + (window.__CM_DESKTOP && window.__CM_DESKTOP.store ? '' : '?custom_order_id=' + encodeURIComponent(req)) + '" target="_blank" rel="noopener">🛒 ' + (window.__CM_DESKTOP && window.__CM_DESKTOP.store ? '升级 Pro · 前往官网' : '购买激活（微信 / 支付宝）') + '</a>' +
       '<button class="btn btn-outline" id="cmProClaim">② 我已付款 · 自动获取激活码</button>' +
       '</div>' +
       '<div class="cmDesk-pro-manual"><button class="btn btn-outline btn-sm" id="cmProPaste">我已有激活码 · 从剪贴板粘贴</button><input id="cmProLic" placeholder="或手动贴入 CMPRO1.xxxx…"></div>' +
@@ -1425,7 +1445,7 @@
       lsSet('cmProMail', v);
       req = cmProReqCode();
       m.querySelector('#cmProReq').value = req;
-      m.querySelector('#cmProBuy').href = CM_PRO_BUY_URL + '?custom_order_id=' + encodeURIComponent(req);
+      m.querySelector('#cmProBuy').href = cmBuyUrl() + (window.__CM_DESKTOP && window.__CM_DESKTOP.store ? '' : '?custom_order_id=' + encodeURIComponent(req));
       msgEl.textContent = v ? '✉ 邮箱已记入（只存加密指纹），申请码已更新——请重新复制' : '邮箱已清除，申请码已更新';
     };
     m.querySelector('#cmProPaste').onclick = function () {
