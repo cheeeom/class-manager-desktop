@@ -300,6 +300,62 @@ app.whenReady().then(async function () {
       const img7 = await win.webContents.capturePage();
       fs.writeFileSync(path.join(__dirname, 'out', '_probe_dataviz_honor.png'), img7.toPNG());
 
+      STEP = '登录页横幅摘除（v1.4.1）';
+      await jsx('location.reload();1');
+      await wait(2200);
+      const r10 = await jsx(`(function(){
+        var lo = document.getElementById('loginOverlay');
+        return JSON.stringify({
+          banner: document.getElementById('eolBanner') ? 'exists' : 'removed',
+          overlayTop: lo ? getComputedStyle(lo).top : 'none',
+          drawerLeak: (function(){ var top = document.elementsFromPoint(16, 16)[0]; var c = top ? (String(top.className) + ' ' + top.id) : ''; return c.indexOf('more-drawer') >= 0 || c.indexOf('more-item') >= 0; })()
+        });
+      })()`);
+      console.log('[DV] 登录页 =', r10);
+      const rr10 = JSON.parse(r10);
+      if (rr10.banner !== 'removed') throw new Error('停更横幅未摘除');
+      if (rr10.overlayTop !== '0px') throw new Error('登录层未回到顶部: ' + rr10.overlayTop);
+      if (rr10.drawerLeak) throw new Error('顶部缝隙仍漏出抽屉');
+
+      STEP = '安全卡 v2 + 单机清空（v1.4.1）';
+      await jsx('var b=document.getElementById("cmDeskEnter");b?b.click():0;1');
+      await wait(1200);
+      await jsx('window.navigateTo("settings");1');
+      await wait(800);
+      const r11 = await jsx(`(function(){
+        return JSON.stringify({
+          loginEdit: !!document.getElementById('gxSecLoginEdit'),
+          loginOff: !!document.getElementById('gxSecLoginOff'),
+          adminOff: !!document.getElementById('gxSecAdminOff'),
+          loginState: (document.getElementById('gxSecLoginState')||{}).textContent,
+          adminState: (document.getElementById('gxSecAdminState')||{}).textContent
+        });
+      })()`);
+      console.log('[DV] 安全卡 =', r11);
+      const rr11 = JSON.parse(r11);
+      if (!rr11.loginEdit || !rr11.loginOff || !rr11.adminOff) throw new Error('安全卡 v2 操作按钮缺失: ' + r11);
+      await jsx('window.clearData();1');
+      await wait(600);
+      const gateOpen = await jsx('!!document.querySelector(".cmDesk-mask")');
+      if (!gateOpen) throw new Error('清空闸（纸墨风弹窗）未弹出');
+      await jsx('var m=document.querySelector(".cmDesk-mask input"); m.value="清空";1');
+      await jsx('document.querySelector(".cmDesk-mask .btn-primary").click();1');
+      await wait(900);
+      const r12 = await jsx(`(function(){
+        var st = state;
+        return JSON.stringify({
+          students: (st.students||[]).length, ops: (st.operations||[]).length,
+          toast: (document.querySelector('.toast')||{}).textContent || '',
+          maskLeft: !!document.querySelector('.cmDesk-mask'),
+          nativeConfirm: window.confirm.toString().indexOf('[native code]') >= 0
+        });
+      })()`);
+      console.log('[DV] 清空 =', r12);
+      const rr12 = JSON.parse(r12);
+      if (rr12.students !== 0 || rr12.ops !== 0) throw new Error('清空未生效: ' + r12);
+      if (String(rr12.toast).indexOf('单机') < 0) throw new Error('清空 toast 非单机口径: ' + rr12.toast);
+      if (rr12.maskLeft) throw new Error('弹窗未关闭');
+
       console.log('[DV] consoleErrors=' + consoleErrors);
       if (consoleErrors > 0) throw new Error('console-error 计数 ' + consoleErrors);
       console.log('[DV] VERDICT=PASS shots=out/_probe_dataviz_{light,dark,final,credit}.png');

@@ -651,7 +651,33 @@ t('⑱ v1.4.0 界面符号统一 + 留痕/荣誉墙重设计', function () {
      p.indexOf('buildGxSchoolCard();') >= 0 && p.indexOf('gxFixNavIcons();') >= 0, 'boot 已接线（v1.4.0）');
 });
 
-console.log('\n通过 ' + pass + ' 项，失败 ' + fail + ' 项');
+/* ⑲ v1.4.1：停更横幅摘除 + 单机清空 + 安全卡 v2（密码修改/关闭 + 管理员授权） */
+t('⑲ v1.4.1 横幅摘除 + 单机清空 + 安全卡 v2', function () {
+  const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
+  const bjs = fs.readFileSync(path.join(HERE, 'build.js'), 'utf8');
+  const css = fs.readFileSync(path.join(HERE, 'src', 'wizard.css'), 'utf8');
+  ok(distHtml && distHtml.indexOf('eolBanner') < 0, 'dist 不含停更横幅（登录页乱码+44px 缝隙根因）');
+  has(bjs, '摘停更横幅CSS', '横幅 CSS 摘除补丁');
+  has(bjs, '摘停更横幅标记', '横幅标记摘除补丁');
+  has(bjs, 'dist 仍含网页版停更横幅', 'dist 断言钉住横幅摘除');
+  // 单机清空
+  has(p, 'function gxWipeLocal', '单机清空实现');
+  ok(p.indexOf('adminGate(function () { gxWipeLocal(); });') >= 0, '清空闸改走单机清空（不再调原函数）');
+  ok(p.indexOf("confirm('确认清空所有数据？") < 0 || p.indexOf('window.clearData = wrapped') >= 0, '原生 confirm 不再到达');
+  has(p, "window.pushWipeToCloud = function () {};", '云端清空链路静默（右上角弹窗根因）');
+  has(p, '本机数据已全部清空', '清空完成 toast 单机口径');
+  // 安全卡 v2
+  has(p, 'function gxAdminVerify', '管理员授权链');
+  has(p, 'function gxPwdModal', '双字段密码弹窗');
+  has(p, "'gxSecLoginEdit'", '登录密码修改');
+  has(p, "'gxSecLoginOff'", '登录密码关闭');
+  has(p, "'gxSecAdminEdit'", '管理员密码修改');
+  has(p, "'gxSecAdminOff'", '管理员密码关闭');
+  has(p, "lsDel(K_LOGIN); lsSet(LS_NOPWD, '1')", '关闭登录密码回零密码模式');
+  has(p, 'lsDel(K_ADMIN); lsDel(USER_SET_ADMIN)', '关闭管理员密码');
+  has(css, '.gxSec-row', '安全卡 v2 样式');
+  has(css, '.gxSec-note', '安全卡说明样式');
+});
 console.log(`结果：${pass} 通过，${fail} 失败`);
 if (fail) { console.log('\n失败项：'); failures.forEach(f => console.log('  · ' + f)); }
 process.exit(fail ? 1 : 0);

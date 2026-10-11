@@ -17,7 +17,17 @@
 
 ## 二、待办队列
 
-### v1.4.0（完成编码：界面重设计四连，2026-10-11，已打包冒烟 PASS，待老板审阅后与 v1.3.0 一起发版）
+### v1.4.1（完成编码：老板实机四连修复，2026-10-11，已打包冒烟 PASS，待老板审阅 PRO 卡预览后发版）
+- [x] **登录页乱码+横幅修复**：上游 v3.4.1 停更横幅整块（44px 让位 CSS + 横幅标记 + 摘除脚本）在桌面构建期摘除（build.js 补丁「摘停更横幅CSS/标记」+ dist notHas 断言）——根因：桌面端横幅被运行时摘掉但 44px 位移 CSS 残留 → 登录层下移、顶部漏出「全部功能」抽屉。探针断言：eolBanner 无 / loginOverlay top=0px / 顶层不再漏抽屉。
+- [x] **完全单机·清空数据去云**：接管 clearData 改走 `gxWipeLocal()`（复刻网页版 schema 重置段，**砍掉两道原生 confirm——图四弹窗样式不统一根因**，砍掉 pushWipeToCloud 云端链路）；silenceCloudPush 扩展静默 pushWipeToCloud；toast 改「本机数据已全部清空（桌面版单机存储，无云端）」。
+- [x] **安全卡 v2**：登录密码/管理员密码均可 **修改 + 关闭**；修改/关闭登录密码、修改/关闭管理员密码前需验证管理员密码（gxAdminVerify 链）；未设管理员密码时直接操作；关闭登录密码回零密码模式；双字段密码弹窗 gxPwdModal（6 位校验/一致性/弱口令）。
+- [x] 测试 +⑲（dist 无 eolBanner/单机清空/云端静默/安全卡 v2 全要素）；探针扩展：登录页三断言 + 安全卡三按钮 + 清空全链（纸墨风闸 → 输入「清空」→ wipe → 单机 toast）全 PASS。
+- [x] **PRO 专属卡预览（待老板审阅后确认实施）**：`_dataviz_preview/pro-card-preview.html` + shots（亮/暗 × 早鸟/常价）——激活后赞赏卡整体替换为 B 印章式专属卡（现有 buildProActiveCard 实现即图三设计，赞赏卡/满天弹窗/打赏入口不再出现）；**老板点头后**：核对现实现与预览一致 + 提交。
+- [x] 打包 BUILD-OK + CM_SMOKE PASS（v1.4.1）；ClassManager-Setup.exe 副本同步。
+- [ ] **PRO 卡预览等老板审阅**；**发布**：老板明说「推送」→ gh release create v1.4.1（内容含 1.3.0 图表引擎 + 1.4.0 界面重设计全量）。
+- [ ] **下一轮：全工作台动效优化**（v1.5.0，老板已预告）。
+
+### v1.4.0（完成编码：界面重设计四连，2026-10-11，并入 1.4.1 包）
 - [x] **全台 emoji → Lucide 图标体系**：选型 Lucide v0.544.0（24.9k★，ISC，Feather 社区续作，与网页版 29 枚 stroke sprite 同风格）；`_gen_gx_icons.js` 从 lucide-static 提取 62 枚 → `src/gx-icons.js`（window.__GX_ICONS）→ build.js 注入 `<script src="./gx-icons.js">`（补丁表第 12 条扩展）；app.patch.js 注入 sprite + `gxIc()` helper + **UI 容器 emoji 清扫**（GX_EMOJI_MAP 70+ 映射，只扫 h1-h4/按钮/统计卡/空态/toast/注入层 UI 的「行首装饰 emoji」，绝不碰用户内容；跨宿主文本节点去重；MutationObserver 防抖补扫 + showToast/navigateTo 包装）；页头 📋/🏆/📁/🏦、设置页九卡、按钮、统计卡全部换装。
 - [x] **工作留痕重设计**：接管 renderWorkLogs——页头 emoji 去除（清扫覆盖）；日期选择器退役 → **本周/本月/本学期/全部 周期筛选（默认本月）**；按时间倒序展示周期内流水（不再只看当天）；**挂图修复双保险**：入库存图前置校验思路 + 缩略图 onerror 兜底块（gx-imgdead，HEIC 等浏览器解不动的图不再显示破图标）；分类/搜索语义保留（关键词在周期内检索）。
 - [x] **荣誉墙重设计**：接管 renderHonors——卡片重设计（gxH-*：级别色条/徽章/图标行/两行截断 desc/查看证书按钮/悬停上浮）；**点卡片 → 证书预览弹窗**（gxHonorPreview：重绘函数返回画布 drawImage 进弹窗 + 下载 PNG）；范围/级别双排筛选 chips；统计卡图标化。

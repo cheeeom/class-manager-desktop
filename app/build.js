@@ -53,6 +53,10 @@ const patches = [
   ['placeholder="如：2026级幼儿保育2班"', 'placeholder="如：高2026级一班"', 1, '班级全称提示'],
   ['例：2026级幼儿保育2班', '例：高2026级一班', 1, '班级全称toast例'],
   ['如「2026级幼儿保育2班」', '如「高2026级一班」', 1, '班级全称同步toast例'],
+  /* v3.4.1 上游「网页版停更横幅」整块摘除（CSS 44px 让位 + 横幅标记 + 运行时摘除脚本）——
+     桌面端横幅无意义且 44px 位移会让登录层下移、顶部漏出抽屉（老板实机：左上角乱码+横幅） */
+  ['/* ==================== v3.4.1 网页版停更横幅 ==================== */\n#eolBanner{position:fixed;top:0;left:0;right:0;z-index:900;min-height:44px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:2px 10px;padding:6px 16px;background:var(--primary);color:#fff;font-size:13px;letter-spacing:0.5px;text-align:center;box-sizing:border-box}\n#eolBanner a{color:#fff;font-weight:700;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}\n@media (max-width:768px){#eolBanner{font-size:12px;padding:6px 10px}.eol-long{display:none}}\n.app{margin-top:44px;height:calc(100vh - 44px);height:calc(100dvh - 44px)}\n.login-overlay{top:44px}\n.side-panel{top:44px;height:calc(100vh - 44px)}\n', '', 1, '摘停更横幅CSS'],
+  ['<div id="eolBanner" role="note" aria-label="网页版停止更新公告"><span>📢 网页版已停止更新</span><span class="eol-long">，新功能与维护请改用桌面版（数据完全兼容）</span><a href="https://github.com/cheeeom/class-manager-desktop/releases/latest/download/ClassManager-Setup.exe" target="_blank" rel="noopener">⬇️ 免费下载桌面版</a></div>\n<script data-eol>if(window.__CM_DESKTOP){var __eolB=document.getElementById(\'eolBanner\');if(__eolB&&__eolB.parentNode)__eolB.parentNode.removeChild(__eolB);}</script>\n', '', 1, '摘停更横幅标记'],
   ['仅<b>班长、副班长、纪律委员</b>三人可进入班委协作（v3.0.0）。<b>首页</b>只看课表、班级人数与今日实到（v3.2.0）；请假页只读（看人数与姓名，不可登记）；<b>学分页</b>只能加分扣分（留痕署名），只能看见并撤销<b>本次自己的操作记录</b>，月度加分/按寝室加减分不可用；<b>荣誉墙</b>只可查看；<b>公示页</b>不显示最低分；无待办模块。关闭扣分后班委只能加分，减分统一由你操作。',
    '仅<b>班长、副班长、纪律委员</b>三名学生可进入班委协作（在「📱 班委协作」里给学生打上对应职位标签即可）。<b>首页</b>只展示课表、班级人数与今日实到；请假页只读（可看人数与姓名，登记 / 续假 / 销假 / 删除均不可用）；<b>学分页</b>可加分扣分并留痕署名，只能看见并撤销<b>本次自己会话里的操作</b>，月度加分与按寝室加减分不可用；<b>荣誉墙</b>只可查看；<b>公示页</b>不显示最低分；无待办模块。关闭上方「允许班委扣分」后，班委只能加分，减分统一由班主任操作。', 1, '班委协作说明'],
   ['</body>', '<link rel="stylesheet" href="./wizard.css">\n<script src="./gx-icons.js"></script>\n<script src="./app.patch.js"></script>\n</body>', 1, '注入桌面层']
@@ -99,6 +103,7 @@ for (const [needle, minCnt] of must) {
   if (n < minCnt) die('dist 标记断言失败: ' + needle + ' 出现 ' + n + ' 次（期望 ≥' + minCnt + '）');
 }
 if (/serviceWorker\.register/.test(distHtml)) die('dist 仍含 serviceWorker.register');
+if (/eolBanner/.test(distHtml)) die('dist 仍含网页版停更横幅（v3.4.1 摘除补丁失配？）');
 if (!fs.existsSync(path.join(dist, 'echarts.min.js'))) die('dist 缺 echarts.min.js（数据分析图表引擎依赖）');
 log('✓ dist 标记断言通过');
 

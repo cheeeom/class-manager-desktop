@@ -1,7 +1,7 @@
 # AGENTS.md — 班主任工作台 · 桌面版（class-manager-desktop）
 
 > 知识入口。任何 AI 工具接手前先读本文件 + `PROGRESS.md`。网页版本体的知识库在 `…\workspace\default\class-manager\AGENTS.md`，两仓不要混。
-> 基准：main `68955db`（v1.3.0 图表引擎 + v1.4.0 界面重设计编码）· baseWeb v3.4.1（上游停更公告）· 2026-10-11 校准。
+> 基准：main `2cb0eb2`（v1.3.0 图表引擎 + v1.4.0 界面重设计 + v1.4.1 实机修复）· baseWeb v3.4.1（上游停更公告）· 2026-10-11 校准。
 
 ## 1. 项目定位
 
@@ -88,7 +88,8 @@ set CM_SMOKE=1 && out\win-unpacked\班主任工作台.exe    # 冒烟：交互�
 
 ## 8. 已知问题与修复史
 
-- **v1.4.0（编码完成，未发布）**：界面重设计四连——①**全台 emoji → Lucide 图标**（v0.544.0，ISC；`src/gx-icons.js` = window.__GX_ICONS，构建期 `_gen_gx_icons.js` 从 lucide-static 提取 62 枚，build.js 补丁表第 12 条扩为注入 `<script src="./gx-icons.js">`；app.patch.js gxInjectSprite/gxIc/GX_EMOJI_MAP + **UI 容器行首装饰 emoji 清扫**（GX_SWEEP_SEL 白名单容器，绝不碰用户内容，跨宿主文本节点 Set 去重，MutationObserver 防抖 + showToast/navigateTo 包装））②工作留痕：接管 renderWorkLogs，日期选择器退役 → 周期筛选（本周/本月/本学期/全部，**默认本月**），时间倒序流水，挂图 onerror 兜底（gx-imgdead）③荣誉墙：接管 renderHonors，卡片重设计 + **点卡片出证书预览弹窗**（gxHonorPreview：drawHonorCertCanvas 返回画布 drawImage 进弹窗——**重绘函数自建画布、不直接画弹窗 canvas，这是踩过的坑**）④证书奖状式重绘：接管 drawHonorCertCanvas（仍返回画布），顶部学校名称（设置页 cmDeskSchool 卡，localStorage `cm_school_name`）+ 姓名左顶格「同学：」+ 朱砂双环「荣誉」印章 + 右下落款；**导航图标区分**：荣誉墙侧栏/抽屉改 `#gx-award`（Lucide award），学分公示保持奖杯。**导出制品铁律更新：海报/周报仍不接管，荣誉证书 v1.4.0 起按老板需求接管重绘**。**上游 v3.4.1**：网页版「停更公告」横幅合法**读取** __CM_DESKTOP 桌面端自动摘除——测试 ① 断言收紧为「根文件不得**赋值**桌面全局」。
+- **v1.4.1（编码完成，未发布）**：老板实机四连修复——①**登录页乱码+横幅**：上游 v3.4.1 停更横幅整块（44px 让位 CSS+标记+摘除脚本）在桌面构建期摘除（build.js「摘停更横幅CSS/标记」+ dist notHas eolBanner）——根因是 44px 位移 CSS 残留让登录层下移漏出「全部功能」抽屉；②**完全单机清空**：clearData 闸改走 `gxWipeLocal()`（复刻网页版 schema 重置，砍两道原生 confirm——图四弹窗根因，砍 pushWipeToCloud），silenceCloudPush 扩展静默 pushWipeToCloud；③**安全卡 v2**：登录/管理员密码均可修改+关闭，涉及登录密码与关闭操作需 gxAdminVerify 管理员授权链，双字段弹窗 gxPwdModal，关闭登录密码回零密码模式（lsDel K_LOGIN+lsSet LS_NOPWD）；④PRO 专属卡（B 印章式，已实现）预览待审：`_dataviz_preview/pro-card-preview.html`。
+- **v1.4.0（编码完成，未发布，并入 1.4.1 包）**：界面重设计四连——①**全台 emoji → Lucide 图标**（v0.544.0，ISC；`src/gx-icons.js` = window.__GX_ICONS，构建期 `_gen_gx_icons.js` 从 lucide-static 提取 62 枚，build.js 补丁表第 12 条扩为注入 `<script src="./gx-icons.js">`；app.patch.js gxInjectSprite/gxIc/GX_EMOJI_MAP + **UI 容器行首装饰 emoji 清扫**（GX_SWEEP_SEL 白名单容器，绝不碰用户内容，跨宿主文本节点 Set 去重，MutationObserver 防抖 + showToast/navigateTo 包装））②工作留痕：接管 renderWorkLogs，日期选择器退役 → 周期筛选（本周/本月/本学期/全部，**默认本月**），时间倒序流水，挂图 onerror 兜底（gx-imgdead）③荣誉墙：接管 renderHonors，卡片重设计 + **点卡片出证书预览弹窗**（gxHonorPreview：drawHonorCertCanvas 返回画布 drawImage 进弹窗——**重绘函数自建画布、不直接画弹窗 canvas，这是踩过的坑**）④证书奖状式重绘：接管 drawHonorCertCanvas（仍返回画布），顶部学校名称（设置页 cmDeskSchool 卡，localStorage `cm_school_name`）+ 姓名左顶格「同学：」+ 朱砂双环「荣誉」印章 + 右下落款；**导航图标区分**：荣誉墙侧栏/抽屉改 `#gx-award`（Lucide award），学分公示保持奖杯。**导出制品铁律更新：海报/周报仍不接管，荣誉证书 v1.4.0 起按老板需求接管重绘**。**上游 v3.4.1**：网页版「停更公告」横幅合法**读取** __CM_DESKTOP 桌面端自动摘除——测试 ① 断言收紧为「根文件不得**赋值**桌面全局」。
 - **v1.3.0（编码完成，未发布，并入 1.4.0 包）**：数据分析图表引擎——**全站交互图表统一 cmInk（ECharts 6）**：成绩 tab 接管 `renderGradeAnalyticsDetail`、学分 tab 接管 `renderAnalytics`（成绩激活时委托原函数重定向）、首页接管 `drawDistChart`、公示页接管 drawPubTrend/Daily/Dist/Reason 四图（canvas 原地隐藏 + `cmGxSwapCanvas` 等尺寸 div 顶替）。铁律维持：接管全挂原函数名下，Pro 页级锁不动；echarts 加载失败/超时/空数据静默回退原实现。**图表实例表共享（cmGradeCharts），释放按白名单 CM_GRADE_CHART_IDS / 前缀 cmGxCd\*——重渲染一方不许误杀另一方**；**公示图表实例 key=容器 id（`pubTrendChart__gx` 等）**；学分面板不可见时图表记脏，`cmWrapCreditTabSwitch`（链在 Pro gate 之上）切回补渲染。**导出制品（drawPubPoster/drawWeeklyPoster）有意不接管**（荣誉证书 v1.4.0 起接管，见上）。学分口径：`Number(s.credit)` 规范化、及格线读 `CB_ALERT_MIN`、流水过滤 `state==='revoked'`、7 天窗口。示例数据（v1.3.0）：6 生 + 18 流水铺五档 + 一场期中考试（快照/兜底清除均含 exams+nextExamId，示例 id 全落 990001–990999）。
 - **v1.0.1 P0（已修）**：向导首屏按钮无响应——按钮渲染在 foot 区却用 `w.body.querySelector` 绑定（绑定落在 null）；换步遮罩堆叠逐层变暗。修复后加 ③d 断言 + 冒烟交互探针，此类问题永久拦截。
 - **GitHub Release 资产名剥中文（已绕）**：中文直链 404 → 稳定副本改英文名 `ClassManager-Setup.exe`，落地页两处直链已替换。

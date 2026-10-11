@@ -150,11 +150,32 @@
   }
   function wrapDangerousFns() {
     if (typeof window.clearData === 'function' && !window.clearData.__cmDeskGate) {
-      var orig = window.clearData;
-      var wrapped = function () { adminGate(function () { orig(); }); };
+      var wrapped = function () { adminGate(function () { gxWipeLocal(); }); };
       wrapped.__cmDeskGate = true;
       window.clearData = wrapped;
     }
+  }
+  /* v1.4.1 桌面单机清空：复刻网页版 clearData 的 schema 重置段（15021-15036），
+     砍掉两道原生 confirm（图四样式不统一根因）与「同步清空云端」链路（pushWipeToCloud
+     的 Token toast = 老板看到的右上角弹窗）——桌面版完全单机，无云端可清。 */
+  function gxWipeLocal() {
+    var st = cmGxState();
+    if (!st) return;
+    try { localStorage.removeItem('classManagerData'); } catch (e) {}   // 先清旧快照（同网页版口径）
+    var KEEP = { className: 1, classNameFull: 1, classMotto: 1, classAvatar: 1, scheduleImage: 1, schedule: 1, schemaVer: 1, catDeleted: 1, catDeletedAt: 1, catRevived: 1, reasonCatalog: 1 };
+    var saved = {};
+    Object.keys(KEEP).forEach(function (k) { saved[k] = st[k]; });
+    var buildDefault = appFn('buildDefaultState');
+    var defaults = buildDefault ? buildDefault() : {};
+    Object.keys(defaults).forEach(function (k) { st[k] = defaults[k]; });
+    Object.keys(KEEP).forEach(function (k) { if (saved[k] !== undefined) st[k] = saved[k]; });
+    st.reasonScores = Object.assign({}, (typeof window.defaultReasonScores === 'object' && window.defaultReasonScores) || {});
+    st.honorDeleted = {};
+    st.studentDeleted = {};
+    st.wipeAt = Date.now();
+    if (appFn('saveData')) window.saveData();
+    if (appFn('renderAll')) window.renderAll();
+    if (window.showToast) window.showToast('本机数据已全部清空（桌面版单机存储，无云端）', 'success');
   }
 
   /* ---------- 3. 通用小模态（纸墨风，独立于 app 的 cmPrompt 以免耦合） ---------- */
@@ -743,7 +764,51 @@
     }
   }
 
-  /* ---------- 6. 桌面版安全设置卡 ---------- */
+  /* ---------- 6. 桌面版安全设置卡（v1.4.1 v2：修改/关闭双操作 + 管理员授权链） ----------
+     老板拍板：登录密码、管理员密码均可修改与关闭；管理员密码可授权修改/关闭登录密码。
+     关闭登录密码 = 回零密码模式（打开即用）；关闭管理员密码 = 清空数据退回「清空」二字确认。 */
+  function gxAdminVerify(onPass) {
+    cmDeskPrompt({
+      title: '🔐 管理员密码验证',
+      body: '此操作涉及登录密码变更，请先输入管理员密码：',
+      type: 'password', maxlen: 20, okText: '验证',
+      onOk: function (v) {
+        if (window.verifyAdminPwd && window.verifyAdminPwd(v)) { onPass(); return true; }
+        return '管理员密码错误';
+      }
+    });
+  }
+  function gxPwdModal(title, apply) {
+    var mask = el('div', 'cmDesk-mask');
+    var box = el('div', 'cmDesk-modal');
+    box.appendChild(el('div', 'cmDesk-title', title));
+    var body = el('div', 'cmDesk-body');
+    var i1 = el('input', 'cmDesk-input'); i1.type = 'password'; i1.maxLength = 6; i1.placeholder = '新密码（6 位数字）'; i1.style.width = '100%'; i1.style.boxSizing = 'border-box'; i1.style.marginBottom = '8px';
+    var i2 = el('input', 'cmDesk-input'); i2.type = 'password'; i2.maxLength = 6; i2.placeholder = '再输一遍'; i2.style.width = '100%'; i2.style.boxSizing = 'border-box';
+    body.appendChild(i1); body.appendChild(i2);
+    box.appendChild(body);
+    var row = el('div', 'cmDesk-row');
+    var cancel = el('button', 'btn btn-outline', '取消');
+    var ok = el('button', 'btn btn-primary', '保存');
+    row.appendChild(cancel); row.appendChild(ok);
+    box.appendChild(row);
+    mask.appendChild(box);
+    document.body.appendChild(mask);
+    function close() { if (mask.parentNode) mask.parentNode.removeChild(mask); }
+    cancel.onclick = function () { close(); };
+    mask.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    ok.onclick = function () {
+      var a = i1.value, b = i2.value;
+      if (!isSixDigits(a)) { i1.value = ''; i1.focus(); return '请输满 6 位数字'; }
+      if (a !== b) return '两次输入不一致';
+      if (weakPattern(a)) return '密码过于简单（重复/连号）';
+      apply(a);
+      close();
+    };
+    i1.focus();
+    i1.addEventListener('keydown', function (e) { if (e.key === 'Enter') i2.focus(); });
+    i2.addEventListener('keydown', function (e) { if (e.key === 'Enter') ok.click(); });
+  }
   function buildSecurityCard() {
     if (document.getElementById('cmDeskSecurity')) return;
     var hs = document.querySelectorAll('.settings-section h3');
@@ -753,47 +818,62 @@
     var card = el('div', 'settings-section');
     card.id = 'cmDeskSecurity';
     card.innerHTML =
-      '<h3>🔐 安全（桌面版）</h3>' +
-      '<div style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px;line-height:1.8">登录密码 = 打开应用时输入；管理员密码 = 敏感操作确认。均不可找回，请牢记。</div>' +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">' +
-      '<span style="font-size:13px;font-weight:600;min-width:88px">登录密码</span>' +
-      '<input class="cmDesk-input" id="cmDeskLoginPwd" type="password" maxlength="6" placeholder="6位数字" style="width:120px">' +
-      '<input class="cmDesk-input" id="cmDeskLoginPwd2" type="password" maxlength="6" placeholder="再输一遍" style="width:120px">' +
-      '<button class="btn btn-primary btn-sm" id="cmDeskLoginSave">保存</button>' +
-      '<span style="font-size:12px;color:var(--text-muted)" id="cmDeskLoginState"></span></div>' +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
-      '<span style="font-size:13px;font-weight:600;min-width:88px">管理员密码</span>' +
-      '<input class="cmDesk-input" id="cmDeskAdminPwd" type="password" maxlength="6" placeholder="6位数字" style="width:120px">' +
-      '<input class="cmDesk-input" id="cmDeskAdminPwd2" type="password" maxlength="6" placeholder="再输一遍" style="width:120px">' +
-      '<button class="btn btn-primary btn-sm" id="cmDeskAdminSave">保存</button>' +
-      '<span style="font-size:12px;color:var(--text-muted)" id="cmDeskAdminState"></span></div>' +
+      '<h3>' + gxIc('lock') + ' 安全（桌面版）</h3>' +
+      '<div class="gxSec-hint">登录密码 = 打开应用时输入；管理员密码 = 敏感操作授权（清空数据、改登录密码）。均不可找回，请牢记。</div>' +
+      '<div class="gxSec-row"><span class="gxSec-k">登录密码</span><span class="gxSec-state" id="gxSecLoginState"></span>' +
+      '<span class="gxSec-acts"><button class="btn btn-outline btn-sm" id="gxSecLoginEdit">' + gxIc('pen-line') + ' 修改</button>' +
+      '<button class="btn btn-outline btn-sm" id="gxSecLoginOff" style="color:var(--danger,#B42318)">' + gxIc('x') + ' 关闭</button></span></div>' +
+      '<div class="gxSec-row"><span class="gxSec-k">管理员密码</span><span class="gxSec-state" id="gxSecAdminState"></span>' +
+      '<span class="gxSec-acts"><button class="btn btn-outline btn-sm" id="gxSecAdminEdit">' + gxIc('pen-line') + ' 修改</button>' +
+      '<button class="btn btn-outline btn-sm" id="gxSecAdminOff" style="color:var(--danger,#B42318)">' + gxIc('x') + ' 关闭</button></span></div>' +
+      '<div class="gxSec-note">修改/关闭「登录密码」时若已设置管理员密码，需先验证管理员密码；关闭登录密码后回到零密码模式（打开即用）。</div>' +
       '<div style="margin-top:8px;font-size:12px;color:var(--text-muted)">© 2026 chee · 班主任工作台 · 保留所有权利</div>';
     anchor.parentNode.insertBefore(card, anchor);
-
+    function gxSec(name) { return document.getElementById(name); }
     function refreshState() {
-      document.getElementById('cmDeskLoginState').textContent = userLoginPwdSet() ? '已设置' : '未设置（零密码模式）';
-      document.getElementById('cmDeskAdminState').textContent = userAdminPwdSet() ? '已设置' : '未设置（清空数据用「清空」二字确认）';
+      gxSec('gxSecLoginState').textContent = userLoginPwdSet() ? '已设置' : '未设置（零密码模式）';
+      gxSec('gxSecAdminState').textContent = userAdminPwdSet() ? '已设置' : '未设置（清空数据用「清空」二字确认）';
+      gxSec('gxSecLoginEdit').style.visibility = '';
+      gxSec('gxSecLoginOff').style.visibility = userLoginPwdSet() ? '' : 'hidden';
+      gxSec('gxSecAdminOff').style.visibility = userAdminPwdSet() ? '' : 'hidden';
     }
+    function doSetLogin(a) {
+      lsSet(K_LOGIN, window.hashPwd(a)); lsDel(LS_NOPWD); refreshState();
+      if (window.showToast) window.showToast('登录密码已更新，下次打开生效', 'success');
+    }
+    function doOffLogin() {
+      lsDel(K_LOGIN); lsSet(LS_NOPWD, '1'); refreshState();
+      if (window.showToast) window.showToast('登录密码已关闭：下次打开直接进入（零密码模式）', 'success');
+    }
+    function doSetAdmin(a) {
+      lsSet(K_ADMIN, window.hashPwd(a)); lsSet(USER_SET_ADMIN, '1'); refreshState();
+      if (window.showToast) window.showToast('管理员密码已更新', 'success');
+    }
+    function doOffAdmin() {
+      lsDel(K_ADMIN); lsDel(USER_SET_ADMIN); refreshState();
+      if (window.showToast) window.showToast('管理员密码已关闭：敏感操作退回「清空」二字确认', 'success');
+    }
+    gxSec('gxSecLoginEdit').onclick = function () {
+      if (userAdminPwdSet()) gxAdminVerify(function () { gxPwdModal('修改登录密码', doSetLogin); });
+      else gxPwdModal('设置登录密码', doSetLogin);
+    };
+    gxSec('gxSecLoginOff').onclick = function () {
+      if (userAdminPwdSet()) gxAdminVerify(function () {
+        cmDeskPrompt({ title: '关闭登录密码', body: '关闭后<b>打开应用不再需要密码</b>（零密码模式）。确认关闭？', okText: '确认关闭', onOk: function () { doOffLogin(); return true; } });
+      });
+      else cmDeskPrompt({ title: '关闭登录密码', body: '关闭后<b>打开应用不再需要密码</b>（零密码模式）。确认关闭？', okText: '确认关闭', onOk: function () { doOffLogin(); return true; } });
+    };
+    gxSec('gxSecAdminEdit').onclick = function () {
+      if (userAdminPwdSet()) gxAdminVerify(function () { gxPwdModal('修改管理员密码', doSetAdmin); });
+      else gxPwdModal('设置管理员密码', doSetAdmin);
+    };
+    gxSec('gxSecAdminOff').onclick = function () {
+      if (!userAdminPwdSet()) return;
+      gxAdminVerify(function () {
+        cmDeskPrompt({ title: '关闭管理员密码', body: '关闭后<b>清空数据等敏感操作退回「清空」二字确认</b>，保护等级降低。确认关闭？', okText: '确认关闭', onOk: function () { doOffAdmin(); return true; } });
+      });
+    };
     refreshState();
-    document.getElementById('cmDeskLoginSave').onclick = function () {
-      var a = document.getElementById('cmDeskLoginPwd').value, b = document.getElementById('cmDeskLoginPwd2').value;
-      if (!isSixDigits(a)) { if (window.showToast) window.showToast('请输满 6 位数字', 'error'); return; }
-      if (a !== b) { if (window.showToast) window.showToast('两次输入不一致', 'error'); return; }
-      if (weakPattern(a)) { if (window.showToast) window.showToast('密码过于简单（重复/连号）', 'error'); return; }
-      if (window.hashPwd) {
-        lsSet(K_LOGIN, window.hashPwd(a)); lsDel(LS_NOPWD); refreshState();
-        if (window.showToast) window.showToast('登录密码已设置，下次打开生效', 'success');
-      }
-    };
-    document.getElementById('cmDeskAdminSave').onclick = function () {
-      var a = document.getElementById('cmDeskAdminPwd').value, b = document.getElementById('cmDeskAdminPwd2').value;
-      if (!isSixDigits(a)) { if (window.showToast) window.showToast('请输满 6 位数字', 'error'); return; }
-      if (a !== b) { if (window.showToast) window.showToast('两次输入不一致', 'error'); return; }
-      if (window.hashPwd) {
-        lsSet(K_ADMIN, window.hashPwd(a)); lsSet(USER_SET_ADMIN, '1'); refreshState();
-        if (window.showToast) window.showToast('管理员密码已设置', 'success');
-      }
-    };
   }
 
   /* ---------- 7. 关于卡桌面版化（检查更新第一栏 + 介绍重写） ---------- */
@@ -1961,10 +2041,14 @@
       em.remove();
     }
   }
-  /* 云同步静音（v1.1.1）：桌面版数据只在本机，autoPushToCloud 的「未配置云同步 Token」提示与桌面改造方向不符 */
+  /* 云同步静音（v1.1.1）：桌面版数据只在本机，autoPushToCloud 的「未配置云同步 Token」提示与桌面改造方向不符。
+     v1.4.1：完全单机——清空数据的「同步清空云端」链路一并静默（pushWipeToCloud 的 Token toast = 老板实机看到的右上角弹窗）。 */
   function silenceCloudPush() {
     if (typeof window.autoPushToCloud === 'function') {
       window.autoPushToCloud = function () {};
+    }
+    if (typeof window.pushWipeToCloud === 'function') {
+      window.pushWipeToCloud = function () {};
     }
   }
 

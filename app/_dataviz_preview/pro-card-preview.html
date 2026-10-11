@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>PRO 专属卡 · 预览（v1.4.1）</title>
+<style>
+  :root{ --bg:#F6F2E9; --card:#FFFDF7; --ink:#2B2B33; --text2:#5C574F; --muted:#8C8577; --border:#E6DECD; --primary:#A63A2B; --gold:#C9A227; --font-display:'Noto Serif SC','SimSun',serif; }
+  html.dark{ --bg:#191613; --card:#23201A; --ink:#EAE4D6; --text2:#B7AE9E; --muted:#8C8577; --border:#3A352C; --primary:#CE6B52; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:'Segoe UI','Microsoft YaHei',sans-serif;padding:26px 30px 50px;transition:background .3s,color .3s}
+  header{max-width:1080px;margin:0 auto 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .seal-dot{width:13px;height:13px;background:var(--primary);border-radius:3px;transform:rotate(45deg)}
+  h1{font-size:19px;font-family:var(--font-display);letter-spacing:1px}
+  .sub{font-size:12px;color:var(--muted)}
+  .hd-sp{flex:1}
+  .tab{padding:6px 16px;border-radius:999px;border:1px solid var(--border);background:var(--card);cursor:pointer;font-size:12.5px;color:var(--text2)}
+  .tab.active{background:var(--primary);border-color:var(--primary);color:#FFFDF7;font-weight:600}
+  .note{max-width:1080px;margin:0 auto 18px;padding:9px 16px;border:1px dashed var(--border);border-radius:10px;font-size:12px;color:var(--muted);background:var(--card)}
+  main{max-width:1080px;margin:0 auto}
+  .slot-label{font-size:12px;color:var(--muted);margin:0 0 8px 4px}
+  .settings-section{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 2px rgba(25,22,19,.04),0 6px 20px rgba(25,22,19,.05)}
+  .settings-section h3{font-size:14.5px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+  .settings-section h3 .dot{width:8px;height:8px;background:var(--primary);border-radius:2px;transform:rotate(45deg)}
+  .cmDeskDonate-t{font-size:12.5px;color:var(--text2);margin-bottom:10px}
+  .gone{opacity:.45;position:relative;overflow:hidden}
+  .gone::after{content:'✕ 激活 Pro 后此卡不再出现';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(25,22,19,.55);color:#FFFDF7;font-size:14px;font-weight:700;letter-spacing:1px;border-radius:14px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:920px){.grid2{grid-template-columns:1fr}}
+  .cap{font-size:11.5px;color:var(--muted);margin:0 0 8px 4px}
+  /* ===== 以下为 app 内 .cmDesk-procard 真实样式（wizard.css 原样拷贝） ===== */
+  .cmDesk-procard{position:relative;background:#241B10;border:1px solid #C9A227;border-radius:14px;padding:18px 18px 12px;color:#EFE6CE}
+  html.dark .cmDesk-procard{background:#1D150C}
+  .cmDesk-procard .chip{display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:8px;border:1px solid #C9A227;color:#EFD98B;font-size:10.5px;font-weight:700;letter-spacing:2px}
+  .cmDesk-procard .seal{position:absolute;top:14px;right:14px;width:64px;height:64px;border:1.5px solid #C9A227;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;transform:rotate(8deg);background:rgba(201,162,39,.07);color:#EFD98B}
+  .cmDesk-procard .seal i{font-style:normal;font-size:9px;color:#B9A05A;letter-spacing:1px}
+  .cmDesk-procard .seal b{font-family:var(--font-display);font-size:16px;line-height:1;font-weight:700}
+  .cmDesk-procard .seal s{text-decoration:none;font-size:8.5px;color:#B9A05A}
+  .cmDesk-procard .bd{font-size:12px;line-height:2;color:#CFC4A6;max-width:75%}
+  .cmDesk-procard .bd .lic{font-family:var(--font-display);font-size:14.5px;color:#EFD98B;line-height:1.5;margin-bottom:2px;letter-spacing:.5px}
+  .cmDesk-procard .bd b{color:#EFE6CE}
+  .cmDesk-procard .bd .mut{color:#9A8D6C;font-size:11px}
+  .cmDesk-procard-copy{display:inline-block;margin-top:6px;padding:4px 10px;background:none;border:1px solid rgba(201,162,39,.45);border-radius:8px;color:#EFD98B;font-size:11px;cursor:pointer}
+  .cmDesk-procard-copy:hover{border-color:#C9A227;background:rgba(201,162,39,.08)}
+  .cmDesk-procard .ft{margin-top:12px;padding-top:10px;border-top:1px dashed rgba(201,162,39,.3);display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#9A8D6C}
+  .cmDesk-procard .ft .sig{font-family:var(--font-display);color:#EFD98B;letter-spacing:1px}
+  footer{max-width:1080px;margin:24px auto 0;text-align:center;font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <span class="seal-dot"></span>
+  <h1>PRO 专属卡 · 预览</h1>
+  <span class="sub">激活后替换「请作者喝杯奶茶」卡 · 参考 B 印章式定稿</span>
+  <span class="hd-sp"></span>
+  <button class="tab active" id="btnTheme" onclick="toggleTheme()">🌙 暗色</button>
+</header>
+<div class="note">生效规则：Pro 激活后，设置页「关于本系统」上方的赞赏卡<b>整体替换</b>为下方专属卡（赞赏卡 / 满 3 天弹窗 / 关于卡打赏入口全部不再出现）。早鸟用户带钢印与 № 序号，常价用户为「正版授权」身份行。</div>
+<main>
+  <p class="slot-label">设置页卡片序列（自上而下）：✉️ 反馈与建议 → 下方这张 → ℹ️ 关于本系统</p>
+  <div class="settings-section gone" style="margin-bottom:20px">
+    <h3><span class="dot"></span>请作者喝杯奶茶</h3>
+    <div class="cmDeskDonate-t">自愿 · 无广告无订阅，已发布功能永久免费——但奶茶能让更新写得更快。</div>
+    <button class="btn btn-primary" style="padding:9px 22px;font-size:13.5px" disabled>🧧 打赏作者 →</button>
+  </div>
+
+  <p class="cap">早鸟用户（前 100 位，带钢印）——设置页 · 关于本系统上方</p>
+  <div class="settings-section" style="margin-bottom:20px">
+    <div class="cmDesk-procard">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span class="chip">✦ PRO</span><span>已激活 · 终身有效</span>
+      </div>
+      <div class="seal"><i>早鸟</i><b>№042</b><s>共100份</s></div>
+      <div class="bd">
+        <div class="lic">早鸟 №042 · 正版授权</div>
+        <div>一次买断，全部 Pro 功能永久可用</div>
+        <div class="mut">换机重置：每年 3 次免费 · 846699191@qq.com</div>
+        <button class="cmDesk-procard-copy">📋 复制激活码（换机重签用）</button>
+      </div>
+      <div class="ft"><span>感谢你成为前 100 位支持者</span><span class="sig">BY: chee</span></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <p class="cap">常价用户（¥69，无早鸟钢印）</p>
+      <div class="settings-section">
+        <div class="cmDesk-procard">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <span class="chip">✦ PRO</span><span>已激活 · 终身有效</span>
+          </div>
+          <div class="bd">
+            <div class="lic">正版授权</div>
+            <div>一次买断，全部 Pro 功能永久可用</div>
+            <div class="mut">换机重置：每年 3 次免费 · 846699191@qq.com</div>
+            <button class="cmDesk-procard-copy">📋 复制激活码（换机重签用）</button>
+          </div>
+          <div class="ft"><span>感谢支持独立开发</span><span class="sig">BY: chee</span></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="cap">未激活（对照：现状保留赞赏卡）</p>
+      <div class="settings-section">
+        <h3 style="font-size:14.5px;margin-bottom:8px">☕ 请作者喝杯奶茶</h3>
+        <div class="cmDeskDonate-t">自愿 · 无广告无订阅，已发布功能永久免费——但奶茶能让更新写得更快。</div>
+        <button class="btn btn-primary" style="padding:9px 22px;font-size:13.5px">🧧 打赏作者 →</button>
+      </div>
+    </div>
+  </div>
+</main>
+<footer>班主任工作台 · 桌面版 v1.4.1 · PRO 专属卡预览 · 审阅后按此实施</footer>
+<script>
+function toggleTheme(){
+  var dark = document.documentElement.classList.toggle('dark');
+  document.getElementById('btnTheme').textContent = dark ? '☀️ 亮色' : '🌙 暗色';
+  document.getElementById('btnTheme').classList.toggle('active', false);
+}
+</script>
+</body>
+</html>
