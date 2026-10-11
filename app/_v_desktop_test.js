@@ -28,10 +28,10 @@ t('①线上零改动：根 index.html 与 git HEAD 完全一致', () => {
     ? fs.readFileSync(process.env.CM_HEAD_FILE, 'utf8') // 沙箱逃生舱口（同 build.js）
     : execSync('git show HEAD:index.html', { cwd: ROOT, maxBuffer: 32 * 1024 * 1024 });
   ok(sha256(work) === sha256(Buffer.from(head, 'utf8')), '根文件被改动——线上版会受影响');
-  // 桌面层不得污染根文件
+  // 桌面层不得污染根文件（v3.4.1 起根文件含上游「停更横幅」脚本，只【读取】__CM_DESKTOP 属合法——禁止的是赋值注入）
   const rootStr = work.toString('utf8');
   notHas(rootStr, 'cm_onboarded', '根文件不应含向导标记');
-  notHas(rootStr, '__CM_DESKTOP', '根文件不应含桌面标识');
+  notHas(rootStr, 'window.__CM_DESKTOP =', '根文件不得赋值桌面全局');
 });
 
 t('②构建产物存在且标记齐全', () => {
@@ -516,8 +516,8 @@ t('⑮ 数据分析图表引擎', function () {
   has(p, "cmWrapPro('switchAnalyticsTab', '数据分析')", 'Pro 锁原样保留');
   // 版本口径
   const pkg = JSON.parse(fs.readFileSync(path.join(HERE, 'package.json'), 'utf8'));
-  ok(pkg.version === '1.3.0', '版本号应为 1.3.0（独立版本号铁律）');
-  ok(distHtml && distHtml.indexOf('v1.3.0 桌面版') >= 0, 'dist 版本标已升 1.3.0');
+  ok(/^\d+\.\d+\.\d+$/.test(pkg.version), '版本号为语义化版本（独立版本号铁律）');
+  ok(distHtml && distHtml.indexOf('v' + pkg.version + ' 桌面版') >= 0, 'dist 版本标与 package.json 一致');
   // 样式与骨架
   has(css, '.cmGx-kpis', 'KPI 带样式');
   has(css, '.cmGx-chart', '图表容器样式');
@@ -555,7 +555,7 @@ t('⑯ 图表引擎 P1：学分 tab 迁移', function () {
   ok(p.indexOf('CM_GRADE_CHART_IDS') >= 0, '成绩图表释放改白名单（不误杀学分实例）');
   ok(p.indexOf('cmWrapCreditRender();') >= 0 && p.indexOf('cmWrapCreditTabSwitch();') >= 0, 'boot 已接线（学分接管 + 切 tab 补渲染）');
   ok(p.indexOf("cmWrapPro('switchAnalyticsTab', '数据分析')") < p.indexOf('cmWrapCreditTabSwitch();'), '学分 tab 包装链在 Pro gate 之上');
-  ok(distHtml && distHtml.indexOf('v1.3.0 桌面版') >= 0, '版本标仍为 1.3.0（P0+P1 同版）');
+  ok(distHtml && distHtml.indexOf('v' + JSON.parse(fs.readFileSync(path.join(HERE, 'package.json'), 'utf8')).version + ' 桌面版') >= 0, '版本标与 package.json 一致');
 });
 
 /* ⑰ v1.3.0 P2：首页学分分布 + 公示四图统一 + 示例数据升级 */
@@ -576,10 +576,8 @@ t('⑰ 图表引擎 P2：首页/公示统一 + 示例考试', function () {
   has(p, "cmWrapPubOne('drawPubReason', 'pubReasonChart'", '原因接管');
   has(p, 'function cmGxSwapCanvas', 'canvas 等尺寸顶替手法');
   has(p, "lg.style.display = 'none'", '原因 HTML 图例退役（并入 ECharts）');
-  // 导出制品铁律：海报/证书不接管
-  notHas(p, 'window.drawPubPoster', '海报导出自绘不接管');
-  notHas(p, 'window.drawWeeklyPoster', '周报导出自绘不接管');
-  notHas(p, 'window.drawHonorCertCanvas', '荣誉证书自绘不接管');
+  // 导出制品铁律：海报/周报仍不接管（荣誉证书 v1.4.0 起按老板需求接管重绘，见 ⑱）
+  ok(p.indexOf('window.drawPubPoster') < 0 && p.indexOf('window.drawWeeklyPoster') < 0, '海报/周报导出仍不接管');
   // 换肤重渲染扩展 + boot 接线
   has(p, 'function cmGxThemeExtras', '首页/公示换肤重渲染');
   has(p, 'cmGxThemeExtras();', 'Observer 已接扩展');
@@ -593,6 +591,64 @@ t('⑰ 图表引擎 P2：首页/公示统一 + 示例考试', function () {
   has(p, '18 条流水', '向导指引文案与新示例一致');
   has(p, 'finalCredits', '示例学分铺满五档（122/118/158/73/200/55）');
   ok(p.indexOf('coin: r[3] > 0 ? r[3] : 0') >= 0, '示例 coin 语义与 cbCoinOfAmount 一致（负数 0 币）');
+});
+
+/* ⑱ v1.4.0：界面符号统一（Lucide）+ 工作留痕/荣誉墙重设计 + 证书奖状式重绘 */
+t('⑱ v1.4.0 界面符号统一 + 留痕/荣誉墙重设计', function () {
+  const p = fs.readFileSync(path.join(HERE, 'src', 'app.patch.js'), 'utf8');
+  const css = fs.readFileSync(path.join(HERE, 'src', 'wizard.css'), 'utf8');
+  const bjs = fs.readFileSync(path.join(HERE, 'build.js'), 'utf8');
+  // 图标体系（Lucide，ISC）
+  has(bjs, "'src/gx-icons.js'", 'build 复制清单含 gx-icons.js');
+  has(bjs, '<script src="./gx-icons.js"></script>', '注入 gx-icons 脚本（先于 app.patch.js）');
+  ok(fs.existsSync(path.join(HERE, 'dist', 'gx-icons.js')), 'dist 缺 gx-icons.js——重跑 build.js');
+  const gj = fs.readFileSync(path.join(HERE, 'src', 'gx-icons.js'), 'utf8');
+  has(gj, '__GX_ICONS', '图标符号表全局');
+  has(gj, 'lucide', 'Lucide 来源署名');
+  has(p, 'function gxInjectSprite', 'sprite 注入');
+  has(p, 'function gxIc', '图标 helper');
+  has(p, 'GX_EMOJI_MAP', 'emoji 映射表');
+  has(p, 'function gxSweepEl', 'UI 容器清扫');
+  has(p, 'seen.has(t)', '跨宿主文本节点去重');
+  has(p, 'function gxWatchDom', 'DOM 变更防抖补扫');
+  has(p, 'window.showToast = w;', 'toast 包装');
+  has(p, 'window.navigateTo = w;', 'navigateTo 包装');
+  // 导航图标区分
+  has(p, "setAttribute('href', '#gx-award')", '荣誉墙侧栏改奖章图标');
+  has(p, '.nav-item[data-page="honors"] .ic use', '侧栏图标定位');
+  // 学校信息卡
+  has(p, "'cmDeskSchool'", '学校信息卡');
+  has(p, "'cm_school_name'", '学校名称存储键');
+  has(p, 'function buildGxSchoolCard', '设置页学校卡构建');
+  // 工作留痕重设计
+  has(p, 'function cmWrapWorklogs', '留痕接管');
+  has(p, 'window.renderWorkLogs = wrapped', '接管挂 renderWorkLogs');
+  has(p, 'GX_WL_PERIODS', '周期筛选表（本周/本月/本学期/全部）');
+  has(p, "_gxWlPeriod = 'month'", '默认本月');
+  has(p, "pfSemesterStartTs", '学期起点兜底（同网页版口径）');
+  has(p, 'window.gxImgFail', '图片渲染兜底（防挂图）');
+  ok(p.indexOf("w.date >= start && w.date <= today") >= 0, '按时间窗过滤（最近流水）');
+  // 荣誉墙重设计
+  has(p, 'function cmWrapHonors', '荣誉墙接管');
+  has(p, 'window.renderHonors = wrapped', '接管挂 renderHonors');
+  has(p, 'window.gxHonorPreview', '点卡片证书预览弹窗');
+  has(p, 'gxHonorCertCv', '预览证书画布');
+  has(p, 'function cmWrapHonorCert', '证书重绘接管');
+  has(p, 'cmSchoolName()', '证书读学校名称（顶部抬头）');
+  has(p, '同学：', '奖状式姓名左顶格 + 冒号');
+  has(p, 'function certWrapText', '正文自动换行');
+  has(p, "ctx.arc(0, 0, 84", '朱砂印章');
+  // 铁律延续：导出制品不接管
+  ok(p.indexOf('window.drawPubPoster') < 0 && p.indexOf('window.drawWeeklyPoster') < 0, '海报导出仍不接管');
+  // 样式
+  has(css, 'svg.gx-ic', 'Lucide 图标基类样式');
+  has(css, '.gxH-card', '荣誉卡新样式');
+  has(css, '.gx-wl-periods', '周期 chips 样式');
+  has(css, '.gx-imgdead', '挂图兜底块样式');
+  // boot 接线
+  ok(p.indexOf('gxInjectSprite();') >= 0 && p.indexOf('cmWrapWorklogs();') >= 0 &&
+     p.indexOf('cmWrapHonors();') >= 0 && p.indexOf('cmWrapHonorCert();') >= 0 &&
+     p.indexOf('buildGxSchoolCard();') >= 0 && p.indexOf('gxFixNavIcons();') >= 0, 'boot 已接线（v1.4.0）');
 });
 
 console.log('\n通过 ' + pass + ' 项，失败 ' + fail + ' 项');

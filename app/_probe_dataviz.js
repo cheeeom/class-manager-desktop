@@ -223,6 +223,83 @@ app.whenReady().then(async function () {
       const img5 = await win.webContents.capturePage();
       fs.writeFileSync(path.join(__dirname, 'out', '_probe_dataviz_publicity.png'), img5.toPNG());
 
+      STEP = '工作留痕重设计（v1.4.0）';
+      await jsx(`(function(){
+        state.workLogs = state.workLogs || [];
+        var today = new Date(); var ds = today.getFullYear()+'-'+('0'+(today.getMonth()+1)).slice(-2)+'-'+('0'+today.getDate()).slice(-2);
+        var px = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+        if (!state.workLogs.some(function(w){return w.id===990501;})) {
+          state.workLogs.push({id:990501, date:ds, category:'常规', title:'探针留痕（带图）', content:'图表引擎探针注入', images:[px]});
+        }
+        return 'wl='+state.workLogs.length;
+      })()`);
+      await jsx('window.navigateTo("worklogs");1');
+      await wait(1400);
+      const r7 = await jsx(`(function(){
+        var h2 = document.querySelector('#page-worklogs h2');
+        var left = 0;
+        document.querySelectorAll('#page-worklogs h2, #page-worklogs .btn').forEach(function(e){ if(/^\s*(📋|📥|＋|🔍)/.test(e.textContent)) left++; });
+        return JSON.stringify({
+          periods: document.querySelectorAll('#gxWlPeriods button').length,
+          dateHidden: (document.getElementById('wlDate')||{}).style.display==='none',
+          cards: document.querySelectorAll('#wlList .wl-card').length,
+          stats: (document.getElementById('wlStats')||{}).textContent,
+          h2EmojiLeft: /^\s*📋/.test(h2 ? h2.textContent : 'x'),
+          btnEmojiLeft: left,
+          sprite: !!document.getElementById('gxSprite'),
+          gxIcons: document.querySelectorAll('svg.gx-ic').length
+        });
+      })()`);
+      console.log('[DV] 留痕 =', r7);
+      const rr7 = JSON.parse(r7);
+      if (rr7.periods !== 4 || !rr7.dateHidden) throw new Error('周期筛选未就位: ' + r7);
+      if (rr7.cards < 1) throw new Error('留痕卡片未渲染');
+      if (rr7.h2EmojiLeft) throw new Error('页头 emoji 未替换');
+      if (!rr7.sprite || rr7.gxIcons < 5) throw new Error('图标体系未生效: ' + rr7.gxIcons);
+      const img6 = await win.webContents.capturePage();
+      fs.writeFileSync(path.join(__dirname, 'out', '_probe_dataviz_worklogs.png'), img6.toPNG());
+
+      STEP = '荣誉墙重设计（v1.4.0）';
+      await jsx(`(function(){
+        state.honors = state.honors || [];
+        if (!state.honors.some(function(h){return h.id===990601;})) {
+          state.honors.push({id:990601, title:'期末测评', date:'2026-10-08', scope:'个人', level:'市级', persons:['陈曦'], desc:'市级三好学生'});
+        }
+        localStorage.setItem('cm_school_name','XX市第一中学');
+        return 'hn='+state.honors.length;
+      })()`);
+      await jsx('window.navigateTo("honors");1');
+      await wait(1400);
+      const r8 = await jsx(`(function(){
+        var navUse = document.querySelector('.nav-item[data-page="honors"] .ic use');
+        return JSON.stringify({
+          cards: document.querySelectorAll('#honorList .gxH-card').length,
+          navAward: navUse ? navUse.getAttribute('href') : null,
+          schoolCard: !!document.getElementById('cmDeskSchool')
+        });
+      })()`);
+      console.log('[DV] 荣誉墙 =', r8);
+      const rr8 = JSON.parse(r8);
+      if (rr8.cards < 1) throw new Error('荣誉卡片未渲染');
+      if (rr8.navAward !== '#gx-award') throw new Error('荣誉墙导航图标未区分: ' + rr8.navAward);
+      if (!rr8.schoolCard) throw new Error('学校信息卡未注入');
+      await jsx('window.gxHonorPreview(990601);1');
+      await wait(900);
+      const r9 = await jsx(`(function(){
+        var cv = document.getElementById('gxHonorCertCv');
+        if (!cv) return JSON.stringify({overlay:false});
+        var d = cv.getContext('2d').getImageData(0, 170, 1500, 110).data;   // 荣誉证书标题字带（y≈170-280）
+        var red = 0;
+        for (var i = 0; i < d.length; i += 40) { if (d[i] > 120 && d[i+1] < 90 && d[i+2] < 90) red++; }
+        return JSON.stringify({overlay:true, titleRedPx: red, dlBtn: !!document.getElementById('gxHonorDl')});
+      })()`);
+      console.log('[DV] 证书预览 =', r9);
+      const rr9 = JSON.parse(r9);
+      if (!rr9.overlay) throw new Error('证书预览弹窗未打开');
+      if ((rr9.titleRedPx || 0) < 8) throw new Error('证书标题区未检出红色字（重绘未生效）');
+      const img7 = await win.webContents.capturePage();
+      fs.writeFileSync(path.join(__dirname, 'out', '_probe_dataviz_honor.png'), img7.toPNG());
+
       console.log('[DV] consoleErrors=' + consoleErrors);
       if (consoleErrors > 0) throw new Error('console-error 计数 ' + consoleErrors);
       console.log('[DV] VERDICT=PASS shots=out/_probe_dataviz_{light,dark,final,credit}.png');

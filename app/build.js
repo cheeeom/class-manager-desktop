@@ -55,7 +55,7 @@ const patches = [
   ['如「2026级幼儿保育2班」', '如「高2026级一班」', 1, '班级全称同步toast例'],
   ['仅<b>班长、副班长、纪律委员</b>三人可进入班委协作（v3.0.0）。<b>首页</b>只看课表、班级人数与今日实到（v3.2.0）；请假页只读（看人数与姓名，不可登记）；<b>学分页</b>只能加分扣分（留痕署名），只能看见并撤销<b>本次自己的操作记录</b>，月度加分/按寝室加减分不可用；<b>荣誉墙</b>只可查看；<b>公示页</b>不显示最低分；无待办模块。关闭扣分后班委只能加分，减分统一由你操作。',
    '仅<b>班长、副班长、纪律委员</b>三名学生可进入班委协作（在「📱 班委协作」里给学生打上对应职位标签即可）。<b>首页</b>只展示课表、班级人数与今日实到；请假页只读（可看人数与姓名，登记 / 续假 / 销假 / 删除均不可用）；<b>学分页</b>可加分扣分并留痕署名，只能看见并撤销<b>本次自己会话里的操作</b>，月度加分与按寝室加减分不可用；<b>荣誉墙</b>只可查看；<b>公示页</b>不显示最低分；无待办模块。关闭上方「允许班委扣分」后，班委只能加分，减分统一由班主任操作。', 1, '班委协作说明'],
-  ['</body>', '<link rel="stylesheet" href="./wizard.css">\n<script src="./app.patch.js"></script>\n</body>', 1, '注入桌面层']
+  ['</body>', '<link rel="stylesheet" href="./wizard.css">\n<script src="./gx-icons.js"></script>\n<script src="./app.patch.js"></script>\n</body>', 1, '注入桌面层']
 ];
 for (const [oldS, newS, cnt, tag] of patches) {
   const n = html.split(oldS).length - 1;
@@ -68,7 +68,7 @@ for (const [oldS, newS, cnt, tag] of patches) {
 const dist = path.join(HERE, 'dist');
 fs.mkdirSync(dist, { recursive: true });
 fs.writeFileSync(path.join(dist, 'index.html'), html);
-for (const f of ['src/app.patch.js', 'src/wizard.css', 'src/ed25519.cjs', 'src/pro.core.cjs', 'src/echarts.min.js']) {
+for (const f of ['src/app.patch.js', 'src/wizard.css', 'src/ed25519.cjs', 'src/pro.core.cjs', 'src/echarts.min.js', 'src/gx-icons.js']) {
   fs.copyFileSync(path.join(HERE, f), path.join(dist, path.basename(f)));
 }
 // 登录页背景海报（AI 生成，已裁水印）

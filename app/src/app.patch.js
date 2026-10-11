@@ -2848,6 +2848,471 @@
     }
   }
 
+  /* ---------- v1.4.0 界面符号统一（Lucide）+ 工作留痕/荣誉墙重设计 ----------
+     图标体系：Lucide v0.544.0（ISC License，github.com/lucide-icons/lucide，24.9k★）
+     —— 与网页版既有 29 枚 stroke sprite 同风格（线性描边/round cap），符号表在 src/gx-icons.js
+     （window.__GX_ICONS，构建期由 _gen_gx_icons.js 从 lucide-static 提取，勿手改）。
+     emoji 清扫：只扫 UI 容器（标题/按钮/统计/空态/toast/注入层 UI）的「行首装饰 emoji」，
+     绝不碰用户内容文本（日志标题/内容、荣誉描述、学生姓名）。
+     工作留痕：接管 renderWorkLogs——日期选择器退役 → 本周/本月/本学期/全部 周期筛选（默认本月），
+     按时间倒序流水；HEIC 等解码失败的图入库时拦截 + 缩略图渲染兜底。
+     荣誉墙：接管 renderHonors——卡片重设计 + 点卡片出证书预览弹窗；接管 drawHonorCertCanvas
+     —— 奖状式重排：顶部学校名称（设置页「学校信息（桌面版）」卡可填，localStorage cm_school_name），
+     姓名左顶格 + 「同学：」，朱砂印章落款。学分公示/荣誉墙侧栏同图标问题：荣誉墙改 #gx-award。 */
+  function gxIc(name, cls) {
+    return '<svg class="gx-ic' + (cls ? ' ' + cls : '') + '" aria-hidden="true"><use href="#gx-' + name + '"/></svg>';
+  }
+  function gxInjectSprite() {
+    if (document.getElementById('gxSprite')) return;
+    var icons = window.__GX_ICONS || {};
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" id="gxSprite" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">';
+    for (var k in icons) svg += '<symbol id="gx-' + k + '" viewBox="0 0 24 24">' + icons[k] + '</symbol>';
+    svg += '</svg>';
+    var holder = el('div');
+    holder.style.display = 'none';
+    holder.innerHTML = svg;
+    document.body.insertBefore(holder, document.body.firstChild);
+  }
+  /* emoji → Lucide 映射（键含 ZWJ/VS16 序列，匹配时按长度降序） */
+  var GX_EMOJI_MAP = {
+    '📋': 'clipboard-list', '🏆': 'trophy', '📁': 'folder-open', '🏦': 'landmark',
+    '👥': 'users', '✅': 'circle-check', '📈': 'trending-up', '⭐': 'star',
+    '🎖': 'medal', '🏅': 'medal', '📅': 'calendar', '🗓': 'calendar', '🗓️': 'calendar',
+    '🔍': 'search', '🖼': 'image', '🖼️': 'image', '📄': 'file-text', '📃': 'file-text',
+    '💾': 'save', '📂': 'folder-open', '🔄': 'refresh-cw', '🗑': 'trash-2', '🗑️': 'trash-2',
+    '＋': 'plus', '➕': 'plus', '🚀': 'rocket', '🔓': 'lock-open', '🔐': 'lock', '🔒': 'lock',
+    '✉': 'mail', '✉️': 'mail', '🎓': 'graduation-cap', '📦': 'package', '🖥': 'monitor',
+    '🖥️': 'monitor', '💻': 'monitor', '📱': 'monitor', '🌙': 'moon', '☀': 'sun', '☀️': 'sun',
+    '☁': 'cloud', '☁️': 'cloud', '⚠': 'triangle-alert', '⚠️': 'triangle-alert',
+    'ℹ': 'info', 'ℹ️': 'info', '❌': 'circle-x', '👋': 'hand', '✨': 'sparkles',
+    '🌟': 'sparkles', '👑': 'crown', '📊': 'chart-column', '📈': 'trending-up',
+    '📝': 'pen-line', '✏': 'pen-line', '✏️': 'pen-line', '🎨': 'palette',
+    '🏷': 'tag', '🏷️': 'tag', '👩‍💼': 'user-cog', '💼': 'briefcase', '🚨': 'bell-ring',
+    '⛔': 'ban', '🏫': 'school', '📣': 'megaphone', '📢': 'megaphone', '🔔': 'bell-ring',
+    '📷': 'camera', '🎯': 'target', '💡': 'lightbulb', '🎁': 'gift', '☕': 'coffee',
+    '⏰': 'alarm-clock', '🔑': 'key-round', '🕘': 'history', '🕓': 'history',
+    '📥': 'download', '📤': 'upload', '🚪': 'log-out', '🛡': 'shield-check', '🛡️': 'shield-check',
+    '📔': 'notebook', '📝': 'pen-line', '🧾': 'scroll', '📜': 'scroll', '🎉': 'sparkles',
+    '💪': 'hand', '🙋': 'hand', '🔬': 'search', '🧹': 'trash-2', '↗': 'trending-up'
+  };
+  var GX_EMOJI_KEYS = Object.keys(GX_EMOJI_MAP).sort(function (a, b) { return b.length - a.length; });
+  var GX_EMOJI_RE = new RegExp('^\\s*(' + GX_EMOJI_KEYS.map(function (k) { return k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|') + ')');
+  var GX_SWEEP_SEL = 'h1,h2,h3,h4,.btn,.nav-item,.tab-item,.more-item,.stat-icon,.empty-state,' +
+    '.toast,.cm-toast,.cmDeskUpdToast,.cmDesk-guide,.cmDesk-pagepill,.settings-section,' +
+    '.cmGx-kpi,.cmGx-card,.wl-cat,.honor-level,.honor-scope,.section-title,.grade-stat-card,' +
+    '.stat-mini,[class*="cmWiz"],[class*="cmPro"],[class*="cmDesk"]';
+  function gxSweepEl(root) {
+    if (!root || !root.querySelectorAll) return;
+    var seen = new Set();                                     // 同一文本节点可能落在多个宿主里，去重防双图标
+    var hosts = (root.matches && root.matches(GX_SWEEP_SEL) ? [root] : []).concat(Array.prototype.slice.call(root.querySelectorAll(GX_SWEEP_SEL)));
+    for (var h = 0; h < hosts.length; h++) {
+      var walker = document.createTreeWalker(hosts[h], NodeFilter.SHOW_TEXT, null, false);
+      var nodes = [];
+      while (walker.nextNode()) {
+        var t = walker.currentNode;
+        var pn = t.parentNode;
+        if (!pn || seen.has(t)) continue;
+        var tag = pn.nodeName;
+        if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'TEXTAREA' || tag === 'svg' || tag === 'SVG') continue;
+        GX_EMOJI_RE.lastIndex = 0;
+        var m = GX_EMOJI_RE.exec(t.nodeValue || '');
+        if (m) { nodes.push([t, m[1]]); seen.add(t); }
+      }
+      for (var i = 0; i < nodes.length; i++) {
+        var node = nodes[i][0], emo = nodes[i][1];
+        var rest = node.nodeValue.replace(/^\s*/, '').slice(emo.length).replace(/^[\s\u00a0]+/, '');
+        var svgHolder = el('span');
+        svgHolder.style.cssText = 'display:inline-flex;vertical-align:-0.14em';
+        svgHolder.innerHTML = gxIc(GX_EMOJI_MAP[emo] || 'sparkles');
+        node.parentNode.insertBefore(svgHolder, node);
+        if (rest) node.nodeValue = rest; else node.parentNode.removeChild(node);
+      }
+    }
+    var inputs = root.querySelectorAll ? root.querySelectorAll('input[placeholder]') : [];
+    for (var j = 0; j < inputs.length; j++) {
+      var ph = inputs[j].getAttribute('placeholder') || '';
+      GX_EMOJI_RE.lastIndex = 0;
+      var pm = GX_EMOJI_RE.exec(ph);
+      if (pm) inputs[j].setAttribute('placeholder', ph.replace(/^\s*/, '').slice(pm[1].length).replace(/^[\s\u00a0]+/, ''));
+    }
+  }
+  var gxSweepT = 0, gxSweeping = false;
+  function gxSweepSoon() {
+    clearTimeout(gxSweepT);
+    gxSweepT = setTimeout(function () {
+      if (gxSweeping) return;
+      gxSweeping = true;
+      try { gxSweepEl(document.body); } catch (e) {}
+      gxSweeping = false;
+    }, 220);
+  }
+  function gxWatchDom() {
+    if (!window.MutationObserver || gxWatchDom.__on) return;
+    gxWatchDom.__on = true;
+    new MutationObserver(function () { gxSweepSoon(); }).observe(document.body, { childList: true, subtree: true });
+  }
+  function gxWrapToast() {
+    var orig = window.showToast;
+    if (typeof orig !== 'function' || orig.__gx) return;
+    var w = function () { var r = orig.apply(this, arguments); gxSweepSoon(); return r; };
+    w.__gx = true;
+    window.showToast = w;
+  }
+  function gxWrapNavigate() {
+    var prev = window.navigateTo;
+    if (typeof prev !== 'function' || prev.__gx) return;
+    var w = function () { var r = prev.apply(this, arguments); gxSweepSoon(); return r; };
+    w.__gx = true;
+    window.navigateTo = w;
+  }
+  /* 学分公示=喇叭（原有 #i-horn 语义相近但网页版用奖杯）、荣誉墙=奖章绶带（gx-award） */
+  function gxFixNavIcons() {
+    var uses = document.querySelectorAll('.nav-item[data-page="honors"] .ic use, .more-item[data-page="honors"] .ic use, .tab-item[data-page="honors"] .ic use');
+    for (var i = 0; i < uses.length; i++) uses[i].setAttribute('href', '#gx-award');
+  }
+  function cmSchoolName() { return (lsGet('cm_school_name') || '').trim(); }
+  function buildGxSchoolCard() {
+    if (document.getElementById('cmDeskSchool')) return;
+    var anchor = null;
+    var hs = document.querySelectorAll('.settings-section h3');
+    for (var i = 0; i < hs.length; i++) {
+      if ((hs[i].textContent || '').indexOf('班级信息') >= 0) { anchor = hs[i].closest('.settings-section'); break; }
+    }
+    if (!anchor) return;
+    var card = el('div', 'settings-section');
+    card.id = 'cmDeskSchool';
+    card.innerHTML =
+      '<h3>' + gxIc('school') + ' 学校信息<span class="cmDesk-pro-badge">桌面版</span></h3>' +
+      '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
+      '<input id="cmSchoolNameIn" type="text" placeholder="如：XX市第一中学（用于荣誉证书抬头）" style="flex:1;min-width:220px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;background:var(--row-bg);color:var(--text);font-size:14px">' +
+      '<button class="btn btn-primary btn-sm" id="cmSchoolNameSave">保存</button></div>' +
+      '<div style="font-size:12px;color:var(--text-muted);margin-top:7px">填入后荣誉证书顶部展示学校名称，落款仍为班级。留空则证书不显示学校抬头。</div>';
+    anchor.parentNode.insertBefore(card, anchor);
+    document.getElementById('cmSchoolNameIn').value = cmSchoolName();
+    document.getElementById('cmSchoolNameSave').onclick = function () {
+      lsSet('cm_school_name', (document.getElementById('cmSchoolNameIn').value || '').trim());
+      if (window.showToast) window.showToast('学校名称已保存，荣誉证书即时生效', 'success');
+    };
+  }
+  /* ---------- 工作留痕重设计 ---------- */
+  var GX_WL_PERIODS = [
+    { key: 'week', label: '本周' },
+    { key: 'month', label: '本月' },
+    { key: 'term', label: '本学期' },
+    { key: 'all', label: '全部' }
+  ];
+  var _gxWlPeriod = 'month';                        // 默认本月（老板拍板）
+  var _gxWlCat = '全部';
+  function gxDateStr(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function gxWlRangeStart(period) {
+    if (period === 'all') return '';
+    var d = new Date(); d.setHours(0, 0, 0, 0);
+    if (period === 'week') { d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return gxDateStr(d); }   // 周一起
+    if (period === 'month') { d.setDate(1); return gxDateStr(d); }
+    if (period === 'term') {
+      var ts = null;
+      try { if (typeof loadPubSetting === 'function') ts = loadPubSetting('semesterStart'); } catch (e) {}
+      if (!ts && typeof pfSemesterStartTs === 'function') { try { ts = pfSemesterStartTs(); } catch (e) {} }
+      if (ts) { var dd = new Date(Number(ts)); dd.setHours(0, 0, 0, 0); return gxDateStr(dd); }
+      var m = d.getMonth() + 1;                                                              // 学期起点兜底：9/1 或 2/1（与网页版同口径）
+      var y = d.getFullYear();
+      return gxDateStr(new Date(y, m >= 2 && m <= 7 ? 1 : 8, 1));
+    }
+    return '';
+  }
+  window.gxWlSetCat = function (c) { _gxWlCat = c; window.renderWorkLogs(); };
+  window.gxWlSetPeriod = function (p) { _gxWlPeriod = p; window.renderWorkLogs(); };
+  window.gxImgFail = function (img) {
+    var d = el('div', 'gx-imgdead');
+    d.innerHTML = gxIc('image') + '<span>图片无法预览</span>';
+    if (img && img.parentNode) img.parentNode.replaceChild(d, img);
+  };
+  function cmWrapWorklogs() {
+    var orig = window.renderWorkLogs;
+    if (typeof orig !== 'function' || orig.__gxWl) return;
+    var wrapped = function () {
+      var dateEl = document.getElementById('wlDate');
+      var listEl = document.getElementById('wlList');
+      var catsEl = document.getElementById('wlCats');
+      if (!dateEl || !listEl) { try { return orig.apply(this, arguments); } catch (e) {} return; }
+      if (!document.getElementById('gxWlPeriods')) {           // 日期选择器退役 → 周期筛选 chips（一次性）
+        dateEl.style.display = 'none';
+        var chips = el('div', 'gx-wl-periods');
+        chips.id = 'gxWlPeriods';
+        chips.innerHTML = GX_WL_PERIODS.map(function (p) {
+          return '<button class="btn btn-sm' + (p.key === _gxWlPeriod ? ' btn-primary' : '') + '" onclick="gxWlSetPeriod(\'' + p.key + '\')">' + p.label + '</button>';
+        }).join('');
+        dateEl.parentNode.insertBefore(chips, dateEl.nextSibling);
+      }
+      if (catsEl) {
+        catsEl.innerHTML = ['全部'].concat(WL_CATS || []).map(function (c) {
+          return '<button class="btn btn-sm' + (c === _gxWlCat ? ' btn-primary' : '') + '" onclick="gxWlSetCat(\'' + c + '\')">' + c + '</button>';
+        }).join('');
+      }
+      var start = gxWlRangeStart(_gxWlPeriod);
+      var today = gxDateStr(new Date());
+      var se = document.getElementById('wlSearch');
+      var kw = ((se && se.value) || '').toLowerCase().trim();
+      var wl = (cmGxState() && cmGxState().workLogs) || [];
+      var list = wl.filter(function (w) {
+        if (start && !(w.date >= start && w.date <= today)) return false;   // 周期窗内（YYYY-MM-DD 字典序即时间序）
+        if (_gxWlCat !== '全部' && w.category !== _gxWlCat) return false;
+        if (kw && (w.title || '').toLowerCase().indexOf(kw) < 0 && (w.content || '').toLowerCase().indexOf(kw) < 0) return false;
+        return true;
+      }).sort(function (a, b) { return b.date.localeCompare(a.date) || b.id - a.id; });
+      var stats = document.getElementById('wlStats');
+      if (stats) {
+        var periodLabel = (GX_WL_PERIODS.filter(function (p) { return p.key === _gxWlPeriod; })[0] || {}).label || '';
+        stats.innerHTML = kw
+          ? ('搜索「' + cmGxEsc(kw) + '」· 命中 ' + list.length + ' 条')
+          : (periodLabel + ' ' + list.length + ' 条记录' + (start ? '（' + start + ' 起）' : ''));
+      }
+      if (list.length === 0) {
+        listEl.innerHTML = '<div class="empty-state" style="padding:40px"><div class="icon">' + gxIc('notebook', 'gx-ic-lg') + '</div><div class="text">' +
+          (kw || _gxWlCat !== '全部' ? '当前筛选下没有工作记录' : '还没有工作记录') +
+          '</div><div style="margin-top:8px"><button class="btn btn-primary btn-sm" onclick="openWorkLogAdd()">记录一条工作</button></div></div>';
+        return;
+      }
+      var catColor = { '常规': 'blue', '班会': 'purple', '谈话': 'green', '活动': 'orange', '事务': 'gray', '其他': 'gray' };
+      listEl.innerHTML = list.map(function (w) {
+        var imgs = (w.images || []).map(function (src) {
+          return '<img src="' + cmGxEsc(src) + '" onclick="wlZoom(this.getAttribute(\'src\'))" onerror="gxImgFail(this)" ' +
+            'style="width:84px;height:84px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:zoom-in">';
+        }).join('');
+        return '<div class="card wl-card"><div style="display:flex;align-items:flex-start;gap:10px">' +
+          '<div style="flex:1;min-width:0">' +
+          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+          '<span class="wl-cat ' + cmGxEsc(catColor[w.category] || 'gray') + '">' + cmGxEsc(w.category) + '</span>' +
+          '<b style="font-size:15px">' + cmGxEsc(w.title) + '</b>' +
+          '<span style="font-size:12px;color:var(--text-muted)">' + gxIc('calendar') + ' ' + cmGxEsc(w.date) + '</span></div>' +
+          (w.content ? '<div style="margin-top:8px;font-size:14px;color:var(--text-secondary);white-space:pre-wrap">' + cmGxEsc(w.content) + '</div>' : '') +
+          (imgs ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">' + imgs + '</div>' : '') +
+          '</div>' +
+          '<div style="display:flex;gap:6px;flex-shrink:0">' +
+          '<button class="btn btn-sm" onclick="openWorkLogEdit(' + w.id + ')"><svg class="ic ic-sm"><use href="#i-pen"/></svg></button>' +
+          '<button class="btn btn-sm" style="color:var(--danger)" onclick="deleteWorkLog(' + w.id + ')"><svg class="ic ic-sm"><use href="#i-trash"/></svg></button>' +
+          '</div></div></div>';
+      }).join('');
+    };
+    wrapped.__gxWl = true;
+    window.renderWorkLogs = wrapped;
+  }
+  /* ---------- 荣誉墙重设计 ---------- */
+  var _gxHLevel = '全部', _gxHScope = '全部';
+  window.gxHSetLevel = function (v) { _gxHLevel = v; window.renderHonors(); };
+  window.gxHSetScope = function (v) { _gxHScope = v; window.renderHonors(); };
+  window.gxHonorPreview = function (id) {
+    var h = null;
+    var hs = (cmGxState() && cmGxState().honors) || [];
+    for (var i = 0; i < hs.length; i++) { if (hs[i].id === id) { h = hs[i]; break; } }
+    if (!h) return;
+    var ov = document.getElementById('gxHonorOverlay');
+    if (ov) ov.remove();
+    ov = el('div');
+    ov.id = 'gxHonorOverlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:3200;background:rgba(25,22,19,.72);display:flex;align-items:center;justify-content:center;padding:24px';
+    ov.onclick = function (ev) { if (ev.target === ov) ov.remove(); };
+    var isCm = window.__cmRole === 'committee';
+    ov.innerHTML =
+      '<div style="background:var(--card-bg,#FFFDF7);border:1px solid var(--border,#E6DECD);border-radius:16px;padding:16px 18px;max-width:min(1100px,94vw);max-height:92vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 24px 64px rgba(25,22,19,.35)">' +
+      '<div style="display:flex;align-items:center;gap:10px">' +
+      '<b style="font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + cmGxEsc(h.title) + '</b>' +
+      '<button class="btn btn-sm" onclick="this.closest(\'#gxHonorOverlay\').remove()">' + gxIc('x') + ' 关闭</button></div>' +
+      '<div style="overflow:auto;border-radius:10px;border:1px solid var(--border)">' +
+      '<canvas id="gxHonorCertCv" width="1500" height="1062" style="display:block;width:100%;height:auto"></canvas></div>' +
+      '<div style="display:flex;gap:8px;justify-content:flex-end">' +
+      (isCm ? '' : '<button class="btn btn-primary" id="gxHonorDl">' + gxIc('download') + ' 下载 PNG</button>') +
+      '</div></div>';
+    document.body.appendChild(ov);
+    var draw = appFn('drawHonorCertCanvas');
+    if (draw) {
+      var drawn = draw(h, h.persons && h.persons.length === 1 ? h.persons[0] : undefined);
+      var target = document.getElementById('gxHonorCertCv');   // 重绘函数返回自建画布 → 拷贝进弹窗画布
+      if (drawn && drawn.getContext && target) target.getContext('2d').drawImage(drawn, 0, 0);
+    }
+    var dl = document.getElementById('gxHonorDl');
+    if (dl) dl.onclick = function () {
+      if (appFn('exportHonorCert')) window.exportHonorCert(h.id, h.persons && h.persons.length === 1 ? h.persons[0] : undefined);
+    };
+  };
+  function cmWrapHonors() {
+    var orig = window.renderHonors;
+    if (typeof orig !== 'function' || orig.__gxHn) return;
+    var wrapped = function () {
+      var listEl = document.getElementById('honorList');
+      if (!listEl) { try { return orig.apply(this, arguments); } catch (e) {} return; }
+      var st = cmGxState();
+      var honors = ((st && st.honors) || []).filter(function (h) { return h; });
+      var isCm = window.__cmRole === 'committee';
+      var rank = { '校级': 1, '区级': 2, '市级': 3, '省级': 4, '国家级': 5 };
+      var lv = document.getElementById('honorLevels');
+      if (lv) {
+        var chip = function (label, cur, fn) {
+          return '<button class="btn btn-sm' + (label === cur ? ' btn-primary' : '') + '" onclick="' + fn + '(\'' + label + '\')">' + label + '</button>';
+        };
+        lv.innerHTML =
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px"><span style="font-size:12px;color:var(--text-muted)">范围</span>' +
+          chip('全部', _gxHScope, 'gxHSetScope') + chip('集体', _gxHScope, 'gxHSetScope') + chip('个人', _gxHScope, 'gxHSetScope') + '</div>' +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span style="font-size:12px;color:var(--text-muted)">级别</span>' +
+          ['全部'].concat(HONOR_LEVELS || []).map(function (l) { return chip(l, _gxHLevel, 'gxHSetLevel'); }).join('') + '</div>';
+      }
+      var stats = document.getElementById('honorStats');
+      if (stats) {
+        var teamN = honors.filter(function (h) { return h.scope === '集体'; }).length;
+        var perN = honors.length - teamN;
+        var topRank = 0;
+        honors.forEach(function (h) { topRank = Math.max(topRank, rank[h.level] || 0); });
+        var topName = (HONOR_LEVELS || [])[topRank - 1] || '—';
+        var statCard = function (icon, label, value, sub) {
+          return '<div class="gxH-stat"><div class="gxH-stat-ic">' + gxIc(icon) + '</div><div><div class="gxH-stat-v">' + value + '</div><div class="gxH-stat-l">' + label + (sub ? ' · ' + sub : '') + '</div></div></div>';
+        };
+        stats.innerHTML = statCard('trophy', '荣誉总数', honors.length) +
+          statCard('users', '集体荣誉', teamN) +
+          statCard('medal', '个人荣誉', perN) +
+          statCard('crown', '最高级别', topName);
+      }
+      var filtered = honors.filter(function (h) {
+        if (_gxHLevel !== '全部' && h.level !== _gxHLevel) return false;
+        if (_gxHScope !== '全部' && h.scope !== _gxHScope) return false;
+        return true;
+      }).sort(function (a, b) { return String(b.date || '').localeCompare(String(a.date || '')) || b.id - a.id; });
+      if (filtered.length === 0) {
+        listEl.innerHTML = '<div class="empty-state" style="grid-column:1/-1;padding:40px"><div class="icon">' + gxIc('trophy', 'gx-ic-lg') + '</div><div class="text">还没有荣誉记录，点击「添加荣誉」为班级和个人留下高光时刻</div></div>';
+        return;
+      }
+      listEl.innerHTML = filtered.map(function (h) {
+        var r = rank[h.level] || 1;
+        var team = h.scope === '集体';
+        var persons = h.persons || [];
+        return '<div class="gxH-card hl-' + r + '" data-hid="' + h.id + '" title="点击预览证书">' +
+          '<div class="gxH-top"><span class="honor-level hl-' + r + '">' + cmGxEsc(h.level) + '</span>' +
+          '<span class="honor-scope ' + (team ? 'team' : 'person') + '">' + (team ? '集体' : '个人') + '</span></div>' +
+          '<div class="gxH-title">' + cmGxEsc(h.title) + '</div>' +
+          (!team && persons.length ? '<div class="gxH-row">' + gxIc('medal') + '<span>' + cmGxEsc(persons.join('、')) + '</span></div>' : '') +
+          '<div class="gxH-row"><span class="gxH-date">' + gxIc('calendar') + cmGxEsc(h.date || '') + '</span></div>' +
+          (h.desc ? '<div class="gxH-desc">' + cmGxEsc(h.desc) + '</div>' : '') +
+          '<div class="gxH-foot"><button class="btn btn-sm gxH-cert" data-hid="' + h.id + '">' + gxIc('scroll') + ' 查看证书</button>' +
+          (isCm ? '' : '<span style="flex:1"></span><button class="btn btn-sm" data-gxh="edit" data-hid="' + h.id + '" title="编辑"><svg class="ic ic-sm"><use href="#i-pen"/></svg></button>' +
+            '<button class="btn btn-sm" data-gxh="del" data-hid="' + h.id + '" title="删除" style="color:var(--danger)"><svg class="ic ic-sm"><use href="#i-trash"/></svg></button>') +
+          '</div></div>';
+      }).join('');
+      listEl.onclick = function (ev) {
+        var btn = ev.target && ev.target.closest ? ev.target.closest('button[data-gxh]') : null;
+        if (btn) {
+          ev.stopPropagation();
+          var id = parseInt(btn.getAttribute('data-hid'), 10);
+          if (btn.getAttribute('data-gxh') === 'edit' && appFn('openHonorEdit')) window.openHonorEdit(id);
+          else if (btn.getAttribute('data-gxh') === 'del' && appFn('deleteHonor')) window.deleteHonor(id);
+          return;
+        }
+        var certBtn = ev.target && ev.target.closest ? ev.target.closest('button.gxH-cert') : null;
+        var card = ev.target && ev.target.closest ? ev.target.closest('.gxH-card') : null;
+        if (card && (!certBtn || certBtn)) {
+          var hid = parseInt((certBtn || card).getAttribute('data-hid'), 10);
+          if (hid) window.gxHonorPreview(hid);
+        }
+      };
+    };
+    wrapped.__gxHn = true;
+    window.renderHonors = wrapped;
+  }
+  /* 证书重绘（奖状式）：顶部学校名称（可选）/ 姓名左顶格 + 「同学：」/ 事由正文 / 级别大字 / 朱砂印章 / 右下落款 */
+  function cmWrapHonorCert() {
+    var orig = window.drawHonorCertCanvas;
+    if (typeof orig !== 'function' || orig.__gxCert) return;
+    window.drawHonorCertCanvas = function (h, personName) {
+      var W = 1500, H = 1062;
+      var canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      var ctx = canvas.getContext('2d');
+      var FONT = '"KaiTi","楷体","STKaiti","Microsoft YaHei",sans-serif';
+      var grad = ctx.createLinearGradient(0, 0, W, H);
+      grad.addColorStop(0, '#fefcf5'); grad.addColorStop(1, '#f8eed6');
+      ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = '#b8933a'; ctx.lineWidth = 8; ctx.strokeRect(28, 28, W - 56, H - 56);
+      ctx.strokeStyle = 'rgba(184,147,58,.5)'; ctx.lineWidth = 2; ctx.strokeRect(52, 52, W - 104, H - 104);
+      ctx.save();
+      [[52, 52], [W - 74, 52], [52, H - 74], [W - 74, H - 74]].forEach(function (p) {
+        ctx.translate(p[0] + 11, p[1] + 11); ctx.rotate(Math.PI / 4);
+        ctx.fillStyle = '#b8933a'; ctx.fillRect(-11, -11, 22, 22);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+      });
+      ctx.restore();
+      var school = cmSchoolName();
+      ctx.textAlign = 'center';
+      if (school) {
+        ctx.fillStyle = '#8a6d3b'; ctx.font = '38px ' + FONT;
+        try { ctx.letterSpacing = '12px'; } catch (e) {}
+        ctx.fillText(school, W / 2, 112);
+        try { ctx.letterSpacing = '0px'; } catch (e) {}
+      }
+      ctx.fillStyle = '#9e2b25'; ctx.font = '700 110px ' + FONT;
+      try { ctx.letterSpacing = '26px'; } catch (e) {}
+      ctx.fillText('荣 誉 证 书', W / 2 + 13, 268);
+      try { ctx.letterSpacing = '0px'; } catch (e) {}
+      ctx.strokeStyle = '#b8933a'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(W / 2 - 292, 302); ctx.lineTo(W / 2 - 130, 302); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(W / 2 + 130, 302); ctx.lineTo(W / 2 + 292, 302); ctx.stroke();
+      ctx.fillStyle = '#b8933a'; ctx.font = '22px ' + FONT;
+      ctx.fillText('✦ 荣 誉 ✦', W / 2, 346);
+      /* 奖状式正文块（左对齐，x=210 顶格） */
+      var bx = 210, maxW = W - bx * 2 - 20;
+      var isTeam = h.scope === '集体';
+      var cn = appFn('certClassName');
+      var entity = isTeam ? (cn ? cn() : (state && state.classNameFull) || (state && state.className) || '全班同学')
+        : (personName || (h.persons || []).join('、') || '同学');
+      var yy = 470;
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#3a3a3a'; ctx.font = '700 46px ' + FONT;
+      ctx.fillText((!isTeam ? entity + '同学：' : entity + '：'), bx, yy);
+      var body = '在「' + (h.title || '') + '」中表现优异，特发此证，以资鼓励。';
+      ctx.fillStyle = '#555'; ctx.font = '36px ' + FONT;
+      var lines = certWrapText(ctx, body, maxW);
+      for (var li = 0; li < lines.length; li++) { yy += 60; ctx.fillText(lines[li], bx, yy); }
+      if (h.desc) {
+        ctx.fillStyle = '#888'; ctx.font = '27px ' + FONT;
+        var dlines = certWrapText(ctx, h.desc, maxW);
+        yy += 18;
+        for (var di = 0; di < dlines.length; di++) { yy += 44; ctx.fillText(dlines[di], bx, yy); }
+      }
+      /* 级别大字（居中） */
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#c8102e'; ctx.font = '800 88px ' + FONT;
+      try { ctx.letterSpacing = '10px'; } catch (e) {}
+      ctx.fillText((h.level || '') + '荣誉', W / 2 + 5, Math.max(yy + 128, 790));
+      try { ctx.letterSpacing = '0px'; } catch (e) {}
+      /* 朱砂印章（右下，微倾） */
+      ctx.save();
+      ctx.translate(W - 300, H - 218); ctx.rotate(-0.10); ctx.globalAlpha = 0.82;
+      ctx.strokeStyle = '#B42318'; ctx.lineWidth = 7;
+      ctx.beginPath(); ctx.arc(0, 0, 84, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 68, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = '#B42318'; ctx.font = '700 40px ' + FONT;
+      try { ctx.letterSpacing = '8px'; } catch (e) {}
+      ctx.fillText('荣誉', 4, 14);
+      ctx.restore();
+      /* 右下落款 */
+      var issuer = (state && (state.classNameFull || state.className)) || '';
+      ctx.textAlign = 'right'; ctx.globalAlpha = 1;
+      ctx.fillStyle = '#555'; ctx.font = '32px ' + FONT;
+      ctx.fillText(issuer, W - 210, H - 150);
+      var dm = String(h.date || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      ctx.fillStyle = '#888'; ctx.font = '30px ' + FONT;
+      ctx.fillText(dm ? (dm[1] + ' 年 ' + parseInt(dm[2], 10) + ' 月 ' + parseInt(dm[3], 10) + ' 日') : String(h.date || ''), W - 210, H - 100);
+      return canvas;
+    };
+    window.drawHonorCertCanvas.__gxCert = true;
+  }
+  function certWrapText(ctx, text, maxW) {
+    var lines = [], cur = '';
+    for (var i = 0; i < text.length; i++) {
+      if (ctx.measureText(cur + text[i]).width > maxW && cur) { lines.push(cur); cur = text[i]; }
+      else cur += text[i];
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  }
+
   /* ---------- 启动 ---------- */
   function boot() {
     // 上次会话示例体验未走完（中途关应用）→ 幂等清扫，绝不把示例数据留给正式使用
@@ -2876,6 +3341,16 @@
     cmWrapCreditTabSwitch();                     // 切回学分 tab 时补渲染脏图表（链在 Pro gate 之上）
     cmWrapDistChart();                           // v1.3.0 P2：首页学分分布接管（cmInk 八档直方图）
     cmWrapPubCharts();                           // v1.3.0 P2：公示页四图接管（趋势/每日/分布/原因）
+    gxInjectSprite();                            // v1.4.0：Lucide 符号表注入（全台 emoji 替换地基）
+    gxFixNavIcons();                             // 学分公示/荣誉墙侧栏图标区分（荣誉墙改奖章 gx-award）
+    cmWrapWorklogs();                            // v1.4.0 工作留痕重设计（周期筛选 + 时间流水 + 图片兜底）
+    cmWrapHonors();                              // v1.4.0 荣誉墙重设计（卡片 + 点卡片预览证书）
+    cmWrapHonorCert();                           // v1.4.0 证书重绘（奖状式 + 学校名称 + 朱砂印章）
+    buildGxSchoolCard();                         // v1.4.0 设置页「学校信息（桌面版）」卡
+    gxWrapToast();                               // toast 图标统一
+    gxWrapNavigate();                            // 切页后补扫 emoji
+    gxWatchDom();                                // DOM 变更防抖补扫
+    gxSweepSoon();                               // v1.4.0 首扫（页头/按钮/统计卡 emoji → Lucide）
     silenceCloudPush();
     wrapNavigatePro();
     buildNavPro();
