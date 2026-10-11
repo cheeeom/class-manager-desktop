@@ -1,13 +1,11 @@
 # PROGRESS.md — 班主任工作台 · 桌面版
 
-> 真实进度只认本文件。基准：线上 Latest = **v1.2.6** · baseWeb **v3.4.1**（2026-10-11 上游「网页版停更公告」，根文件合法含读取 __CM_DESKTOP 的横幅摘除脚本，桌面端运行时自动摘除；测试 ① 断言已放宽为「禁止赋值桌面全局」）· **本地 v1.3.0 图表引擎 + v1.4.0 界面重设计均已打包冒烟 PASS，待老板审阅推送**；远端 main 与本地存在「内容等价但 sha 不同」的分叉（v1.0.11 期 API 推送所致），fetch 对齐时**严禁 reset --hard——会丢整线提交，一律 merge/rebase**。
+> 真实进度只认本文件。基准：线上 Latest = **v1.4.1**（2026-10-11 发布，内容含 1.3.0 图表引擎 + 1.4.0 界面重设计全量）· baseWeb v3.4.1 · **git 主线已对齐远端（merge -X ours 收编 v1.2.6 线 + 落地页水墨风改版 13be2f0）并推送（0925c62）**。历史分叉已消解。
 
 ## 一、当前状态速览
 
-- **编码中**：**v1.4.0 界面重设计（2026-10-11 老板四连需求）**——工作留痕重设计 / 荣誉墙重设计+证书奖状式重绘 / 全台 emoji 换 Lucide 图标 / 导航图标区分，**26 套断言全绿 + 探针全 PASS + 重打包冒烟 PASS**，待老板装机审阅 → 明说「推送」才发 Release。
-- **已完成待发**：v1.3.0 数据分析图表引擎（P0 成绩 6 图 + P1 学分 4 图 + P2 首页 1 图/公示 4 图 + 示例数据带考试），已并入本轮打包。
-- **线上 Release**：**v1.2.6 = Latest**（2026-10-10 七件套版；v1.2.2…v1.2.5 在档；v1.2.1 已删——换钥前坏版）。
-- **测试**：`_v_desktop_test.js` **26 套全绿**（+⑮⑯⑰ 图表引擎三段 +⑱ 界面重设计段）；`_probe_dataviz.js` 端到端 PASS（成绩/学分/首页/公示/留痕/荣誉/证书 18 个图表实例 + UI 断言 + console-error 零）；`_probe_tour.js` 复跑 PASS。
+- **已发布**：**v1.4.1 = Latest**（2026-10-11 三件套验收 ✓：assets 齐 exe×2 同字节 83,413,606 + latest.yml；稳定直链 200 实测 4.4MB/s；镜像 ghproxy 服 1.4.1）。
+- **测试**：`_v_desktop_test.js` **27 套全绿**；`_probe_dataviz.js` / `_probe_tour.js` / `_probe_login_bug.js` 全 PASS。
 - **v1.3.0 内容（P0+P1 全量完成）**：`src/echarts.min.js`（6.1.0，Apache-2.0，1.12MB，build.js 复制进 dist）；`app.patch.js` 新增「数据分析图表引擎」分节。**P0 成绩 tab**：接管 `renderGradeAnalyticsDetail`（cmWrapGradeDetail，挂原函数名下，Pro 页级锁不动）：KPI 环比带（均分/及格率/优秀率/标准差/最高最低，vs 上一场）、总分直方图（均分/及格/优秀三基准线挂隐藏二轴）、五档环形、各科均分横条（60/85 基准线）、单科得分率雷达（本场 vs 上一场）、多场趋势双轴折线、名次流动斜率图（|Δ|≥4）、学业预警（单科不及格≥2 科 / 总分环比下滑≥10 分）、排名前 10 数据条。**P1 学分 tab**：接管 `renderAnalytics`（cmWrapCreditRender，成绩 tab 激活时委托原函数重定向）：KPI 六卡（平均/中位/标准差/极差/及格率≥CB_ALERT_MIN/进取率，chips 全真实数据）、学分区间五档柱（credit 原生五档色）、五档构成环形（原 pieChart+#pieLegend 一体化）、近 7 天净变动 diverging 柱、本周进退步榜横向 diverging 条（原 renderProgressList 数据口径，7 天窗口+撤销过滤逐字一致）；面板不可见时只刷 DOM 图表记脏，`cmWrapCreditTabSwitch`（链在 Pro gate 之上）切回 credit tab 补渲染。cmInk 主题全部运行时读 CSS 变量（亮/暗/皮肤自适应，MutationObserver 重渲染）；echarts 加载失败/超时/空数据静默回退原实现；图表实例表共享，释放按白名单（CM_GRADE_CHART_IDS）/前缀（cmGxCd*）防误杀。
 - **v1.2.6 内容（已发布）**：向导按钮重排（上一步左/下一步右/去箭头）；第 5 步改「导入学生名单」（CSV 模板下载 + 劫持预览直接注入 + 导入后不再给示例数据）；激活后侧栏去 PRO 角标、左上角亮烫金 PRO 徽标（cmDesk-proemblem，buildNavPro 状态感知化）；考勤请假/课堂点名转免费 + 新增「导出请假流水」（CSV，Pro gate，班委拦截）；反馈卡独立成卡；关于卡改本版更新简要（≤100 字，无网页版字样）；满天弹窗/打赏卡文案跟上 Pro 时代；激活弹窗重排（复制钮右置主色、购买/已付款 300px 居中对齐、激活居中放大）+ 可选邮箱框（cmProMail 真实入链）；Pro 已激活卡 B 印章式定稿（早鸟 № 钢印 + BY: chee 署名 + 复制激活码按钮）；KeyGen ②b 换机重签自动核对（邮箱指纹/设备指纹/沿用序号）+ ③发货记录查询框。
 - **⚠️ v1.3.0 踩坑（重要）**：网页版 `state` 是**顶层 `let`**（词法全局不挂 window）——注入层必须裸名访问（`cmGxState()` 助手），`window.state` 永远 undefined 会静默回退；cmd `set X= && …` 尾随空格会让 ELECTRON_RUN_AS_NODE 陷阱复活，用 `set "X="`。
@@ -38,8 +36,8 @@
 - [x] 测试 +⑱（gx-icons 构建/接线/清扫去重/导航区分/学校卡/留痕周期/挂图兜底/证书预览/奖状式要素/导出制品仍不接管）；①断言放宽为「根文件不得**赋值**桌面全局」（上游 v3.4.1 合法读取）；⑰「证书不接管」随需求推翻更新。
 - [x] 探针扩展：留痕（4 周期/日期隐藏/卡片/页头无 emoji/121 枚图标）→ 荣誉墙（卡片/导航 #gx-award/学校卡）→ 证书预览（弹窗/标题红色像素 1141/下载按钮）全 PASS；`_probe_tour.js` 复跑 PASS。
 - [x] **打包（2026-10-11 三次）**：BUILD-OK attempt 1 → `out/class-manager-desktop-Setup-1.4.0.exe`（83.4MB）+ latest.yml 服 1.4.0；代理 off→on 已恢复；CM_SMOKE 冒烟 PASS（v1.4.0/版本标逐字/向导交互/consoleErrors=[]）；ClassManager-Setup.exe 副本已同步。
-- [ ] **发布**：老板装机审阅 v1.4.0 → 明说「推送」→ gh release create（跳过 1.3.0 直接发 1.4.0，内容含图表引擎全量）。
-- [ ] **下一轮（老板已预告）：全工作台动效优化**——卡片/按钮交互动画、丝滑过渡与反馈效果（进入/切换/按压/悬停全链），预计 v1.5.0。
+- [x] **发布（2026-10-11 老板令「直接一起打包推送」）**：git 主线 merge 对齐远端（收编 v1.2.6 线与落地页水墨风改版，-X ours 取本地 v1.4.1 线）→ 合并树重建 27 套全绿 + 冒烟 PASS → push（直连 + HTTP/1.1；git 配置死代理 192.168.8.104:9890 需 `-c http.proxy=` 绕过）→ `gh release create v1.4.1` 三件套 → 验收：assets 齐（exe×2 同字节 83,413,606 + latest.yml）、稳定直链 200 实测 83MB@4.4MB/s、ghproxy 镜像 latest.yml 服 1.4.1。
+- [ ] **下一轮：全工作台动效优化**（v1.5.0，老板已预告）。
 
 ### v1.3.0（完成编码：数据分析图表引擎 P0+P1+P2，2026-10-11，已并入 v1.4.0 包）
 - [x] 方案与预览（老板过目拍板）：`app/_dataviz_preview/DATAVIZ-PLAN.md` + `preview.html`（选型 ECharts 6，落选 Chart.js/ApexCharts/AntV 理由在案）
