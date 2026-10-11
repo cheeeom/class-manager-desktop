@@ -4,7 +4,7 @@
 
 ## 一、当前状态速览
 
-- **编码中**：**v1.3.0 数据分析图表引擎（2026-10-11 老板拍板开工）**——成绩 tab + 学分 tab 全量重设计（P0+P1）已完成（24 套断言全绿 + `_probe_dataviz.js` 端到端 PASS），未打包未发布。
+- **编码中**：**v1.3.0 数据分析图表引擎（2026-10-11 老板拍板开工）**——成绩 tab + 学分 tab 全量重设计（P0+P1）已完成（24 套断言全绿 + `_probe_dataviz.js` 端到端 PASS）；**已打包（BUILD-OK attempt 1）+ 打包冒烟 PASS（v1.3.0 / versionTag 逐字 / 向导交互 / consoleErrors=[]）**，待老板装机审阅 → 明说「推送」才发 Release。
 - **线上 Release**：**v1.2.6 = Latest**（2026-10-10 七件套版；v1.2.2…v1.2.5 在档；v1.2.1 已删——换钥前坏版）。
 - **测试**：`_v_desktop_test.js` **24 套全绿**（+⑮ 图表引擎契约段 +⑯ 学分 tab 迁移段）；`_probe_dataviz.js` 端到端 PASS（激活→注数据→成绩 tab 6 图→暗色重渲染→学分 tab 4 图→console-error 零）。
 - **v1.3.0 内容（P0+P1 全量完成）**：`src/echarts.min.js`（6.1.0，Apache-2.0，1.12MB，build.js 复制进 dist）；`app.patch.js` 新增「数据分析图表引擎」分节。**P0 成绩 tab**：接管 `renderGradeAnalyticsDetail`（cmWrapGradeDetail，挂原函数名下，Pro 页级锁不动）：KPI 环比带（均分/及格率/优秀率/标准差/最高最低，vs 上一场）、总分直方图（均分/及格/优秀三基准线挂隐藏二轴）、五档环形、各科均分横条（60/85 基准线）、单科得分率雷达（本场 vs 上一场）、多场趋势双轴折线、名次流动斜率图（|Δ|≥4）、学业预警（单科不及格≥2 科 / 总分环比下滑≥10 分）、排名前 10 数据条。**P1 学分 tab**：接管 `renderAnalytics`（cmWrapCreditRender，成绩 tab 激活时委托原函数重定向）：KPI 六卡（平均/中位/标准差/极差/及格率≥CB_ALERT_MIN/进取率，chips 全真实数据）、学分区间五档柱（credit 原生五档色）、五档构成环形（原 pieChart+#pieLegend 一体化）、近 7 天净变动 diverging 柱、本周进退步榜横向 diverging 条（原 renderProgressList 数据口径，7 天窗口+撤销过滤逐字一致）；面板不可见时只刷 DOM 图表记脏，`cmWrapCreditTabSwitch`（链在 Pro gate 之上）切回 credit tab 补渲染。cmInk 主题全部运行时读 CSS 变量（亮/暗/皮肤自适应，MutationObserver 重渲染）；echarts 加载失败/超时/空数据静默回退原实现；图表实例表共享，释放按白名单（CM_GRADE_CHART_IDS）/前缀（cmGxCd*）防误杀。
@@ -26,7 +26,8 @@
 - [x] 版本升 1.3.0（独立版本号铁律）；测试 +⑮+⑯ 契约段（接管/降级/许可头/五档色对齐/boot 接线/链序/版本）
 - [x] `_probe_dataviz.js` 端到端：真码激活 → 注入 45 生 3 考试 + credit 字段 + 42 条流水 → 成绩 tab 6 图 + 暗色重渲染 + 切考试斜率图 → 学分 tab 四图 + 无旧 canvas 残留 → console-error 零；截图 out/_probe_dataviz_{light,dark,final,credit}.png
 - [x] 修复：`window.state`→`cmGxState()`（顶层 let 陷阱，探针抓到）；名次流动/进退步榜空态文案；movers 容器漏定高类（height 0，探针断言抓到）
-- [ ] **打包**：`mv out/win-unpacked out/_trash_*` → `_build_retry.js` → CM_SMOKE 冒烟（v1.3.0）→ 发版两段式（老板明说「推送」才发）
+- [x] **打包（2026-10-11）**：`_trash_win-unpacked-130` 预移 → `_build_retry.js` BUILD-OK attempt 1 → `out/class-manager-desktop-Setup-1.3.0.exe`（83.4MB）+ blockmap + latest.yml 服 1.3.0（url 与 exe 逐字一致）；代理 off→**on 已恢复**；CM_SMOKE 打包冒烟 **PASS**（version=1.3.0 / versionTag「v1.3.0 桌面版」逐字 / 向导交互翻第 2 步 / consoleErrors=[] / updaterRoute=DIRECT / feed=gh-proxy 仍服线上 1.2.6 符合未发布态），截图 `out/_smoke130.png`
+- [ ] **发布**：老板装机审阅 → 明说「推送」→ gh release create 三件套（Setup-1.3.0.exe + latest.yml + ClassManager-Setup.exe 固定名副本）
 - [ ] P2（可选）：公示页 4 图 / 学期报告长图复用 cmInk 主题；`_dataviz_preview/` 审阅后可删
 
 ### v1.2.1（已完成：自动取码转正，已打包未发布）
