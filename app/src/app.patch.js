@@ -201,7 +201,7 @@
     box.appendChild(row);
     mask.appendChild(box);
     document.body.appendChild(mask);
-    function close() { if (mask.parentNode) mask.parentNode.removeChild(mask); }
+    function close() { gxCloseMask(mask); }
     cancel.onclick = function () { close(); };
     mask.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
     ok.onclick = function () {
@@ -794,7 +794,7 @@
     box.appendChild(row);
     mask.appendChild(box);
     document.body.appendChild(mask);
-    function close() { if (mask.parentNode) mask.parentNode.removeChild(mask); }
+    function close() { gxCloseMask(mask); }
     cancel.onclick = function () { close(); };
     mask.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
     ok.onclick = function () {
@@ -2262,21 +2262,22 @@
     h += '<div class="cmGx-kpi"><div class="cmGx-klabel">标准差</div><div class="cmGx-kvalue">' + agg.sd.toFixed(1) + '<small>分</small></div>' + cmGxChip(agg.sd, prevAgg && prevAgg.sd, false) + '</div>';
     h += '<div class="cmGx-kpi"><div class="cmGx-klabel">最高 / 最低</div><div class="cmGx-kvalue">' + agg.mx + '<small>/ ' + agg.mn + ' 分</small></div><span class="cmGx-ktrend cmGx-flat">' + agg.n + ' 人参考</span></div>';
     h += '</div>';
-    h += '<div class="cmGx-grid2">';
+    h += '<div class="cmGx-grid2 gx-stagger">';
     h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>总分直方图</div><div class="cmGx-cap">班级均分 / 及格线 / 优秀线一目了然 · 悬停查看区间人数</div><div id="cmGxHist" class="cmGx-chart"></div></div>';
     h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>分数段构成</div><div class="cmGx-cap">五档口径与原版一致（按总分占满分比）</div><div id="cmGxDist" class="cmGx-chart"></div></div>';
     h += '</div>';
-    h += '<div class="cmGx-grid2">';
+    h += '<div class="cmGx-grid2 gx-stagger">';
     h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>各科均分</div><div class="cmGx-cap">基准线：60 及格 · 85 优秀 · 悬停看最高 / 最低 / 及格率</div><div id="cmGxSubj" class="cmGx-chart tall"></div></div>';
     h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>单科得分率雷达</div><div class="cmGx-cap">' + (prevExam ? '本场 vs 上一场 · 看强弱科与进步面' : '各科均分均衡度（首场暂无对比）') + '</div><div id="cmGxRadar" class="cmGx-chart tall"></div></div>';
     h += '</div>';
     h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>多场考试趋势</div><div class="cmGx-cap">总分均分（左轴）+ 及格率 / 优秀率（右轴）</div><div id="cmGxTrend" class="cmGx-chart"></div></div>';
     h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>名次流动</div><div class="cmGx-cap">' + (prevExam ? '本场 vs 上一场 · 只显示变动 ≥ 4 名的学生 · 绿升红降' : '需要至少两场考试才能对比名次') + '</div><div id="cmGxSlope" class="cmGx-chart"></div></div>';
-    h += '<div class="cmGx-grid2">';
+    h += '<div class="cmGx-grid2 gx-stagger">';
     h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>学业预警</div><div class="cmGx-cap">口径：单科不及格 ≥ 2 科 · 或总分环比下滑 ≥ 10 分</div><div id="cmGxWarn"></div></div>';
     h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>成绩排名 · 前 10</div><div class="cmGx-cap">条长 = 总分 / 班级最高</div><div id="cmGxTop"></div></div>';
     h += '</div>';
     detail.innerHTML = h;
+    gxCountKpis(detail);
 
     /* ---- 总分直方图（分数刻度基准线挂隐藏二轴） ---- */
     var lo = Math.floor(agg.mn / 50) * 50, hi = Math.ceil(agg.mx / 50) * 50;
@@ -2599,15 +2600,16 @@
     h += '<div class="cmGx-kpi"><div class="cmGx-klabel">及格率（≥' + alertMin + '）</div><div class="cmGx-kvalue">' + passRate.toFixed(0) + '<small>%</small></div><span class="cmGx-ktrend ' + (cntAlert > 0 ? 'cmGx-down' : 'cmGx-up') + '">预警 ' + cntAlert + ' 人</span></div>';
     h += '<div class="cmGx-kpi"><div class="cmGx-klabel">进取率（≥110）</div><div class="cmGx-kvalue">' + advRate.toFixed(0) + '<small>%</small></div><span class="cmGx-ktrend cmGx-up">巅峰 ' + cntTop + ' 人</span></div>';
     h += '</div>';
-    h += '<div class="cmGx-grid2">';
+    h += '<div class="cmGx-grid2 gx-stagger">';
     h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>学分区间分布</div><div class="cmGx-cap">五档口径与原版一致 · 悬停看人数与占比</div><div id="cmGxCdRange" class="cmGx-chart"></div></div>';
     h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>五档构成</div><div class="cmGx-cap">预警 &lt;60 · 常规 60-110 · 进取 110-150 · 卓越 150-200 · 巅峰 ≥200</div><div id="cmGxCdDonut" class="cmGx-chart"></div></div>';
     h += '</div>';
-    h += '<div class="cmGx-grid2">';
+    h += '<div class="cmGx-grid2 gx-stagger">';
     h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>近 7 天学分净变动</div><div class="cmGx-cap">全班逐日合计 · 绿为净加分 · 红为净扣分（不含已撤销）</div><div id="cmGxCdWk" class="cmGx-chart"></div></div>';
     h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>本周进退步榜</div><div class="cmGx-cap">近 7 天净变动最大 8 人 · 不含已撤销</div><div id="cmGxCdMovers" class="cmGx-chart"><div class="cmGx-empty">近7天暂无学分变动</div></div></div>';
     h += '</div>';
     panel.innerHTML = h;
+    gxCountKpis(panel);
 
     if (cmCreditVisible()) { cmCreditDrawCharts(credits); cmCreditChartsDirty = false; }
     else cmCreditChartsDirty = true;             // 面板不可见：切回 credit tab / 换肤时补渲染
@@ -2966,6 +2968,42 @@
   function gxIc(name, cls) {
     return '<svg class="gx-ic' + (cls ? ' ' + cls : '') + '" aria-hidden="true"><use href="#gx-' + name + '"/></svg>';
   }
+  /* ---------- v1.5.0 动效系统（cmMotion）----------
+     原则：只动 transform/opacity；prefers-reduced-motion 或 cm_motion_off=1 全关；
+     控制台 localStorage.setItem('cm_motion_off','1') + 刷新 可 A/B。 */
+  function gxMotionOn() {
+    if (lsGet('cm_motion_off') === '1') return false;
+    try { if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false; } catch (e) {}
+    return true;
+  }
+  function gxCloseMask(mask) {
+    if (!mask || !mask.parentNode) return;
+    if (!gxMotionOn()) { mask.parentNode.removeChild(mask); return; }
+    mask.classList.add('gx-closing');
+    setTimeout(function () { if (mask.parentNode) mask.parentNode.removeChild(mask); }, 180);
+  }
+  /* KPI 数字滚动：解析 .cmGx-kvalue 首个数字文本 → 640ms ease-out 递增到目标值 */
+  function gxCountKpis(root) {
+    if (!gxMotionOn() || !root || !root.querySelectorAll) return;
+    var els = root.querySelectorAll('.cmGx-kvalue');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      var node = el.firstChild;
+      var m = String((node && node.nodeValue) || '').match(/^[\d.]+/);
+      if (!m) continue;
+      var target = parseFloat(m[0]);
+      if (isNaN(target)) continue;
+      var dec = (m[0].split('.')[1] || '').length;
+      var t0 = performance.now(), dur = 640;
+      (function tick(t) {
+        var p = Math.min(1, (t - t0) / dur);
+        var e2 = 1 - Math.pow(1 - p, 3);
+        node.nodeValue = (target * e2).toFixed(dec);
+        if (p < 1) requestAnimationFrame(tick); else node.nodeValue = m[0];
+      })(t0);
+    }
+  }
+  function gxStagger(el) { if (el && gxMotionOn()) el.classList.add('gx-stagger'); }
   function gxInjectSprite() {
     if (document.getElementById('gxSprite')) return;
     var icons = window.__GX_ICONS || {};
@@ -3153,6 +3191,7 @@
           return '<button class="btn btn-sm' + (c === _gxWlCat ? ' btn-primary' : '') + '" onclick="gxWlSetCat(\'' + c + '\')">' + c + '</button>';
         }).join('');
       }
+    gxStagger(listEl);
       var start = gxWlRangeStart(_gxWlPeriod);
       var today = gxDateStr(new Date());
       var se = document.getElementById('wlSearch');
@@ -3211,11 +3250,11 @@
     for (var i = 0; i < hs.length; i++) { if (hs[i].id === id) { h = hs[i]; break; } }
     if (!h) return;
     var ov = document.getElementById('gxHonorOverlay');
-    if (ov) ov.remove();
+    if (ov) gxCloseMask(ov);
     ov = el('div');
     ov.id = 'gxHonorOverlay';
     ov.style.cssText = 'position:fixed;inset:0;z-index:3200;background:rgba(25,22,19,.72);display:flex;align-items:center;justify-content:center;padding:24px';
-    ov.onclick = function (ev) { if (ev.target === ov) ov.remove(); };
+    ov.onclick = function (ev) { if (ev.target === ov) gxCloseMask(ov); };
     var isCm = window.__cmRole === 'committee';
     ov.innerHTML =
       '<div style="background:var(--card-bg,#FFFDF7);border:1px solid var(--border,#E6DECD);border-radius:16px;padding:16px 18px;max-width:min(1100px,94vw);max-height:92vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 24px 64px rgba(25,22,19,.35)">' +
@@ -3275,6 +3314,7 @@
           statCard('medal', '个人荣誉', perN) +
           statCard('crown', '最高级别', topName);
       }
+    gxStagger(listEl);
       var filtered = honors.filter(function (h) {
         if (_gxHLevel !== '全部' && h.level !== _gxHLevel) return false;
         if (_gxHScope !== '全部' && h.scope !== _gxHScope) return false;
@@ -3419,6 +3459,7 @@
 
   /* ---------- 启动 ---------- */
   function boot() {
+    if (!gxMotionOn()) document.documentElement.classList.add('gx-motion-off');   // v1.5.0 动效降级开关（减少动态偏好 / cm_motion_off）
     // 上次会话示例体验未走完（中途关应用）→ 幂等清扫，绝不把示例数据留给正式使用
     if (lsGet(CM_TOUR_FLAG) === '1') cmSampleCleanup(true);
     cmNudgeWatch();

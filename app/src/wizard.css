@@ -322,3 +322,40 @@ svg.gx-ic-lg{width:40px;height:40px;stroke-width:1.5}
 .gxSec-acts{display:flex;gap:6px;align-items:center}
 .gxSec-acts svg.gx-ic{width:13px;height:13px;vertical-align:-2px}
 .gxSec-note{margin-top:10px;font-size:12px;color:var(--text-muted,#8C8577);line-height:1.8}
+
+/* ---------- v1.5.0 动效系统（cmMotion）：令牌 + 进出场 + stagger + 反馈补齐 ----------
+   只动 transform/opacity（GPU 合成）；prefers-reduced-motion 或 cm_motion_off=1 全关。 */
+:root{--gx-ease:cubic-bezier(.2,.7,.3,1);--gx-dur:.26s;--gx-dur-fast:.16s}
+@keyframes gxMaskOut{from{opacity:1}to{opacity:0}}
+@keyframes gxModalIn{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes gxModalOut{from{opacity:1}to{opacity:0;transform:translateY(8px) scale(.97)}}
+.cmDesk-wizard,.cmDesk-mask{animation:gxMaskIn var(--gx-dur-fast) var(--gx-ease) both}
+.cmDesk-mask.gx-closing{animation:gxMaskOut var(--gx-dur-fast) var(--gx-ease) both;pointer-events:none}
+.cmDesk-wcard,.cmDesk-modal{animation:gxModalIn var(--gx-dur) var(--gx-ease) both}
+.cmDesk-mask.gx-closing .cmDesk-wcard,.cmDesk-mask.gx-closing .cmDesk-modal{animation:gxModalOut var(--gx-dur-fast) var(--gx-ease) both}
+/* 容器子项进场（加 gx-stagger 即启用；子项逐个 60ms 递进，9 项以后统一延迟） */
+@keyframes gxRise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+.gx-stagger>*{animation:gxRise .34s var(--gx-ease) both}
+.gx-stagger>*:nth-child(1){animation-delay:.02s}
+.gx-stagger>*:nth-child(2){animation-delay:.07s}
+.gx-stagger>*:nth-child(3){animation-delay:.12s}
+.gx-stagger>*:nth-child(4){animation-delay:.17s}
+.gx-stagger>*:nth-child(5){animation-delay:.22s}
+.gx-stagger>*:nth-child(6){animation-delay:.27s}
+.gx-stagger>*:nth-child(7){animation-delay:.32s}
+.gx-stagger>*:nth-child(8){animation-delay:.37s}
+.gx-stagger>*:nth-child(n+9){animation-delay:.4s}
+/* 反馈补齐：卡片悬停微浮 + 行悬停过渡（表格/列表行类） */
+.cmGx-card{transition:transform .18s var(--gx-ease),box-shadow .18s var(--gx-ease),border-color .18s var(--gx-ease)}
+.cmGx-card:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(25,22,19,.08)}
+.cmGx-rank,.gxSec-row{transition:background .15s var(--gx-ease)}
+/* 更新弹窗滑入（左下角，v1.4.1 前的 toast 已有滑入，补齐 cmDeskUpdToast 同语言） */
+.cmDeskUpdToast{animation:gxRise .3s var(--gx-ease) both}
+/* 关闭动效由 gxCloseMask 挂 gx-closing 类驱动；数字滚动由 gxCountKpis 驱动（JS） */
+/* 降级：减少动态偏好 or 用户关闭 → 注入层动画/过渡全关 */
+html.gx-motion-off .cmDesk-mask,html.gx-motion-off .cmDesk-wcard,html.gx-motion-off .cmDesk-modal,
+html.gx-motion-off .gx-stagger>*,html.gx-motion-off .cmGx-card,html.gx-motion-off .cmDeskUpdToast,
+html.gx-motion-off .gxH-card{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion: reduce){
+  .cmDesk-mask,.cmDesk-wcard,.cmDesk-modal,.gx-stagger>*,.cmGx-card,.cmDeskUpdToast,.gxH-card{animation:none!important;transition:none!important}
+}
