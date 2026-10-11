@@ -2103,7 +2103,11 @@
     };
     var s = document.createElement('script');
     s.src = './echarts.min.js';
-    s.onload = function () { finish(cmEchartsReady()); };
+    s.onload = function () {
+      var okFlag = cmEchartsReady();
+      finish(okFlag);
+      if (okFlag) { try { cmEchartsAfterLoad(); } catch (e) {} }   // 首访竞态兜底：懒加载完成后补画可见页图表
+    };
     s.onerror = function () { finish(false); };
     document.head.appendChild(s);
     setTimeout(function () { finish(cmEchartsReady()); }, CM_ECHARTS_TIMEOUT);   // 挂死兜底（本地库损坏等极端情况）
@@ -2174,7 +2178,11 @@
   }
   function cmGxChart(id, option) {
     var dom = document.getElementById(id);
-    if (!dom || !cmEchartsReady()) return;
+    if (!cmEchartsReady()) {
+      if (!dom) return;
+      cmLoadEcharts(function (okFlag) { if (okFlag) { try { cmEchartsAfterLoad(); } catch (e) {} } });
+      return;
+    }
     var old = window.echarts.getInstanceByDom(dom);
     if (old) { try { old.dispose(); } catch (e) {} }
     var c = window.echarts.init(dom);
@@ -2611,11 +2619,12 @@
     panel.innerHTML = h;
     gxCountKpis(panel);
 
-    if (cmCreditVisible()) { cmCreditDrawCharts(credits); cmCreditChartsDirty = false; }
-    else cmCreditChartsDirty = true;             // 面板不可见：切回 credit tab / 换肤时补渲染
+    cmCreditChartsDirty = true;                    // 先记脏：flush 内部判定就绪与可见，未就绪不误清
+    if (cmCreditVisible()) cmCreditFlushCharts();  // v1.5.0 修复：echarts 未就绪时保持脏标记，加载完成自动补画
   }
   function cmCreditDrawCharts(credits) {
-    if (!cmEchartsReady() || !credits.length) return;
+    if (!credits.length) return;
+    if (!cmEchartsReady()) { cmLoadEcharts(function (okFlag) { if (okFlag) { try { cmCreditChartsDirty = true; cmCreditFlushCharts(); } catch (e) {} } }); return; }   // 触发懒加载，完成后补画
     var n = credits.length;
     var cols = cmCreditBucketCols();
     var buckets = CM_CREDIT_BUCKETS.map(function (b, i) {
@@ -2967,6 +2976,26 @@
      姓名左顶格 + 「同学：」，朱砂印章落款。学分公示/荣誉墙侧栏同图标问题：荣誉墙改 #gx-award。 */
   function gxIc(name, cls) {
     return '<svg class="gx-ic' + (cls ? ' ' + cls : '') + '" aria-hidden="true"><use href="#gx-' + name + '"/></svg>';
+  }
+  /* echarts 懒加载完成后的首访竞态兜底（v1.5.0）：重画当前可见页的图表 */
+  function cmEchartsAfterLoad() {
+    try {
+      var st = cmGxState();
+      if (cmGxPageLive('page-analytics')) {
+        var gp = document.getElementById('analyticsGradePanel');
+        if (gp && gp.offsetParent !== null) { if (appFn('renderGradeAnalyticsDetail')) window.renderGradeAnalyticsDetail(); }
+        else if (appFn('renderAnalytics')) window.renderAnalytics();
+      }
+      if (cmGxPageLive('page-dashboard') && st && st.students && st.students.length && appFn('drawDistChart')) {
+        window.drawDistChart(st.students.map(function (s) { return s.credit; }));
+      }
+      if (cmGxPageLive('page-publicity') && appFn('drawPubTrend')) {
+        window.drawPubTrend('pubTrendChart', st.students || [], st.operations || []);
+        window.drawPubDaily('pubDailyChart', st.operations || []);
+        window.drawPubDist('pubDistChart', st.students || []);
+        window.drawPubReason('pubReasonChart', 'pubReasonLegend', st.operations || []);
+      }
+    } catch (e) {}
   }
   /* ---------- v1.5.0 动效系统（cmMotion）----------
      原则：只动 transform/opacity；prefers-reduced-motion 或 cm_motion_off=1 全关；
