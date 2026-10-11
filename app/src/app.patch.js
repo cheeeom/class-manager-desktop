@@ -478,16 +478,16 @@
 
   function stepTour() {
     var mods = [
-      ['🏠', '首页', '课表、今日实到、班级速览'],
-      ['👥', '学生档案', '56 人花名册、一人一档'],
-      ['⭐', '学分银行', '加减分流水、月度汇总'],
-      ['🗓️', '值日点名', '值周排班、课堂随机点名'],
-      ['🏅', '荣誉与公示', '荣誉墙、学分公示海报'],
-      ['☁️', '导出备份', '设置里可随时导出 JSON 留存']
+      ['home', '首页', '课表、今日实到、班级速览'],
+      ['users', '学生档案', '56 人花名册、一人一档'],
+      ['star', '学分银行', '加减分流水、月度汇总'],
+      ['alarm-clock', '值日点名', '值周排班、课堂随机点名'],
+      ['medal', '荣誉与公示', '荣誉墙、学分公示海报'],
+      ['cloud', '导出备份', '设置里可随时导出 JSON 留存']
     ];
     var grid = '<div class="cmDesk-tour">';
     mods.forEach(function (m) {
-      grid += '<div class="cmDesk-tcell"><div style="font-size:26px">' + m[0] + '</div><b>' + m[1] + '</b><span>' + m[2] + '</span></div>';
+      grid += '<div class="cmDesk-tcell"><div class="cmDesk-tic">' + gxIc(m[0]) + '</div><b>' + m[1] + '</b><span>' + m[2] + '</span></div>';
     });
     grid += '</div>';
     var w = wizardShell('第 6 步 · 共 6 步', '<h2 style="font-family:var(--font-display)">30 秒认识工作台</h2>' + grid,
@@ -710,7 +710,7 @@
         '<div class="cmDesk-gtext">' + st.text + '</div>' +
         '<div class="cmDesk-gbtns">' +
         '<button class="btn btn-outline btn-sm" id="cmGuideSkip">跳过并清除示例</button>' +
-        '<button class="btn btn-primary btn-sm" id="cmGuideNext"><span>' + (last ? '完成体验 ✓' : '下一步') + '</span><span class="arr">→</span></button>' +
+        '<button class="btn btn-primary btn-sm" id="cmGuideNext"><span>' + (last ? '完成体验 ✓' : '下一步') + '</span></button>' +
         '</div>';
       document.body.appendChild(b);
       if (anchor) {
@@ -2977,7 +2977,7 @@
     '⏰': 'alarm-clock', '🔑': 'key-round', '🕘': 'history', '🕓': 'history',
     '📥': 'download', '📤': 'upload', '🚪': 'log-out', '🛡': 'shield-check', '🛡️': 'shield-check',
     '📔': 'notebook', '📝': 'pen-line', '🧾': 'scroll', '📜': 'scroll', '🎉': 'sparkles',
-    '💪': 'hand', '🙋': 'hand', '🔬': 'search', '🧹': 'trash-2', '↗': 'trending-up'
+    '💪': 'hand', '🙋': 'hand', '🔬': 'search', '🧹': 'trash-2', '↗': 'trending-up', '🏠': 'home'
   };
   var GX_EMOJI_KEYS = Object.keys(GX_EMOJI_MAP).sort(function (a, b) { return b.length - a.length; });
   var GX_EMOJI_RE = new RegExp('^\\s*(' + GX_EMOJI_KEYS.map(function (k) { return k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|') + ')');

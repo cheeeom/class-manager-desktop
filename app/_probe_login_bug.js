@@ -16,6 +16,25 @@ app.whenReady().then(function () {
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     try {
       await wait(2500);   // 向导/登录层渲染完成
+      // v1.4.1 补：向导第 6 步模块卡图标统一验证（按当前向导按钮 id 确定式推进，5 次到第 6 步停住）
+      var seq = ['cmWizNext', 'cmWizSkipPwd', 'cmWizSkipPwd', 'cmWizSkip', 'cmWizSkip'];
+      for (var wi = 0; wi < seq.length; wi++) {
+        await win.webContents.executeJavaScript('var b=document.getElementById("' + seq[wi] + '");b?b.click():0;1');
+        await wait(350);
+      }
+      const tour = await win.webContents.executeJavaScript(`(function(){
+        var tics = document.querySelectorAll('.cmDesk-tic svg.gx-ic');
+        var sized = 0; tics.forEach(function(s){ if (s.getBoundingClientRect().width >= 20) sized++; });
+        var emo = /🏠|👥|⭐|🗓|🏅|☁/.test(document.getElementById('cmWizBody') ? document.getElementById('cmWizBody').textContent : (document.querySelector('.cmDesk-wizard')||{}).textContent || '');
+        return JSON.stringify({ tics: tics.length, sized: sized, emojiLeft: emo });
+      })()`);
+      console.log('[BUG] tour ' + tour);
+      const imgT = await win.webContents.capturePage();
+      fs.writeFileSync(path.join(__dirname, 'out', '_probe_wizard_step6.png'), imgT.toPNG());
+      console.log('[BUG] shot=out/_probe_wizard_step6.png');
+      // 进入正式流程：跳过向导 → 登录页取证
+      await win.webContents.executeJavaScript('localStorage.setItem("cm_onboarded","1");localStorage.setItem("cm_nopwd","1");location.reload();1');
+      await wait(1800);
       const info = await win.webContents.executeJavaScript(`(function(){
         var out = { pts: [] };
         [[16,16],[60,30],[120,46],[16,46]].forEach(function(pt){

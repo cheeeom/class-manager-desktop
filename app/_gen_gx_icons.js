@@ -15,7 +15,7 @@ const NAMES = [
   'info', 'circle-x', 'hand', 'palette', 'tag', 'briefcase', 'bell-ring', 'ban', 'school',
   'chart-column', 'pen-line', 'megaphone', 'eye', 'download', 'x', 'check', 'notebook',
   'gift', 'coffee', 'alarm-clock', 'key-round', 'history', 'layout-dashboard', 'camera',
-  'target', 'lightbulb', 'upload', 'log-out', 'shield-check', 'user-cog', 'scroll'
+  'target', 'lightbulb', 'upload', 'log-out', 'shield-check', 'user-cog', 'scroll', 'home'
 ];
 
 const out = {};

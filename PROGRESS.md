@@ -24,6 +24,7 @@
 - [x] 测试 +⑲（dist 无 eolBanner/单机清空/云端静默/安全卡 v2 全要素）；探针扩展：登录页三断言 + 安全卡三按钮 + 清空全链（纸墨风闸 → 输入「清空」→ wipe → 单机 toast）全 PASS。
 - [x] **PRO 专属卡预览（待老板审阅后确认实施）**：`_dataviz_preview/pro-card-preview.html` + shots（亮/暗 × 早鸟/常价）——激活后赞赏卡整体替换为 B 印章式专属卡（现有 buildProActiveCard 实现即图三设计，赞赏卡/满天弹窗/打赏入口不再出现）；**老板点头后**：核对现实现与预览一致 + 提交。
 - [x] **反馈卡样式统一（老板实机报）**：`.cmDeskFeedback` 残留 v1.0.11 时代「关于卡内嵌盒」样式（row-bg+虚线框）压掉 settings-section 实心卡 → 删覆盖只留外距；探针 computed style 与「关于本系统」完全一致（bg rgb(255,253,247) + solid）。
+- [x] **向导模块卡图标统一（老板实机报）**：stepTour 六卡从 emoji（🏠 漏网 + swept 后 1em 过小）改为显式 `gxIc` 大图标（.cmDesk-tic 44px 朱砂底座 + 24px 描边图标，home 图标补提取 63 枚）；GX_EMOJI_MAP 补 🏠→home；指引气泡「完成体验 ✓ →」去箭头。
 - [x] 打包 BUILD-OK + CM_SMOKE PASS（v1.4.1）；ClassManager-Setup.exe 副本同步。
 - [ ] **PRO 卡预览等老板审阅**；**发布**：老板明说「推送」→ gh release create v1.4.1（内容含 1.3.0 图表引擎 + 1.4.0 界面重设计全量）。
 - [ ] **下一轮：全工作台动效优化**（v1.5.0，老板已预告）。
