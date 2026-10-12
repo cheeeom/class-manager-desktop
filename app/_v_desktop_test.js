@@ -693,9 +693,14 @@ t('⑳ v1.5.0 动效系统', function () {
   has(p, "classList.add('gx-motion-off')", 'boot 挂降级类');
   has(p, 'function gxCloseMask', '遮罩关闭动画驱动');
   ok((p.match(/function close\(\) \{ gxCloseMask\(mask\); \}/g) || []).length === 2, '两处纸墨弹窗 close 接动画');
-  has(p, 'function gxCountKpis', 'KPI 数字滚动');
-  has(p, 'gxCountKpis(detail);', '成绩 KPI 滚动接线');
-  has(p, 'gxCountKpis(panel);', '学分 KPI 滚动接线');
+  has(p, 'function gxCountAnnotate', 'KPI 数字滚动（v1.5.2 标注式渲染）');
+  has(p, 'function gxPlayCounters', 'KPI 播放器');
+  has(p, 'gxCountAnnotate(detail);', '成绩 KPI 滚动接线');
+  has(p, 'gxCountAnnotate(panel);', '学分 KPI 滚动接线');
+  has(p, "el.setAttribute('data-gx-count'", 'KPI 目标值标注');
+  has(p, 'if (document.hidden) continue;', 'v1.5.2 隐藏窗口不起播');
+  ok(p.indexOf('dur + 160, node, target, dec') >= 0, 'v1.5.2 rAF 冻结保险栓（setTimeout 兜底写最终值）');
+  has(p, "addEventListener('visibilitychange'", 'v1.5.2 窗口转可见补播');
   ok((p.match(/cmGx-grid2 gx-stagger/g) || []).length >= 5, '五处 grid2 stagger');
   has(p, 'gxStagger(listEl);', '荣誉/留痕列表 stagger 接线');
   has(p, 'if (!window.__CM_UPDATER || !btn) return;', '商店版关于卡 btn 空守卫');

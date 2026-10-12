@@ -3032,11 +3032,14 @@
     for (var i = 0; i < els.length; i++) {
       var el = els[i];
       if (el.getAttribute('data-gx-played') === '1') continue;
-      el.setAttribute('data-gx-played', '1');
       var node = el.firstChild;
       var target = parseFloat(el.getAttribute('data-gx-count'));
       var dec = parseInt(el.getAttribute('data-gx-dec') || '0', 10);
       if (isNaN(target) || !node) continue;
+      /* v1.5.2：隐藏窗口不起播（文本已是最终值、不标 played——窗口转可见由 revive 补播）。
+         堵 v1.5.1 残留洞：启动恢复页面在 win.show() 前触发播放，隐藏窗口 rAF 冻结首帧即 0 */
+      if (document.hidden) continue;
+      el.setAttribute('data-gx-played', '1');
       var t0 = performance.now(), dur = 640;
       (function tick(t) {
         var p = Math.min(1, (t - t0) / dur);
@@ -3044,6 +3047,8 @@
         node.nodeValue = (target * e2).toFixed(dec);
         if (p < 1) requestAnimationFrame(tick); else node.nodeValue = target.toFixed(dec);
       })(t0);
+      /* v1.5.2 保险栓：起播后窗口被隐藏/遮挡 rAF 冻结 → 定时兜底写最终值 */
+      setTimeout(function (n, tv, d) { n.nodeValue = tv.toFixed(d); }, dur + 160, node, target, dec);
     }
   }
   function gxStagger(el) { if (el && gxMotionOn()) el.classList.add('gx-stagger'); }
@@ -3539,6 +3544,10 @@
     buildGxSchoolCard();                         // v1.4.0 设置页「学校信息（桌面版）」卡
     gxWrapToast();                               // toast 图标统一
     gxWrapNavigate();                            // 切页后补扫 emoji
+    document.addEventListener('visibilitychange', function () {   // v1.5.2：窗口转可见 → 补播被隐藏窗口冻住的 KPI
+      if (document.hidden) return;
+      try { var pg = document.querySelector('.page.active'); if (pg) gxPlayCounters(pg); } catch (e) {}
+    });
     gxWatchDom();                                // DOM 变更防抖补扫
     gxSweepSoon();                               // v1.4.0 首扫（页头/按钮/统计卡 emoji → Lucide）
     silenceCloudPush();
