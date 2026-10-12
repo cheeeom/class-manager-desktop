@@ -3026,30 +3026,41 @@
       el.setAttribute('data-gx-dec', String((m[0].split('.')[1] || '').length));
     }
   }
+  var _gxTweenUntil = 0;
+  function gxWriteCounters(e2) {
+    var all = document.querySelectorAll('.cmGx-kvalue[data-gx-count]');
+    for (var i = 0; i < all.length; i++) {
+      var n = all[i].firstChild;
+      var tv = parseFloat(all[i].getAttribute('data-gx-count'));
+      var d = parseInt(all[i].getAttribute('data-gx-dec') || '0', 10);
+      if (n && !isNaN(tv)) n.nodeValue = (e2 === 1) ? tv.toFixed(d) : (tv * e2).toFixed(d);
+    }
+  }
   function gxPlayCounters(root) {
     if (!gxMotionOn() || !root || !root.querySelectorAll) return;
+    /* v1.5.2：隐藏窗口不起播（文本已是最终值、不标 played——窗口转可见由 revive 补播） */
+    if (document.hidden) return;
     var els = root.querySelectorAll('.cmGx-kvalue[data-gx-count]');
+    var fresh = 0;
     for (var i = 0; i < els.length; i++) {
-      var el = els[i];
-      if (el.getAttribute('data-gx-played') === '1') continue;
-      var node = el.firstChild;
-      var target = parseFloat(el.getAttribute('data-gx-count'));
-      var dec = parseInt(el.getAttribute('data-gx-dec') || '0', 10);
-      if (isNaN(target) || !node) continue;
-      /* v1.5.2：隐藏窗口不起播（文本已是最终值、不标 played——窗口转可见由 revive 补播）。
-         堵 v1.5.1 残留洞：启动恢复页面在 win.show() 前触发播放，隐藏窗口 rAF 冻结首帧即 0 */
-      if (document.hidden) continue;
-      el.setAttribute('data-gx-played', '1');
-      var t0 = performance.now(), dur = 640;
-      (function tick(t) {
-        var p = Math.min(1, (t - t0) / dur);
-        var e2 = 1 - Math.pow(1 - p, 3);
-        node.nodeValue = (target * e2).toFixed(dec);
-        if (p < 1) requestAnimationFrame(tick); else node.nodeValue = target.toFixed(dec);
-      })(t0);
-      /* v1.5.2 保险栓：起播后窗口被隐藏/遮挡 rAF 冻结 → 定时兜底写最终值 */
-      setTimeout(function (n, tv, d) { n.nodeValue = tv.toFixed(d); }, dur + 160, node, target, dec);
+      if (els[i].getAttribute('data-gx-played') !== '1') { els[i].setAttribute('data-gx-played', '1'); fresh++; }
     }
+    if (!fresh) return;
+    /* v1.5.3 重设计（探针 _probe_kpi_tween 实测复现跳变）：首访 echarts 懒加载补画会整板
+       重渲 KPI——旧实现绑死单个文本节点，节点被替换即断片（0.0 停 ~700ms 后一帧跳最终值）。
+       ticker 每帧重查全部标注元素写当前缓动值：重渲出的新节点自动接管、从当前进度续滚。 */
+    var now = performance.now();
+    if (_gxTweenUntil > now) return;   // 滚动在途：ticker 每帧全量接管，无需叠加
+    var t0 = now, dur = 640;
+    _gxTweenUntil = t0 + dur + 50;
+    (function tick(t) {
+      var p = Math.min(1, (t - t0) / dur);
+      var e2 = 1 - Math.pow(1 - p, 3);
+      gxWriteCounters(e2);
+      if (p < 1) requestAnimationFrame(tick); else { gxWriteCounters(1); _gxTweenUntil = 0; }
+    })(t0);
+    /* v1.5.2 保险栓：rAF 冻结/遮挡 → 定时兜底写最终值（滚动在途时让位给新 ticker 自己的保险栓） */
+    setTimeout(function () { if (!_gxTweenUntil) gxWriteCounters(1); }, dur + 220);
   }
   function gxStagger(el) { if (el && gxMotionOn()) el.classList.add('gx-stagger'); }
   function gxInjectSprite() {

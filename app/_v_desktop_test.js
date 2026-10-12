@@ -698,8 +698,10 @@ t('⑳ v1.5.0 动效系统', function () {
   has(p, 'gxCountAnnotate(detail);', '成绩 KPI 滚动接线');
   has(p, 'gxCountAnnotate(panel);', '学分 KPI 滚动接线');
   has(p, "el.setAttribute('data-gx-count'", 'KPI 目标值标注');
-  has(p, 'if (document.hidden) continue;', 'v1.5.2 隐藏窗口不起播');
-  ok(p.indexOf('dur + 160, node, target, dec') >= 0, 'v1.5.2 rAF 冻结保险栓（setTimeout 兜底写最终值）');
+  has(p, 'if (document.hidden) return;', 'v1.5.2 隐藏窗口不起播');
+  has(p, 'function gxWriteCounters(', 'v1.5.3 全量写值器（ticker 重查标注元素）');
+  has(p, 'var _gxTweenUntil = 0', 'v1.5.3 在途去重闸');
+  ok(p.indexOf('gxWriteCounters(1)') >= 0, 'v1.5.2 保险栓（setTimeout 兜底写最终值）');
   has(p, "addEventListener('visibilitychange'", 'v1.5.2 窗口转可见补播');
   ok((p.match(/cmGx-grid2 gx-stagger/g) || []).length >= 5, '五处 grid2 stagger');
   has(p, 'gxStagger(listEl);', '荣誉/留痕列表 stagger 接线');
