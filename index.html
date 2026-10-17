@@ -390,7 +390,6 @@ a{color:inherit;text-decoration:none}
       班主任工作台
     </a>
     <div class="nav-links">
-      <a class="hide-m" href="https://cheeeom.github.io/class-manager/">网页版</a>
       <a href="https://github.com/cheeeom/class-manager-desktop/releases">更新日志</a>
       <a href="https://github.com/cheeeom/class-manager-desktop">GitHub</a>
     </div>
@@ -415,7 +414,7 @@ a{color:inherit;text-decoration:none}
       <div class="v-center">
         <svg class="v-seal" width="128" height="128" aria-hidden="true"><use href="#seal"/></svg>
         <div class="v-name">班主任工作台</div>
-        <div class="v-ver">WINDOWS 桌面版 · V1.2.6</div>
+        <div class="v-ver" id="vVer">WINDOWS 桌面版 · V1.5.4</div>
       </div>
       <svg class="v-stamp" aria-hidden="true"><use href="#stamp-yin"/></svg>
     </div>
@@ -636,7 +635,6 @@ a{color:inherit;text-decoration:none}
     </div>
     <div class="f-links">
       <a href="https://github.com/cheeeom/class-manager">GitHub 仓库</a>
-      <a href="https://cheeeom.github.io/class-manager/">网页版</a>
       <a href="https://github.com/cheeeom/class-manager-desktop/issues">提交反馈</a>
       <a href="mailto:chee777@agent.qq.com">chee777@agent.qq.com</a>
     </div>
@@ -714,5 +712,20 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDonate(
 })();
 </script>
 
+<script>
+/* 版本号自动跟版：读 GitHub Latest Release，失败静默用静态兜底（v1.5.4 起，治落地页版本化石） */
+(function () {
+  try {
+    fetch('https://api.github.com/repos/cheeeom/class-manager-desktop/releases/latest')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        var tag = j && j.tag_name;
+        if (!tag || tag.charAt(0) !== 'v') return;
+        var el = document.getElementById('vVer');
+        if (el) el.textContent = 'WINDOWS 桌面版 · ' + tag.toUpperCase();
+      }).catch(function () {});
+  } catch (e) {}
+})();
+</script>
 </body>
 </html>

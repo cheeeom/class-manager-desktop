@@ -42,6 +42,7 @@
 - [x] **打包（2026-10-11 三次）**：BUILD-OK attempt 1 → `out/class-manager-desktop-Setup-1.4.0.exe`（83.4MB）+ latest.yml 服 1.4.0；代理 off→on 已恢复；CM_SMOKE 冒烟 PASS（v1.4.0/版本标逐字/向导交互/consoleErrors=[]）；ClassManager-Setup.exe 副本已同步。
 - [x] **发布（2026-10-11 老板令「直接一起打包推送」）**：git 主线 merge 对齐远端（收编 v1.2.6 线与落地页水墨风改版，-X ours 取本地 v1.4.1 线）→ 合并树重建 27 套全绿 + 冒烟 PASS → push（直连 + HTTP/1.1；git 配置死代理 192.168.8.104:9890 需 `-c http.proxy=` 绕过）→ `gh release create v1.4.1` 三件套 → 验收：assets 齐（exe×2 同字节 83,413,606 + latest.yml）、稳定直链 200 实测 83MB@4.4MB/s、ghproxy 镜像 latest.yml 服 1.4.1。
 - [ ] **下一轮：全工作台动效优化**（v1.5.0，老板已预告）。
+- [x] **✅ 已完成（2026-10-17）v1.5.5 发布**：⚠️ v1.5.4 已于 10-13 被上会话发布（携带 v3.5.3），本次 bump 1.5.5——上游 v3.5.4（预警一人一单状态机+流水归档）+ v3.5.5（发币调低 5/10/15/20/30）由 build.js 自动继承（baseWeb=v3.5.5）；契约 28 套全绿 + 冒烟 PASS（versionTag 逐字 v1.5.5 桌面版/consoleErrors=[]）；[Release v1.5.5](https://github.com/cheeeom/class-manager-desktop/releases/tag/v1.5.5) 三件套验收 ✓（线上 latest.yml version 1.5.5）。**坑补记：动手前必须 gh release view 确认目标 tag 是否已被占用——本次差点把不同内容的包覆盖到已发布的 v1.5.4 上。**
 
 ### v1.3.0（完成编码：数据分析图表引擎 P0+P1+P2，2026-10-11，已并入 v1.4.0 包）
 - [x] 方案与预览（老板过目拍板）：`app/_dataviz_preview/DATAVIZ-PLAN.md` + `preview.html`（选型 ECharts 6，落选 Chart.js/ApexCharts/AntV 理由在案）
