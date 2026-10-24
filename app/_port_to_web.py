@@ -14,7 +14,7 @@ import io, re, sys
 
 DESK = r'C:\Users\84669\.zcode\workspace\default\class-manager-desktop\app'
 WEB = r'C:\Users\84669\.zcode\workspace\default\class-manager'
-VER_OLD, VER_NEW = 'v3.6.8', 'v3.6.9'
+VER_OLD, VER_NEW = 'v3.6.9', 'v3.6.10'
 
 def rd(p):
     with io.open(p, 'r', encoding='utf-8', newline='') as f:
@@ -166,7 +166,7 @@ print('✓ P0/P2 适配完成（cmGxChart 排队补画 + 首页分布失败回�
 # ---------- 5. 组装 cmgx.js ----------
 import json
 css_js = json.dumps('\n' + CSS + '\n', ensure_ascii=False)   # JSON 编码：CSS 含单引号（字体名），不能再嵌单引号 JS 串
-HEAD = """/*! cmgx.js — 班主任工作台 网页版 增强引擎（v3.6.9）
+HEAD = """/*! cmgx.js — 班主任工作台 网页版 增强引擎（v3.6.10）
  *  内容：数据分析图表引擎（成绩/学分/首页/公示，ECharts + 纸墨主题）+ 学期报告引擎（个人/班级，长图/打印PDF）
  *  移植自桌面版注入层（class-manager-desktop v1.5.5 app/src/app.patch.js 的 M3/P0/P1/P2 分节），
  *  网页版全部功能免费开放（无 Pro 闸）。echarts.min.js 首次渲染时懒加载，失败/超时静默回退原实现；
@@ -202,19 +202,33 @@ NAV = """
     try { cmGxThemeExtras(); } catch (e) {}
   }
 
-  /* ---------- 学期报告导航入口（网页版：侧栏设置项前注入；随侧栏重渲染自愈） ---------- */
+  /* ---------- 学期报告导航入口（网页版：桌面侧栏设置项前 + 手机「更多」抽屉；随重渲染自愈） ---------- */
   function gxInjectReportNav() {
+    /* 桌面侧栏：设置项前注入 */
     var nav = document.querySelector('.sidebar nav') || document.querySelector('.sidebar');
-    if (!nav) return;
-    if (document.getElementById('cmNavReport')) return;
-    var settingsItem = nav.querySelector('.nav-item[data-page="settings"]');
-    var item = el('div', 'nav-item');
-    item.id = 'cmNavReport';
-    item.title = '学期报告（个人 / 班级）';
-    item.innerHTML = '<span class="nav-icon"><svg class="ic"><use href="#i-report"/></svg></span><span class="nav-text">学期报告</span>';
-    item.addEventListener('click', function () { if (typeof cmReportOpen === 'function') cmReportOpen(); });
-    if (settingsItem) settingsItem.parentNode.insertBefore(item, settingsItem);
-    else nav.appendChild(item);
+    if (nav && !document.getElementById('cmNavReport')) {
+      var settingsItem = nav.querySelector('.nav-item[data-page="settings"]');
+      var item = el('div', 'nav-item');
+      item.id = 'cmNavReport';
+      item.title = '学期报告（个人 / 班级）';
+      item.innerHTML = '<span class="nav-icon"><svg class="ic"><use href="#i-report"/></svg></span><span class="nav-text">学期报告</span>';
+      item.addEventListener('click', function () { if (typeof cmReportOpen === 'function') cmReportOpen(); });
+      if (settingsItem) settingsItem.parentNode.insertBefore(item, settingsItem);
+      else nav.appendChild(item);
+    }
+    /* v3.6.10 手机端「更多」抽屉同步入口（抽屉是静态清单，侧栏注入带不过去；点击=收抽屉+开报告） */
+    var drawer = document.getElementById('moreGrid');
+    if (drawer && !document.getElementById('cmNavReportDrawer')) {
+      var cell = el('div', 'more-item');
+      cell.id = 'cmNavReportDrawer';
+      cell.title = '学期报告（个人 / 班级）';
+      cell.innerHTML = '<span class="more-icon"><svg class="ic"><use href="#i-report"/></svg></span><span>学期报告</span>';
+      cell.addEventListener('click', function () {
+        try { if (typeof toggleMoreDrawer === 'function') toggleMoreDrawer(); } catch (e) {}
+        if (typeof cmReportOpen === 'function') cmReportOpen();
+      });
+      drawer.appendChild(cell);
+    }
   }
   gxInjectReportNav();
   try {
