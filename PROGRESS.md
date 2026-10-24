@@ -21,7 +21,8 @@
 - [x] **冒烟探针 `_probe_rail.js`（新增，27 项全 PASS）**：按钮/入口/包裹骨架 → 折叠 68px + localStorage → 文字隐没 + 徽标隐藏 + 角标圆点 + 图标不越界 → 点 nav 触发浮层（240px / 文字恢复 / 角标恢复）→ mouseleave 400ms 收回 → 刷新保持折叠且 rail-init 已摘 → 展开恢复 + 激活后徽标显隐 → 零 console error。实拍 `out/rail_collapsed.png` / `out/rail_open.png`。
 - [x] 契约 `_v_desktop_test.js` **28 套全绿**；dist 指纹核对：rail-toggle / rail-open / cm_sidebar_rail / i-award / nav-text 全部命中。
 - [x] **探针坑（重要）**：隐藏窗口 CSS 过渡时钟不走 ⇒ 宽度卡 240、nav-text opacity 卡 1（`getBoundingClientRect` 量到的是起始帧）；注入 `transition:none!important` 测终态。隐藏窗口 `capturePage` 还会返回旧帧 ⇒ 截图前 `win.showInactive()` 真出一次画面。
-- [ ] **打包 + 发布**：出 NSIS 包 → 冒烟 → 交老板审；push（git 被墙走 API 增量）+ Release 等老板发话。
+- [x] **打包 + 冒烟（2026-10-24）**：`class-manager-desktop-Setup-1.5.6.exe`（83,543,678 B）+ `latest.yml`（version 1.5.6）+ `ClassManager-Setup.exe` 稳定直链副本已同步；打包版冒烟 **PASS**（version=1.5.6 / versionTag 逐字「v1.5.6 桌面版」/ wizardInteractive=true / consoleErrors=[]；updater 探针正确读到线上仍为 1.5.5）。
+- [ ] **发布待老板发话**：push（git 被墙 ⇒ API 增量推送）+ `gh release create v1.5.6` 三件套 + 验收（assets 齐 / 稳定直链 200 / latest.yml 服 1.5.6）。
 
 ### v1.4.1（完成编码：老板实机四连修复，2026-10-11，已打包冒烟 PASS，待老板审阅 PRO 卡预览后发版）
 - [x] **登录页乱码+横幅修复**：上游 v3.4.1 停更横幅整块（44px 让位 CSS + 横幅标记 + 摘除脚本）在桌面构建期摘除（build.js 补丁「摘停更横幅CSS/标记」+ dist notHas 断言）——根因：桌面端横幅被运行时摘掉但 44px 位移 CSS 残留 → 登录层下移、顶部漏出「全部功能」抽屉。探针断言：eolBanner 无 / loginOverlay top=0px / 顶层不再漏抽屉。
