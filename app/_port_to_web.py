@@ -14,7 +14,7 @@ import io, re, sys
 
 DESK = r'C:\Users\84669\.zcode\workspace\default\class-manager-desktop\app'
 WEB = r'C:\Users\84669\.zcode\workspace\default\class-manager'
-VER_OLD, VER_NEW = 'v3.6.0', 'v3.6.1'
+VER_OLD, VER_NEW = 'v3.6.1', 'v3.6.2'
 
 def rd(p):
     with io.open(p, 'r', encoding='utf-8', newline='') as f:
@@ -122,7 +122,7 @@ print('✓ M3 适配完成（Pro闸/徽标/PDF打印/注释去桌面化）')
 # ---------- 5. 组装 cmgx.js ----------
 import json
 css_js = json.dumps('\n' + CSS + '\n', ensure_ascii=False)   # JSON 编码：CSS 含单引号（字体名），不能再嵌单引号 JS 串
-HEAD = """/*! cmgx.js — 班主任工作台 网页版 增强引擎（v3.6.1）
+HEAD = """/*! cmgx.js — 班主任工作台 网页版 增强引擎（v3.6.2）
  *  内容：数据分析图表引擎（成绩/学分/首页/公示，ECharts + 纸墨主题）+ 学期报告引擎（个人/班级，长图/打印PDF）
  *  移植自桌面版注入层（class-manager-desktop v1.5.5 app/src/app.patch.js 的 M3/P0/P1/P2 分节），
  *  网页版全部功能免费开放（无 Pro 闸）。echarts.min.js 首次渲染时懒加载，失败/超时静默回退原实现；
