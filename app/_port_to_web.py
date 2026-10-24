@@ -14,7 +14,7 @@ import io, re, sys
 
 DESK = r'C:\Users\84669\.zcode\workspace\default\class-manager-desktop\app'
 WEB = r'C:\Users\84669\.zcode\workspace\default\class-manager'
-VER_OLD, VER_NEW = 'v3.6.7', 'v3.6.8'
+VER_OLD, VER_NEW = 'v3.6.8', 'v3.6.9'
 
 def rd(p):
     with io.open(p, 'r', encoding='utf-8', newline='') as f:
@@ -119,10 +119,54 @@ m3 = m3.replace('M3 学期报告引擎（v1.1.0 Pro 核心）：个人 + 班级�
                 'M3 学期报告引擎（桌面 v1.1.0 Pro 核心 → 网页版 v3.6.0 免费开放）：个人 + 班级，长图 / PDF')
 print('✓ M3 适配完成（Pro闸/徽标/PDF打印/注释去桌面化）')
 
+# ---------- 4e. P0 cmGxChart 未就绪排队（网页版适配：boot 时首页图表先于 echarts 就绪，原版丢 option） ----------
+CHART_OLD = """  function cmGxChart(id, option) {
+    var dom = document.getElementById(id);
+    if (!cmEchartsReady()) {
+      if (!dom) return;
+      cmLoadEcharts(function (okFlag) { if (okFlag) { try { cmEchartsAfterLoad(); } catch (e) {} } });
+      return;
+    }
+"""
+CHART_NEW = """  var cmGxPendingById = {};
+  function cmGxChart(id, option) {
+    var dom = document.getElementById(id);
+    if (!cmEchartsReady()) {
+      if (!dom) return;
+      cmGxPendingById[id] = option;   /* v3.6.9 未就绪先记下（同图后画覆盖前画），加载完成统一补画 */
+      cmLoadEcharts(function (okFlag) { if (!okFlag) cmGxPendingById = {}; });
+      return;
+    }
+"""
+must_count(p0, CHART_OLD, 1, 'cmGxChart未就绪块')
+p0 = p0.replace(CHART_OLD, CHART_NEW)
+
+# ---------- 4f. P2 首页分布：echarts 加载失败回退原 canvas 实现 ----------
+DIST_OLD = """          animationDuration: 900, animationDelay: function (i) { return i * 60; } }]
+      });
+    };
+"""
+DIST_NEW = """          animationDuration: 900, animationDelay: function (i) { return i * 60; } }]
+      });
+      if (!cmEchartsReady()) {
+        cmLoadEcharts(function (okFlag) {
+          if (okFlag) return;   /* 成功由 cmEchartsAfterLoad 补画 */
+          var bx = document.getElementById('cmGxDashDist'), cv = document.getElementById('distChart');
+          if (bx && bx.parentNode) bx.parentNode.removeChild(bx);   /* v3.6.9 回退原 canvas 实现（加载失败/超时） */
+          if (cv) cv.style.display = '';
+          if (typeof orig === 'function') orig(credits);
+        });
+      }
+    };
+"""
+must_count(p2, DIST_OLD, 1, '首页分布回退锚点')
+p2 = p2.replace(DIST_OLD, DIST_NEW)
+print('✓ P0/P2 适配完成（cmGxChart 排队补画 + 首页分布失败回退）')
+
 # ---------- 5. 组装 cmgx.js ----------
 import json
 css_js = json.dumps('\n' + CSS + '\n', ensure_ascii=False)   # JSON 编码：CSS 含单引号（字体名），不能再嵌单引号 JS 串
-HEAD = """/*! cmgx.js — 班主任工作台 网页版 增强引擎（v3.6.8）
+HEAD = """/*! cmgx.js — 班主任工作台 网页版 增强引擎（v3.6.9）
  *  内容：数据分析图表引擎（成绩/学分/首页/公示，ECharts + 纸墨主题）+ 学期报告引擎（个人/班级，长图/打印PDF）
  *  移植自桌面版注入层（class-manager-desktop v1.5.5 app/src/app.patch.js 的 M3/P0/P1/P2 分节），
  *  网页版全部功能免费开放（无 Pro 闸）。echarts.min.js 首次渲染时懒加载，失败/超时静默回退原实现；
@@ -150,6 +194,14 @@ HEAD = """/*! cmgx.js — 班主任工作台 网页版 增强引擎（v3.6.8）
 HEAD = HEAD.replace('__CSS__', css_js)
 
 NAV = """
+  /* ---------- v3.6.9 首访竞态补画（echarts 懒加载完成后：补画排队图表 + 可见页图表；移植切片漏带桌面启动段实现，此前调用未定义函数被 try/catch 吞掉致首页分布冷启动空白） ---------- */
+  function cmEchartsAfterLoad() {
+    var pend = cmGxPendingById;
+    cmGxPendingById = {};
+    for (var pid in pend) { try { cmGxChart(pid, pend[pid]); } catch (e) {} }
+    try { cmGxThemeExtras(); } catch (e) {}
+  }
+
   /* ---------- 学期报告导航入口（网页版：侧栏设置项前注入；随侧栏重渲染自愈） ---------- */
   function gxInjectReportNav() {
     var nav = document.querySelector('.sidebar nav') || document.querySelector('.sidebar');
