@@ -2036,7 +2036,7 @@
       reportItem = el('div', 'nav-item cmDesk-navreport');
       reportItem.id = 'cmNavReport';
       reportItem.title = '学期报告（Pro）';
-      reportItem.innerHTML = '<span class="nav-icon">🎓</span><span>学期报告</span>';
+      reportItem.innerHTML = '<span class="nav-icon">🎓</span><span class="nav-text">学期报告</span>';
       reportItem.addEventListener('click', function () { cmReportOpen(); });
       if (settingsItem) settingsItem.parentNode.insertBefore(reportItem, settingsItem);
       else nav.appendChild(reportItem);

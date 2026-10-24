@@ -229,6 +229,16 @@ html.dark .cmDesk-procard{background:#1D150C}
 .cmDesk-proemblem i{font-style:normal;font-size:9px;color:#E8C36A;text-shadow:0 0 6px rgba(232,195,106,.5)}
 html.dark .cmDesk-proemblem{background:linear-gradient(145deg,#3A2A14,#241808)}
 
+/* ---------- v1.5.6 侧栏 rail 折叠态适配（承接上游 v3.5.6 三态：展开 / 折叠 68px / 临时浮层） ----------
+   桌面层比网页版多挂了三个节点（学期报告入口、PRO 角标、烫金徽标），折叠态要各自让位。
+   注意：浮层展开 .rail-open 与 .rail 在同一元素上叠加 ⇒ 隐藏/降级规则一律用 :not(.rail-open)，
+   否则浮层展开时徽标与角标也会被误杀。 */
+.sidebar.rail:not(.rail-open) .cmDesk-proemblem{display:none}
+.sidebar.rail:not(.rail-open) .cmDesk-navbadge{
+  top:4px;right:7px;width:7px;height:7px;padding:0;border-radius:50%;
+  font-size:0;line-height:0;letter-spacing:0;overflow:hidden;
+}
+
 /* ---------- v1.2.0 页面级 Pro 锁 ---------- */
 .cmDesk-blurtarget{filter:blur(16px) saturate(.85);pointer-events:none;user-select:none}
 .cmDesk-pagepill{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9998;background:var(--primary,#A63A2B);color:#fff;border:0;border-radius:24px;padding:12px 26px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 12px 36px rgba(60,40,20,.35)}

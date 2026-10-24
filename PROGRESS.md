@@ -4,7 +4,7 @@
 
 ## 一、当前状态速览
 
-- **已发布**：**v1.4.1 = Latest**（2026-10-11 三件套验收 ✓：assets 齐 exe×2 同字节 83,413,606 + latest.yml；稳定直链 200 实测 4.4MB/s；镜像 ghproxy 服 1.4.1）。
+- **已发布**：**v1.5.5 = Latest**（2026-10-17 三件套验收 ✓，上游 v3.5.4+3.5.5：学分预警一人一单状态机 + 月度结算发币调低）；**v1.5.6 出包待发**（2026-10-24，上游 v3.5.6~v3.5.8 侧栏 rail 三态，详见下方 v1.5.6 段）。
 - **测试**：`_v_desktop_test.js` **27 套全绿**；`_probe_dataviz.js` / `_probe_tour.js` / `_probe_login_bug.js` 全 PASS。
 - **v1.3.0 内容（P0+P1 全量完成）**：`src/echarts.min.js`（6.1.0，Apache-2.0，1.12MB，build.js 复制进 dist）；`app.patch.js` 新增「数据分析图表引擎」分节。**P0 成绩 tab**：接管 `renderGradeAnalyticsDetail`（cmWrapGradeDetail，挂原函数名下，Pro 页级锁不动）：KPI 环比带（均分/及格率/优秀率/标准差/最高最低，vs 上一场）、总分直方图（均分/及格/优秀三基准线挂隐藏二轴）、五档环形、各科均分横条（60/85 基准线）、单科得分率雷达（本场 vs 上一场）、多场趋势双轴折线、名次流动斜率图（|Δ|≥4）、学业预警（单科不及格≥2 科 / 总分环比下滑≥10 分）、排名前 10 数据条。**P1 学分 tab**：接管 `renderAnalytics`（cmWrapCreditRender，成绩 tab 激活时委托原函数重定向）：KPI 六卡（平均/中位/标准差/极差/及格率≥CB_ALERT_MIN/进取率，chips 全真实数据）、学分区间五档柱（credit 原生五档色）、五档构成环形（原 pieChart+#pieLegend 一体化）、近 7 天净变动 diverging 柱、本周进退步榜横向 diverging 条（原 renderProgressList 数据口径，7 天窗口+撤销过滤逐字一致）；面板不可见时只刷 DOM 图表记脏，`cmWrapCreditTabSwitch`（链在 Pro gate 之上）切回 credit tab 补渲染。cmInk 主题全部运行时读 CSS 变量（亮/暗/皮肤自适应，MutationObserver 重渲染）；echarts 加载失败/超时/空数据静默回退原实现；图表实例表共享，释放按白名单（CM_GRADE_CHART_IDS）/前缀（cmGxCd*）防误杀。
 - **v1.2.6 内容（已发布）**：向导按钮重排（上一步左/下一步右/去箭头）；第 5 步改「导入学生名单」（CSV 模板下载 + 劫持预览直接注入 + 导入后不再给示例数据）；激活后侧栏去 PRO 角标、左上角亮烫金 PRO 徽标（cmDesk-proemblem，buildNavPro 状态感知化）；考勤请假/课堂点名转免费 + 新增「导出请假流水」（CSV，Pro gate，班委拦截）；反馈卡独立成卡；关于卡改本版更新简要（≤100 字，无网页版字样）；满天弹窗/打赏卡文案跟上 Pro 时代；激活弹窗重排（复制钮右置主色、购买/已付款 300px 居中对齐、激活居中放大）+ 可选邮箱框（cmProMail 真实入链）；Pro 已激活卡 B 印章式定稿（早鸟 № 钢印 + BY: chee 署名 + 复制激活码按钮）；KeyGen ②b 换机重签自动核对（邮箱指纹/设备指纹/沿用序号）+ ③发货记录查询框。
@@ -14,6 +14,14 @@
 - **发货机已上线**（2026-10-09）：腾讯云函数 `cm-pro-shipper`（ap-shanghai，Nodejs12.16 Web 函数），URL `https://1466839507-gqk4mefrq0.ap-shanghai.tencentscf.com/?req=`；4 环境变量全齐（含 PRO_PRIV）；线上实测：格式拒 + 合法 payload → `NOT_FOUND`（爱发电翻页查单链路通）。部署改走 **SCF REST API**（`scripts/_scf_api.py` TC3 签名，密钥 `scripts/_tencent_creds.txt` 严禁入仓）；浏览器代操作在本机不可行（GUI 进程被系统收割，试 3 次全灭）。
 
 ## 二、待办队列
+
+### v1.5.6（2026-10-24：上游 v3.5.6→v3.5.8 同步 + 注入层 rail 适配，出包待发）
+- [x] **baseWeb v3.5.5 → v3.5.8**（build.js 自动继承，`package.json.baseWeb` 已更）：①v3.5.6 侧栏折叠 rail 三态（展开固定 / 折叠 68px 仅图标 + `cm_sidebar_rail` 记忆 / 悬停 1s 或单击临时浮层展开，浮层 240px + margin-right -172 占位恒 68 主区零 reflow，19 处 nav-text 包裹 + footer 外置收折按钮）②v3.5.7 rail 折叠态布局修复（文字 position:absolute 脱流）③v3.5.8 导航图标去重（荣誉墙 `#i-award` 奖章绶带，桌面 `gxFixNavIcons` 按 `data-page` 筛选零失配）。
+- [x] **注入层 rail 适配（桌面独有节点，网页版没有的三个）**：①学期报告入口 `#cmNavReport` 文字补 `.nav-text` 包裹（否则折叠态文字不淡出，挤成碎片）；②PRO 角标 `.cmDesk-navbadge` 折叠态退化为 7px 圆点（宽高 7px + font-size 0，保留「该页需 Pro」提示）；③烫金 PRO 徽标 `.cmDesk-proemblem` 折叠态 `display:none`（logo 区 overflow:hidden 会裁掉）——**三条一律加 `:not(.rail-open)` 守卫**（浮层与折叠类同元素叠加，否则展开时被误杀）。
+- [x] **冒烟探针 `_probe_rail.js`（新增，27 项全 PASS）**：按钮/入口/包裹骨架 → 折叠 68px + localStorage → 文字隐没 + 徽标隐藏 + 角标圆点 + 图标不越界 → 点 nav 触发浮层（240px / 文字恢复 / 角标恢复）→ mouseleave 400ms 收回 → 刷新保持折叠且 rail-init 已摘 → 展开恢复 + 激活后徽标显隐 → 零 console error。实拍 `out/rail_collapsed.png` / `out/rail_open.png`。
+- [x] 契约 `_v_desktop_test.js` **28 套全绿**；dist 指纹核对：rail-toggle / rail-open / cm_sidebar_rail / i-award / nav-text 全部命中。
+- [x] **探针坑（重要）**：隐藏窗口 CSS 过渡时钟不走 ⇒ 宽度卡 240、nav-text opacity 卡 1（`getBoundingClientRect` 量到的是起始帧）；注入 `transition:none!important` 测终态。隐藏窗口 `capturePage` 还会返回旧帧 ⇒ 截图前 `win.showInactive()` 真出一次画面。
+- [ ] **打包 + 发布**：出 NSIS 包 → 冒烟 → 交老板审；push（git 被墙走 API 增量）+ Release 等老板发话。
 
 ### v1.4.1（完成编码：老板实机四连修复，2026-10-11，已打包冒烟 PASS，待老板审阅 PRO 卡预览后发版）
 - [x] **登录页乱码+横幅修复**：上游 v3.4.1 停更横幅整块（44px 让位 CSS + 横幅标记 + 摘除脚本）在桌面构建期摘除（build.js 补丁「摘停更横幅CSS/标记」+ dist notHas 断言）——根因：桌面端横幅被运行时摘掉但 44px 位移 CSS 残留 → 登录层下移、顶部漏出「全部功能」抽屉。探针断言：eolBanner 无 / loginOverlay top=0px / 顶层不再漏抽屉。
@@ -43,6 +51,7 @@
 - [x] **发布（2026-10-11 老板令「直接一起打包推送」）**：git 主线 merge 对齐远端（收编 v1.2.6 线与落地页水墨风改版，-X ours 取本地 v1.4.1 线）→ 合并树重建 27 套全绿 + 冒烟 PASS → push（直连 + HTTP/1.1；git 配置死代理 192.168.8.104:9890 需 `-c http.proxy=` 绕过）→ `gh release create v1.4.1` 三件套 → 验收：assets 齐（exe×2 同字节 83,413,606 + latest.yml）、稳定直链 200 实测 83MB@4.4MB/s、ghproxy 镜像 latest.yml 服 1.4.1。
 - [ ] **下一轮：全工作台动效优化**（v1.5.0，老板已预告）。
 - [x] **✅ 已完成（2026-10-17）v1.5.5 发布**：⚠️ v1.5.4 已于 10-13 被上会话发布（携带 v3.5.3），本次 bump 1.5.5——上游 v3.5.4（预警一人一单状态机+流水归档）+ v3.5.5（发币调低 5/10/15/20/30）由 build.js 自动继承（baseWeb=v3.5.5）；契约 28 套全绿 + 冒烟 PASS（versionTag 逐字 v1.5.5 桌面版/consoleErrors=[]）；[Release v1.5.5](https://github.com/cheeeom/class-manager-desktop/releases/tag/v1.5.5) 三件套验收 ✓（线上 latest.yml version 1.5.5）。**坑补记：动手前必须 gh release view 确认目标 tag 是否已被占用——本次差点把不同内容的包覆盖到已发布的 v1.5.4 上。**
+- [ ] **下一版打包携带上游 v3.5.6（老板 2026-10-17「桌面端一样，留作下一版一并打包推送」）**：侧栏折叠 rail 三态（footer 外置收折按钮 + 折叠 68px 仅图标 + 悬停 1s/单击临时浮层展开，浮层 = width 240 + margin-right -172 占位恒 68 主区零 reflow）；build.js 自动继承，打包前确认上游 ≥v3.5.6 并跑契约 + 冒烟（**新增检查点：侧栏折叠态冒烟——rail class / 点 railToggle 收起 / localStorage 记忆**）。
 
 ### v1.3.0（完成编码：数据分析图表引擎 P0+P1+P2，2026-10-11，已并入 v1.4.0 包）
 - [x] 方案与预览（老板过目拍板）：`app/_dataviz_preview/DATAVIZ-PLAN.md` + `preview.html`（选型 ECharts 6，落选 Chart.js/ApexCharts/AntV 理由在案）
