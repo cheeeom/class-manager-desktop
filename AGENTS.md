@@ -62,7 +62,7 @@ node _v_desktop_test.js      # 11 项断言全绿
 python _npmrc_proxy_toggle.py off
 node _build_retry.js         # 出安装包（EBUSY 自动退避）
 python _npmrc_proxy_toggle.py on    # ⚠️ 完事必须 on，否则 .npmrc 留在无代理状态
-set CM_SMOKE=1 && out\win-unpacked\班主任工作台.exe    # 冒烟：交互探针+console-error 计零+截图
+set CM_SMOKE=1 && D:\_cm_build\win-unpacked\班主任工作台.exe    # 冒烟：交互探针+console-error 计零+截图
 ```
 
 ## 6. 测试体系

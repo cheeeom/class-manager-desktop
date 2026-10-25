@@ -55,14 +55,16 @@ const patches = [
   ['如「2026级幼儿保育2班」', '如「高2026级一班」', 1, '班级全称同步toast例'],
   /* v3.4.1 上游「网页版停更横幅」整块摘除（CSS 44px 让位 + 横幅标记 + 运行时摘除脚本）——
      桌面端横幅无意义且 44px 位移会让登录层下移、顶部漏出抽屉（老板实机：左上角乱码+横幅） */
-  ['/* ==================== v3.4.1 网页版停更横幅 ==================== */\n#eolBanner{position:fixed;top:0;left:0;right:0;z-index:900;min-height:44px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:2px 10px;padding:6px 16px;background:var(--primary);color:#fff;font-size:13px;letter-spacing:0.5px;text-align:center;box-sizing:border-box}\n#eolBanner a{color:#fff;font-weight:700;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}\n@media (max-width:768px){#eolBanner{font-size:12px;padding:6px 10px}.eol-long{display:none}}\n.app{margin-top:44px;height:calc(100vh - 44px);height:calc(100dvh - 44px)}\n.login-overlay{top:44px}\n.side-panel{top:44px;height:calc(100vh - 44px)}\n', '', 1, '摘停更横幅CSS'],
-  ['<div id="eolBanner" role="note" aria-label="网页版停止更新公告"><span>📢 网页版已停止更新</span><span class="eol-long">，新功能与维护请改用桌面版（数据完全兼容）</span><a href="https://github.com/cheeeom/class-manager-desktop/releases/latest/download/ClassManager-Setup.exe" target="_blank" rel="noopener">⬇️ 免费下载桌面版</a></div>\n<script data-eol>if(window.__CM_DESKTOP){var __eolB=document.getElementById(\'eolBanner\');if(__eolB&&__eolB.parentNode)__eolB.parentNode.removeChild(__eolB);}</script>\n', '', 1, '摘停更横幅标记'],
+  ['/* ==================== v3.4.1 网页版停更横幅 ==================== */\n#eolBanner{position:fixed;top:0;left:0;right:0;z-index:900;min-height:44px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:2px 10px;padding:6px 16px;background:var(--primary);color:#fff;font-size:13px;letter-spacing:0.5px;text-align:center;box-sizing:border-box}\n#eolBanner a{color:#fff;font-weight:700;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}\n@media (max-width:768px){#eolBanner{font-size:12px;padding:6px 10px}.eol-long{display:none}}\n.app{margin-top:44px;height:calc(100vh - 44px);height:calc(100dvh - 44px)}\n.login-overlay{top:44px}\n.side-panel{top:44px;height:calc(100vh - 44px)}\n', '', 0, '摘停更横幅CSS'],
+  ['<div id="eolBanner" role="note" aria-label="网页版停止更新公告"><span>📢 网页版已停止更新</span><span class="eol-long">，新功能与维护请改用桌面版（数据完全兼容）</span><a href="https://github.com/cheeeom/class-manager-desktop/releases/latest/download/ClassManager-Setup.exe" target="_blank" rel="noopener">⬇️ 免费下载桌面版</a></div>\n<script data-eol>if(window.__CM_DESKTOP){var __eolB=document.getElementById(\'eolBanner\');if(__eolB&&__eolB.parentNode)__eolB.parentNode.removeChild(__eolB);}</script>\n', '', 0, '摘停更横幅标记'],
   ['仅<b>班长、副班长、纪律委员</b>三人可进入班委协作（v3.0.0）。<b>首页</b>只看课表、班级人数与今日实到（v3.2.0）；请假页只读（看人数与姓名，不可登记）；<b>学分页</b>只能加分扣分（留痕署名），只能看见并撤销<b>本次自己的操作记录</b>，月度加分/按寝室加减分不可用；<b>荣誉墙</b>只可查看；<b>公示页</b>不显示最低分；无待办模块。关闭扣分后班委只能加分，减分统一由你操作。',
    '仅<b>班长、副班长、纪律委员</b>三名学生可进入班委协作（在「📱 班委协作」里给学生打上对应职位标签即可）。<b>首页</b>只展示课表、班级人数与今日实到；请假页只读（可看人数与姓名，登记 / 续假 / 销假 / 删除均不可用）；<b>学分页</b>可加分扣分并留痕署名，只能看见并撤销<b>本次自己会话里的操作</b>，月度加分与按寝室加减分不可用；<b>荣誉墙</b>只可查看；<b>公示页</b>不显示最低分；无待办模块。关闭上方「允许班委扣分」后，班委只能加分，减分统一由班主任操作。', 1, '班委协作说明'],
-  ['</body>', '<link rel="stylesheet" href="./wizard.css">\n<script src="./gx-icons.js"></script>\n<script src="./app.patch.js"></script>\n</body>', 1, '注入桌面层']
+  ['<script src="./cmgx.js"></script>', '', 1, '摘cmgx标签（桌面用自带引擎，防双挂载）'],
+  ['\n</body>', '\n<link rel="stylesheet" href="./wizard.css">\n<script src="./gx-icons.js"></script>\n<script src="./app.patch.js"></script>\n</body>', 1, '注入桌面层（摘 cmgx 后唯一）']
 ];
 for (const [oldS, newS, cnt, tag] of patches) {
   const n = html.split(oldS).length - 1;
+  if (n === 0 && cnt === 0) { log('· 补丁 [' + tag + '] 基线已无此内容，跳过'); continue; }   // v1.6.0 可选补丁：基线演进后锚点自然消失
   if (n !== cnt) die('补丁 [' + tag + '] 期望 ' + cnt + ' 处，实际 ' + n + ' 处');
   html = html.split(oldS).join(newS);
   log('✓ 补丁 [' + tag + ']');
@@ -82,6 +84,15 @@ if (fs.existsSync(bgAsset)) fs.copyFileSync(bgAsset, path.join(dist, 'login-bg.j
 for (const donateAsset of ['donate-wechat.png', 'donate-alipay.png']) {
   const p = path.join(HERE, 'src', 'img', donateAsset);
   if (fs.existsSync(p)) fs.copyFileSync(p, path.join(dist, donateAsset));
+}
+// 学生查询端（v1.6.0 随网页版 v3.8.1 基线进入桌面）：portal 页与 QR 组件保持子目录结构，解码器平铺
+fs.mkdirSync(path.join(dist, 'portal'), { recursive: true });
+for (const f of ['portal/index.html', 'portal/qrcode.js', 'portal/qrcode_utf8.js']) {
+  fs.copyFileSync(path.join(ROOT, f), path.join(dist, f));
+}
+for (const f of ['jsqr.min.js']) {
+  const p = path.join(ROOT, f);
+  if (fs.existsSync(p)) fs.copyFileSync(p, path.join(dist, f));
 }
 // 本地运行资产：pdf 库（成绩/课表导入用；存在则带）
 for (const f of ['pdf.min.js', 'pdf.worker.min.js']) {
@@ -105,6 +116,10 @@ for (const [needle, minCnt] of must) {
 if (/serviceWorker\.register/.test(distHtml)) die('dist 仍含 serviceWorker.register');
 if (/eolBanner/.test(distHtml)) die('dist 仍含网页版停更横幅（v3.4.1 摘除补丁失配？）');
 if (!fs.existsSync(path.join(dist, 'echarts.min.js'))) die('dist 缺 echarts.min.js（数据分析图表引擎依赖）');
+if (!fs.existsSync(path.join(dist, 'portal', 'index.html'))) die('dist 缺 portal/index.html（学生查询端）');
+if (!fs.existsSync(path.join(dist, 'portal', 'qrcode.js'))) die('dist 缺 portal/qrcode.js（二维码卡）');
+if (!fs.existsSync(path.join(dist, 'jsqr.min.js'))) die('dist 缺 jsqr.min.js（核销扫码）');
+if (/cmgx\.js/.test(distHtml)) die('dist 仍引用 cmgx.js（桌面用自带引擎，须摘除防双挂载）');
 log('✓ dist 标记断言通过');
 
 /* ---------- 4. package.json.baseWeb 跟版 ---------- */

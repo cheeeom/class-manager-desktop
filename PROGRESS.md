@@ -220,3 +220,22 @@
 - [x] **出包**：version 1.5.0→1.5.2；NSIS `class-manager-desktop-Setup-1.5.2.exe`（83.5MB，未签名同前）；商店 `班主任工作台 1.5.2.appx`（品牌磁贴 + KPI 修复 + 网页版 v3.5.0 学期结算全部在包，逐项验证）。win-unpacked 同步。
 - [x] **发布**：按两段式等老板覆盖安装验收后说「推送」再 `gh release create v1.5.2`（三件套：Setup exe + latest.yml + ClassManager-Setup.exe 稳定链副本）。老板 D 盘安装版在应用内更新链上，发布后可自动升级。
 - [x] **商店**：等老板验收后用 1.5.2 appx 重新提交认证（替换原 1.5.0 包）。
+
+### 2026-10-25（磁盘治理：产物输出迁 D 盘，根治 `_trash_` 堆积）
+
+- [x] **C 盘告急定位**：118 GB 仅剩 11.2 GB。真凶是 `app/out/` 里 **25 个 `_trash_*` = 6.22 GB**——历次打包为绕开安全删除钩子而 `mv` 出来的旧 `win-unpacked`，从没真删过。
+- [x] **机制真相（重要，务必记住）**：本机 safe-delete 钩子会把**删除重定向为「移到回收站」**，连 `.NET Directory.Delete` 也一样（返回成功、原路径消失，但空间一点没释放）。⇒ **删完必须 `Clear-RecycleBin -Force` 才算真释放**。这正是当初「`mv` 到 `_trash_*`」越攒越多的根因；`Remove-Item` 还会直接报 `SAFE_DELETE_BULK_GUARD_ERROR`。
+- [x] **清理战果**：`_trash_*` ×25 + 旧 Setup exe ×9 + 旧 appx ×3 + 孤儿 blockmap ×9 + 回收站 7.27 GB + Temp 部分 + `codex-runtimes`/`electron`/5 个更新器残留 → C 盘 **9.6 GB → 19.74 GB**。`app/out` 从 7.81 GB 瘦到 **15 MB**。
+- [x] **治本**：`app/package.json` 的 `build.directories.output` 由 `out` → **`D:/_cm_build`**；现有 v1.5.6 产物（`win-unpacked` + `Setup-1.5.6` + `ClassManager-Setup` + appx 1.5.3 + `latest.yml`）已整体搬至 D 盘。`app/out/` 降级为**探针截图暂存区**（`main.js` 与 `_probe_*.js` 写 `__dirname/out/*.png`，31 个文件 / 15 MB）。
+- [x] **文档同步**：`RELEASE.md`（产物路径、冒烟命令、`gh release` 三件套路径、EBUSY 换目录说明）与 `AGENTS.md`（冒烟命令）全部改为 `D:\_cm_build\...`。⚠️ 以后**不再需要**「打包前先 `mv out/win-unpacked out/_trash_*`」这条老规矩。
+- [ ] **未完成**：`C:\SWSetup`（1.08 GB 出厂驱动包）删除被 ACL 拒（当前非管理员）→ 需管理员 PowerShell 执行 `takeown /f C:\SWSetup /r /d y` + `icacls` 或直接 `Remove-Item -Recurse -Force`。
+
+### 2026-10-25（v1.6.0：基线 v3.4.1→v3.8.1 大版本——学生查询端/商店大版本/批量全家桶进桌面）
+
+- [x] **老板令**：把网页版这一串更新（v3.6.1→v3.8.1）打包进桌面版。
+- [x] **build.js 适配**：①补丁循环加「可选补丁」（cnt=0 跳过——停更横幅两条锚点基线已无，v3.6.0 摘过）；②新增「摘 cmgx 标签」——cmgx 有 __CM_DESKTOP 守卫但 web 标签先于 app.patch 加载、守卫未置位就挂载→双引擎，必须构建期摘除；③注入锚点 `</body>` 在新基线出现 2 处（二维码卡 w.document.write 字面量）→ 摘 cmgx 后唯一化；④dist 拷贝 portal/ 三件 + jsqr.min.js（学生查询端子系统随基线进入）；dist 断言补 portal 资产齐 + 无 cmgx 引用。
+- [x] **app.patch.js**：portalStudentUrl 桌面覆盖（file:// 下 location.origin 无意义，学生链接固定 GitHub Pages）；关于卡本版更新文案 v1.6.0（商店大版本/学生查询端/自助兑换/批量全家桶）。
+- [x] **package.json**：version 1.5.5→1.6.0；baseWeb 自动跟 v3.8.1。
+- [x] **构建**：build.js 全补丁通过；**28 套桌面测试全绿**；新探针 _probe_portal_v160 14/14；NSIS 出包 BUILD-OK（winCodeSign 符号链接权限被拒——历史残骸目录 822787339 内容已齐，转正为 winCodeSign-2.6.0 解决；electron-builder 25.x 随机目录重解压）；asar 验证 portal 资产/六大新功能标记/SYNC_KDF_ROUNDS 全在包内。
+- [x] **待验收**：D:\_cm_build\class-manager-desktop-Setup-1.6.0.exe（两段式：老板覆盖安装验收后说「推送」再 gh release 三件套）。**注意**：摄像头扫码在 Electron 需 main.js 权限处理，未配——核销用「粘贴码原文/贴图」路径即可，摄像头后续按需加。
+- [x] **推送**：等老板验收后明示（桌面仓 git 含多笔未推提交，release 时一并推）。

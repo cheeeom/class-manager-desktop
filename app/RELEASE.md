@@ -10,17 +10,21 @@ cd app
 node build.js                # 从同级 class-manager 仓读线上 index.html → 注入 → dist（自动校验 root sha）
 node _v_desktop_test.js      # 桌面断言（12 项：root 零改动/三处版本位=桌面版号/向导绑定/更新弹窗/按钮排版）
 python _npmrc_proxy_toggle.py off
-node _build_retry.js         # 出安装包 → out/class-manager-desktop-Setup-X.Y.Z.exe（EBUSY 自动退避重试）
+node _build_retry.js         # 出安装包 → D:\_cm_build\class-manager-desktop-Setup-X.Y.Z.exe（EBUSY 自动退避重试）
 python _npmrc_proxy_toggle.py on
-set CM_SMOKE=1 && out\win-unpacked\班主任工作台.exe   # 冒烟：交互探针（必须翻到第 2 步）+ console-error 计零 + 截图
+set CM_SMOKE=1 && D:\_cm_build\win-unpacked\班主任工作台.exe   # 冒烟：交互探针（必须翻到第 2 步）+ console-error 计零 + 截图
 ```
 （可选视觉复核：`env -u ELECTRON_RUN_AS_NODE electron.exe _probe_settings.js` 拍设置页+toast 样品截图；`out/_smoke.png` 看向导按钮排版。）
 
+> 📦 **产物输出在 D 盘**（v1.5.6 起）：`app/package.json` 的 `build.directories.output = D:/_cm_build`。
+> 原因：C 盘小（118 GB），每次打包的 `win-unpacked` 约 274 MB，旧版清理被安全删除钩子拦，会越积越多（曾积到 6.22 GB）。
+> `app/out/` 仍保留为**探针截图暂存区**（`main.js` 与 `_probe_*.js` 写 `__dirname/out/*.png`），体积只有几十 MB。
+
 ## 审阅 → 推送（两段式）
-1. **本地预览**：把 `out\ClassManager-Setup.exe` 直接发给老板（或让他本机跑上面命令），覆盖安装审阅——数据保留。
+1. **本地预览**：把 `D:\_cm_build\ClassManager-Setup.exe` 直接发给老板（或让他本机跑上面命令），覆盖安装审阅——数据保留。
 2. **老板说「推送」后**才执行：
 ```
-gh release create vX.Y.Z "out\class-manager-desktop-Setup-X.Y.Z.exe" "out\latest.yml" "out\ClassManager-Setup.exe#ClassManager-Setup.exe（Windows 64位，稳定链接副本）" \
+gh release create vX.Y.Z "D:\_cm_build\class-manager-desktop-Setup-X.Y.Z.exe" "D:\_cm_build\latest.yml" "D:\_cm_build\ClassManager-Setup.exe#ClassManager-Setup.exe（Windows 64位，稳定链接副本）" \
   --repo cheeeom/class-manager-desktop --title "班主任工作台 桌面版 vX.Y.Z" --notes "…"
 ```
    ⚠️ **三件套缺一不可**：①`class-manager-desktop-Setup-X.Y.Z.exe`（electron-updater 的下载目标，文件名必须与 latest.yml 的 url 逐字一致）；②`latest.yml`（更新器靠它发现版本与校验和）；③`ClassManager-Setup.exe` 稳定链接副本（落地页 latest 直链指向它；GitHub 会剥离资产名里的中文，故用英文）。
@@ -34,7 +38,7 @@ gh release create vX.Y.Z "out\class-manager-desktop-Setup-X.Y.Z.exe" "out\latest
 ## 环境坑速查
 - npm/构建走网络前：`_npmrc_proxy_toggle.py off` → 完事 **必须 on**（用户 .npmrc 有死代理，备份同名 .bak）。
 - registry 用官方 `https://registry.npmmirror.com` 超时就直连 `https://registry.npmjs.org`。
-- EBUSY：`_build_retry.js` 自带清理+退避；旧 release 路径被系统句柄钉死时换输出目录（现为 `out/`）。
+- EBUSY：`_build_retry.js` 自带清理+退避；旧 release 路径被系统句柄钉死时换输出目录（现为 `D:/_cm_build`）。
 - cmd 内联多行 node -e 会静默失败——一律写脚本文件。
 - **沙箱/AI 工具环境**：Node 可能起不了子进程（spawnSync EBUSY）→ build.js 与 _v_desktop_test.js 支持 `CM_HEAD_FILE` 逃生舱口：`git -C ..\class-manager show HEAD:index.html > %TEMP%\_root_head.html` 后 `set CM_HEAD_FILE=该文件` 再跑。
 - **ELECTRON_RUN_AS_NODE 陷阱**：部分 AI 工具环境设了此变量，electron.exe 会退化成纯 Node（`--version` 输出的是 Node 版本号即中招）→ 先 `set ELECTRON_RUN_AS_NODE=` 卸掉再跑冒烟/探针。探针窗口必须 `sandbox:false` + preload，否则注入层不启动（preload 沙箱内 require 不了 package.json）。

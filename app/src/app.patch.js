@@ -10,6 +10,12 @@
   window.__CM_DESK_LAYER__ = true;
 
   var D = window.__CM_DESKTOP;
+  /* v1.6.0 学生查询端：学生入口链接固定为 GitHub Pages（file:// 协议下 location.origin 是 file:///，
+     生成的二维码/链接学生手机打不开。桌面只负责「发布」，学生端仍在网页版 Pages 上）。 */
+  window.portalStudentUrl = function (owner, gistId) {
+    return 'https://cheeeom.github.io/class-manager/portal/?o=' + encodeURIComponent(owner || '') +
+           '&g=' + encodeURIComponent(gistId || '');
+  };
   var LS_ONBOARD = 'cm_onboarded';
   var LS_NOPWD = 'cm_nopwd';
   var K_LOGIN = 'classManagerLoginPwd';
@@ -914,7 +920,7 @@
     var intro = el('div', 'cmDeskAbout');
     intro.style.cssText = 'margin:10px 0 12px;padding:10px 12px;background:var(--row-bg,#FBF8F1);border:1px dashed var(--border,#E6DECD);border-radius:10px;font-size:12.5px;color:var(--text-secondary,#5F5E5A);line-height:1.9';
     intro.innerHTML =
-      '📦 <b>桌面版 v' + D.version + ' 更新</b>：向导新增「导入学生名单」；请假管理、课堂点名转免费；新增导出请假流水（Pro）；激活后侧栏亮 PRO 徽标。<br>' +
+      '📦 <b>桌面版 v' + D.version + ' 更新</b>：兑换商店大版本（15 件默认商品、扫码核销、补齐按钮）；新增学生查询端（学号+专属码，扫码卡一键查询）与学生自助兑换；学分批量按寝室加减分、劳动整改批量多选；查询提速至秒级。<br>' +
       '🖥️ 单机版：数据仅保存在这台电脑上；' + (D.store ? '通过 Microsoft Store 安装，更新由商店自动管理。' : '自动更新——发现新版左下角弹窗询问后进行。') + '<br>' +
       '<span style="color:var(--text-muted,#8C8577)">' + COPYRIGHT + ' · 转发分享请保留开发者署名</span>';
     var rows = about.querySelectorAll(':scope > div');
