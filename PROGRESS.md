@@ -4,16 +4,26 @@
 
 ## 一、当前状态速览
 
-- **已发布**：**v1.7.2 = Latest**（2026-10-28 晚，上游 v3.9.5；v1.7.1 同日 20:51 发布后约 40 分钟即被本版取代）。
-- **测试**：`_v_desktop_test.js` **27 套全绿**；`_probe_dataviz.js` / `_probe_tour.js` / `_probe_login_bug.js` 全 PASS。
+- **已发布**：**v1.7.3 = Latest**（2026-10-28 深夜，上游 v3.9.6；点名预览栏定格名常驻）。
+- **测试**：`_v_desktop_test.js` **28 套全绿**；`_probe_dataviz.js` / `_probe_tour.js` / `_probe_login_bug.js` 全 PASS。
+
+## 二、待办队列
+
+### v1.7.3（2026-10-28：上游 v3.9.6 同步 —— 点名预览栏定格名常驻）
+- [x] **需求（老板原话）**：「课堂点名右侧预览栏目的姓名滚动动画，不要马上就消失，应该直到点击下一轮抽取才消失，开始新的动画」。
+- [x] **根因**：`rcReveal` 里有个 900ms 的 `setTimeout(rcSetRollName(''))` 把定格名收掉；多人连抽时更短——`rcDrawNext` 开头先 `rcSetRollName('')`，上一位定格 300~400ms 就被清掉，产生「定格 → 闪一下白 → 再滚」的断档。
+- [x] **修法（上游 index.html 三处）**：①删 900ms 定时器与 `_rcNameTimer` 全链；②`rcDrawNext` 不再清空，上一位的定格名由下一位的滚动直接接管（lock 类由 `rcSetRollName` 内部 toggle 自动回落）；③`rcStartDraw` 最前面（phase 守卫后、任何早期 return 前）清空——**只有点「开始抽取」才收起**。中止/重置路径（`rcCancelRoll`/`rcReset`）仍清空不留残影。
+- [x] **回归**：新增 `_v396_test.js`（真跑 10 项：抽中后跑完全部定时器名字仍在、点开始抽取才清、多人连抽不被提前清、中止/重置清空）；**先跑旧代码证伪（9 项红）再跑新代码（10 项绿）**；全量 **95 files / FAIL: none**。
+- [x] **baseWeb v3.9.6**（build.js 自动继承）：网页版 v3.9.6 同步推送（远端 `9afa8eec`，GUARD 校验过 index/sw 未被他人改动——portal 另有他人两笔购物车改动未碰主文件）。
+- [x] **构建**：`node build.js` 补丁全命，dist 标记断言通过。
+- [x] **契约 + 冒烟**：28 套全绿；冒烟 **PASS**（version=1.7.3 / versionTag 逐字「v1.7.3 桌面版」/ consoleErrors=[] / wizardInteractive=true）。
+- [x] **出包**：`D:/_cm_build/class-manager-desktop-Setup-1.7.3.exe`（**83,628,134 B**，sha256 `be532ea1…`）+ `latest.yml`(1.7.3) + `ClassManager-Setup.exe` 稳定副本（同字节）。
 - **v1.3.0 内容（P0+P1 全量完成）**：`src/echarts.min.js`（6.1.0，Apache-2.0，1.12MB，build.js 复制进 dist）；`app.patch.js` 新增「数据分析图表引擎」分节。**P0 成绩 tab**：接管 `renderGradeAnalyticsDetail`（cmWrapGradeDetail，挂原函数名下，Pro 页级锁不动）：KPI 环比带（均分/及格率/优秀率/标准差/最高最低，vs 上一场）、总分直方图（均分/及格/优秀三基准线挂隐藏二轴）、五档环形、各科均分横条（60/85 基准线）、单科得分率雷达（本场 vs 上一场）、多场趋势双轴折线、名次流动斜率图（|Δ|≥4）、学业预警（单科不及格≥2 科 / 总分环比下滑≥10 分）、排名前 10 数据条。**P1 学分 tab**：接管 `renderAnalytics`（cmWrapCreditRender，成绩 tab 激活时委托原函数重定向）：KPI 六卡（平均/中位/标准差/极差/及格率≥CB_ALERT_MIN/进取率，chips 全真实数据）、学分区间五档柱（credit 原生五档色）、五档构成环形（原 pieChart+#pieLegend 一体化）、近 7 天净变动 diverging 柱、本周进退步榜横向 diverging 条（原 renderProgressList 数据口径，7 天窗口+撤销过滤逐字一致）；面板不可见时只刷 DOM 图表记脏，`cmWrapCreditTabSwitch`（链在 Pro gate 之上）切回 credit tab 补渲染。cmInk 主题全部运行时读 CSS 变量（亮/暗/皮肤自适应，MutationObserver 重渲染）；echarts 加载失败/超时/空数据静默回退原实现；图表实例表共享，释放按白名单（CM_GRADE_CHART_IDS）/前缀（cmGxCd*）防误杀。
 - **v1.2.6 内容（已发布）**：向导按钮重排（上一步左/下一步右/去箭头）；第 5 步改「导入学生名单」（CSV 模板下载 + 劫持预览直接注入 + 导入后不再给示例数据）；激活后侧栏去 PRO 角标、左上角亮烫金 PRO 徽标（cmDesk-proemblem，buildNavPro 状态感知化）；考勤请假/课堂点名转免费 + 新增「导出请假流水」（CSV，Pro gate，班委拦截）；反馈卡独立成卡；关于卡改本版更新简要（≤100 字，无网页版字样）；满天弹窗/打赏卡文案跟上 Pro 时代；激活弹窗重排（复制钮右置主色、购买/已付款 300px 居中对齐、激活居中放大）+ 可选邮箱框（cmProMail 真实入链）；Pro 已激活卡 B 印章式定稿（早鸟 № 钢印 + BY: chee 署名 + 复制激活码按钮）；KeyGen ②b 换机重签自动核对（邮箱指纹/设备指纹/沿用序号）+ ③发货记录查询框。
 - **⚠️ v1.3.0 踩坑（重要）**：网页版 `state` 是**顶层 `let`**（词法全局不挂 window）——注入层必须裸名访问（`cmGxState()` 助手），`window.state` 永远 undefined 会静默回退；cmd `set X= && …` 尾随空格会让 ELECTRON_RUN_AS_NODE 陷阱复活，用 `set "X="`。
 - **⚠️ 换钥事故（2026-10-10 凌晨）**：App 旧公钥 4e4f3a71 对应的私钥在 KeyGen 页被「生成新私钥」覆盖丢失（页面显示的 3714294d 与云函数 PRO_PRIV=3938d60b 才是真配对）。处理：CM_PRO_PUB 改 **3714294d**（v1.2.2 已发），云函数不动；KeyGen 页 gen 按钮加双确认+生成后强提醒导出；老板本机旧激活失效需重签。教训：**烧进 App 的公钥对应的私钥必须「导出备份」双份保存，KeyGen 页 localStorage 是唯一存储太脆**。
 - **⚠️ 打包坑（v1.2.6 实测）**：electron-builder 清空 `out/win-unpacked` 被安全删除钩子拦（批量删除超阈值）→ **打包前先 `mv out/win-unpacked out/_trash_*`**。
 - **发货机已上线**（2026-10-09）：腾讯云函数 `cm-pro-shipper`（ap-shanghai，Nodejs12.16 Web 函数），URL `https://1466839507-gqk4mefrq0.ap-shanghai.tencentscf.com/?req=`；4 环境变量全齐（含 PRO_PRIV）；线上实测：格式拒 + 合法 payload → `NOT_FOUND`（爱发电翻页查单链路通）。部署改走 **SCF REST API**（`scripts/_scf_api.py` TC3 签名，密钥 `scripts/_tencent_creds.txt` 严禁入仓）；浏览器代操作在本机不可行（GUI 进程被系统收割，试 3 次全灭）。
-
-## 二、待办队列
 
 ### v1.7.2（2026-10-28：上游 v3.9.5 同步 —— 请假状态回传 + 预警办结修复）
 - [x] **baseWeb v3.9.4 → v3.9.5**（build.js 自动继承）：上游两处修复，
