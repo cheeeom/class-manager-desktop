@@ -29,7 +29,13 @@
   versionTag 逐字「v1.7.2 桌面版」/ wizardInteractive=true / consoleErrors=[]）。
 - [x] **出包**：`D:/_cm_build/class-manager-desktop-Setup-1.7.2.exe`（**83,626,419 B**）+ `latest.yml`（1.7.2）
   + `ClassManager-Setup.exe` 稳定副本（同字节）。
-- [x] **已发布**：老板明确「现在就改并发版」⇒ 推送 + `gh release create v1.7.2` 三件套 + 四路验收。
+- [x] **已发布**：老板明确「现在就改并发版」⇒ 推送 `a891094c` + Release **id 426707678**（tag `v1.7.2` → `a891094c`）+ 三件套 state=uploaded。
+- [x] **四路验收（2026-10-28 21:39，只认服务器端事实）**：
+  ① API：Latest = `v1.7.2`、tag 轻量指向 `a891094c`、三资产尺寸与本地一致（exe 83,626,419 B）
+  ② 摘要：API `digest sha256` 与本地逐字节相符（exe `4647670a…`、yml `1f273c61…`）；线上 `latest.yml` 370 B 与本地**逐字节相等**
+  ③ 直链：`releases/latest/download/…` 两条均 **302 → `/releases/download/v1.7.2/`**；gh-proxy / ghfast 均 **206，Content-Range 总量 83,626,419**
+  ④ 打包版真机探针：`[CM_SMOKE] version=1.7.2` / `versionTag="v1.7.2 桌面版"` / `wizardInteractive=true` / `consoleErrors=[]` / **verdict=PASS**；它自己从 gh-proxy+ghfast 读回 `head="version: 1.7.2…"`、`feed=gh-proxy 镜像`
+  ⚠️ 本机网络口径：`objects.githubusercontent.com` **直连超时、走系统代理 502** ⇒ 校验资产实体只能走 gh-proxy/ghfast 或比对 API digest；`api.github.com`/`github.com` 直连正常（curl 的 schannel 握手会失败，用 Python 或 gh-proxy）。
 
 ### v1.7.1（2026-10-28：上游 v3.9.2→v3.9.4 同步，出包待老板验收后发）
 - [x] **baseWeb v3.8.1 → v3.9.4**（build.js 自动继承，`package.json.baseWeb` 已更）：上游五项 = ①座次表「第几排第几列」标尺（首列排号轴 + 顶部列号，过道位放空占位保对齐，窄屏 26→20px）②座次表导出改**先预览再导出**，支持「俯视图（讲台在上）」/「讲台视角（讲台在下、第 1 排贴讲台往上递增）」双排版 ③请假顶栏四个统计数补 countUp 滚动 ④点名抽取卡片呼吸闪边 + 预览栏名字滚动行（定格绿框期保持绿字，黄框那一帧才切琥珀金，严格同帧）⑤修 bug：导出二维码卡从未加载 `portal/qrcode.js` 且空捕获静默丢图 → 统一 `cmLoadQrLib` 懒加载、失败必报。
