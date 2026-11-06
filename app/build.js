@@ -41,6 +41,14 @@ const rootVersion = (html.match(/<div class="login-version">([^<]+)<\/div>/) || 
 if (!rootVersion) die('root 版本串解析失败');
 log('✓ 线上基线版本: ' + rootVersion);
 
+/* v3.9.8 起网页版给 cmgx.js 的 <script src> 加了 ?v= 版本串（修 SW 缓存优先导致的错位）。
+   下面补丁表「摘cmgx标签」钉的是裸引用 —— 桌面版必须摘掉它（用自带 app.patch.js，防双挂载）。
+   先按「带不带版本串都认」归一化成裸引用，补丁表 9 条保持原样，以后再跟版也不用回来校准。 */
+const cmgxTag = (html.match(/<script src="\.\/cmgx\.js(?:\?v=[^"]*)"><\/script>/) || [])[0];
+if (!cmgxTag) die('找不到 cmgx.js 的 <script> 引用（网页版又换了引用形态？）');
+html = html.split(cmgxTag).join('<script src="./cmgx.js"></script>');
+log('✓ cmgx 引用归一化: ' + cmgxTag);
+
 const patches = [
   ['navigator.serviceWorker.register(\'./sw.js\').catch(function () {});',
    '/* desktop: ServiceWorker 已禁用（桌面版自带完整资源，无需缓存层） */', 1, '禁SW'],
@@ -119,7 +127,9 @@ if (!fs.existsSync(path.join(dist, 'echarts.min.js'))) die('dist 缺 echarts.min
 if (!fs.existsSync(path.join(dist, 'portal', 'index.html'))) die('dist 缺 portal/index.html（学生查询端）');
 if (!fs.existsSync(path.join(dist, 'portal', 'qrcode.js'))) die('dist 缺 portal/qrcode.js（二维码卡）');
 if (!fs.existsSync(path.join(dist, 'jsqr.min.js'))) die('dist 缺 jsqr.min.js（核销扫码）');
-if (/cmgx\.js/.test(distHtml)) die('dist 仍引用 cmgx.js（桌面用自带引擎，须摘除防双挂载）');
+/* 只禁「真实脚本引用」：v3.9.7 起基线注释里有「分析面板（cmgx.js 的…）」这类口径说明，
+   全文 /cmgx\.js/ 会把注释也判成引用，构建假失败。断言改成精确匹配 <script src>，强度不降。 */
+if (/<script[^>]+src=["'][^"']*cmgx\.js/.test(distHtml)) die('dist 仍引用 cmgx.js（桌面用自带引擎，须摘除防双挂载）');
 log('✓ dist 标记断言通过');
 
 /* ---------- 4. package.json.baseWeb 跟版 ---------- */
