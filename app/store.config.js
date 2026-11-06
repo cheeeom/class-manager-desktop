@@ -8,7 +8,10 @@ const base = require('./package.json').build;
 module.exports = Object.assign({}, base, {
   win: Object.assign({}, base.win, {
     target: [{ target: 'appx', arch: ['x64'] }],
-    certificateSubjectName: '490FE7CA-7868-47E8-A72A-471E4DC9D956'
+    certificateSubjectName: '490FE7CA-7868-47E8-A72A-471E4DC9D956',
+    // 直装线 win.icon 改用九尺寸 icon.ico；appx 线仍认 PNG 源图（≥512），
+    // 四张磁贴图由 app/icon/appx/ 提供。显式写死，免得继承后商店线吃到 ico。
+    icon: 'icon/icon.png'
   }),
   appx: {
     identityName: 'chee777.5391106D84753',

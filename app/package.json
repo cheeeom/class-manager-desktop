@@ -43,9 +43,12 @@
           ]
         }
       ],
-      "icon": "icon/icon.png"
+      "icon": "icon/icon.ico"
     },
     "nsis": {
+      "installerIcon": "icon/icon.ico",
+      "uninstallerIcon": "icon/icon.ico",
+      "installerHeaderIcon": "icon/icon.ico",
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,

@@ -131,3 +131,9 @@ if (!process.windowsStore) { /* 现有更新检查逻辑 */ }
 - 🟡 Electron 33 / electron-builder 25 的 msix target 出包正常，但若报 icon 相关错，
   确认 `icon/icon.png` ≥ 512×512 正方形。
 - 🟡 商店中国区上架的教育类工具无前置资质要求（不是 K12 学科培训内容），无 ICP 门槛。
+- 🟡 **v1.7.4 起图标分线（A 款朱砂 C 标）**：直装线 `package.json` 的 `win.icon` 与
+  `nsis` 的安装向导/卸载器/页眉三处指向 `icon/icon.ico`（16/20/24/32/40/48/64/128/256 九尺寸
+  各渲一遍）；商店线 `store.config.js` 显式 `icon: 'icon/icon.png'`（≥512²）不吃 ico。
+  四张磁贴图仍**只认 `app/icon/appx/`**，结构维持「深朱砂底铺满 + 图标居中」。
+  ICO 只交给 electron-builder 写进 exe 资源节；`main.js` 窗口图标仍读 PNG
+  （`nativeImage.createFromPath` 读不到 exe 资源节，只认图片文件）。
