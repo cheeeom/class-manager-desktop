@@ -4,10 +4,18 @@
 
 ## 一、当前状态速览
 
-- **已发布**：**v1.7.3 = Latest**（2026-10-28 深夜，上游 v3.9.6；点名预览栏定格名常驻）。
-- **测试**：`_v_desktop_test.js` **28 套全绿**；`_probe_dataviz.js` / `_probe_tour.js` / `_probe_login_bug.js` 全 PASS。
+- **已发布**：**v1.7.4 = Latest**（2026-11-06 深夜，上游 v3.9.9；点名/请假口径对齐 + A 款朱砂 C 标图标统一）。
+- **测试**：`_v_desktop_test.js` **28 套全绿**；`_v_icon_test.js` **52 项全绿**；`_probe_dataviz.js` / `_probe_tour.js` / `_probe_login_bug.js` 全 PASS。
 
 ## 二、待办队列
+
+### v1.7.4（2026-11-06：上游 v3.9.6→v3.9.9 + 点名/请假口径 + A 款图标统一）
+
+- [x] **同步与修复**：build.js 校准两处（`cmgx.js?v=` 归一化放补丁表前；dist 残留断言只禁 `<script src>` 不查注释），基线跟到 v3.9.9；`rcOnLeave` 补 `status==='returned'` 短路，与请假页 / 筛选 / 首页实到数四处口径同源（销假当天不再挂灰「假」徽章、不再被踢出抽人池、不再多算请假数）。
+- [x] **图标（老板选 A · 朱砂 C 标）**：九尺寸各渲一遍 + 多尺寸 `icon.ico` + appx 四磁贴 + store 两图 + favicon；`win.icon` 与 nsis 三处走 ico、商店线显式回退 png、主进程仍读 png（`nativeImage` 读不到 exe 资源节）。PE 资源实测：新 exe `RT_ICON=9 条`，旧版只有 1 条。
+- [x] **出包**：`D:\_cm_build\class-manager-desktop-Setup-1.7.4.exe` 83,825,093 B；28 套桌面契约 + 52 项图标验收全绿；打包版冒烟 **PASS**（version=1.7.4 / versionTag 逐字「v1.7.4 桌面版」/ wizardInteractive=true / consoleErrors=[] / verdict=PASS）。
+- [x] **已发布**：老板明说「推送」⇒ 远端 main `cd8a42d2` + Release **id 436614610**（tag `v1.7.4`）+ 三件套 state=uploaded；API digest 与本地逐字节相符，线上 latest.yml 370 B 与本地 MATCH，稳定直链 302 → v1.7.4，gh-proxy 镜像已服 1.7.4。四路验收同 v1.7.3 口径。
+- [!] **本机三个坑（发版环境）**：①`git push` 三次均 21s 连接超时（同机 curl 到 receive-pack 1.5s 返回 401、`gh api` 200、`ls-remote` 正常）⇒ 改走 REST Git Data 逐笔重建提交，**每建一笔立刻 PATCH ref**（三笔都建完再一次性 PATCH 会因「悬空对象」返回 404），末态 tree 与本地 `main^{tree}` 同为 `4ec0b08c`；②`app/node_modules` 全空，npm install 补齐 electron/electron-builder/electron-updater 后，回归由 27/1 转 **28/0**（那条红是缺包不是代码）；③winCodeSign 缓存为空，7za 解压时建 darwin 符号链接权限被拒 ⇒ 把内容已齐的解压残骸转正为 `%LOCALAPPDATA%\electron-builder\Cache\winCodeSign\winCodeSign-2.6.0`（v1.6.0 同款解法）。
 
 ### v1.7.3（2026-10-28：上游 v3.9.6 同步 —— 点名预览栏定格名常驻）
 - [x] **需求（老板原话）**：「课堂点名右侧预览栏目的姓名滚动动画，不要马上就消失，应该直到点击下一轮抽取才消失，开始新的动画」。
