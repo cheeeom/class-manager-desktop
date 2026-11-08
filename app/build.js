@@ -48,6 +48,13 @@ const cmgxTag = (html.match(/<script src="\.\/cmgx\.js(?:\?v=[^"]*)"><\/script>/
 if (!cmgxTag) die('找不到 cmgx.js 的 <script> 引用（网页版又换了引用形态？）');
 html = html.split(cmgxTag).join('<script src="./cmgx.js"></script>');
 log('✓ cmgx 引用归一化: ' + cmgxTag);
+/* v1.7.5 跟版：v3.9.10 图标统一给 apple-touch-icon 加了 ?v= 版本串（会随版本漂），
+   同 cmgx 归一化成裸引用再交给补丁表，以后不用回来校准。 */
+const atiTag = (html.match(/<link rel="apple-touch-icon"[^>]*>/) || [])[0];
+if (atiTag && !/apple-touch-icon" href="\.\/icon_192\.png">/.test(atiTag)) {
+  html = html.split(atiTag).join('<link rel="apple-touch-icon" href="./icon_192.png">');
+  log('✓ apple-touch-icon 引用归一化: ' + atiTag);
+}
 
 const patches = [
   ['navigator.serviceWorker.register(\'./sw.js\').catch(function () {});',

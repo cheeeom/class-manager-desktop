@@ -293,3 +293,14 @@
 - [x] **构建**：build.js 全补丁通过；**28 套桌面测试全绿**；新探针 _probe_portal_v160 14/14；NSIS 出包 BUILD-OK（winCodeSign 符号链接权限被拒——历史残骸目录 822787339 内容已齐，转正为 winCodeSign-2.6.0 解决；electron-builder 25.x 随机目录重解压）；asar 验证 portal 资产/六大新功能标记/SYNC_KDF_ROUNDS 全在包内。
 - [x] **待验收**：D:\_cm_build\class-manager-desktop-Setup-1.6.0.exe（两段式：老板覆盖安装验收后说「推送」再 gh release 三件套）。**注意**：摄像头扫码在 Electron 需 main.js 权限处理，未配——核销用「粘贴码原文/贴图」路径即可，摄像头后续按需加。
 - [x] **推送**：等老板验收后明示（桌面仓 git 含多笔未推提交，release 时一并推）。
+
+## v1.7.5（2026-11-09）同步网页版 v3.9.16（一船七件）+ 学生端 v4.0 四页导航
+
+- **baseWeb v3.9.9 → v3.9.16**（一次跨七版，收编并行线在途全部内容）：v3.9.10 图标统一 / v3.9.11 今日必处理+成绩自动分析 / v3.9.12~15 评语助手全套（页面化+素材库/导出补全+评语同步查询端）/ v3.9.16 数据体检+sidCmp 排序+导航 undefined 根治+设置页整理（座位卡删/外观合并/登录密码可关/portal 自助领取下线）。
+- **学生查询端 v4.0**：portal 四页底部导航（学分/成绩/商店/我的）+ 成绩逐科对比 + 教师端实机预览 + 自动跟发。portal 三件从网页仓原样复制，零桌面适配。
+- **build.js 跟版校准**：apple-touch-icon 引用归一化（v3.9.10 加了 ?v= 版本串会漂，同 cmgx 手法）。
+- **main.js**：setWindowOpenHandler 放行 file:// 弹窗（桌面端「📱 实机预览学生端」window.open 之前被一刀切 deny，点了没反应）。
+- 版本三处 1.7.5（package.json + lock + 构建注入）；_port_to_web.py VER 同步（网页侧 v3.9.16 发版时已带）。
+- winCodeSign 缓存事故复现+根治：21 份符号链接残骸（~230MB）清理，内容最全一份转正 winCodeSign-2.6.0，两枚 darwin dylib 占位补齐。
+- 28 套契约 + 52 项图标验收全绿；冒烟 verdict=PASS（v1.7.5 桌面版/向导翻页/console 零错误）。
+- 出包 class-manager-desktop-Setup-1.7.5.exe 83,834,435 B（D:\_cm_build）。

@@ -172,6 +172,9 @@ function createWindow() {
   });
   win.webContents.setWindowOpenHandler(function (details) {
     if (/^https:/.test(details.url)) shell.openExternal(details.url);
+    /* v1.7.5 放行本地页内弹窗：学生查询端「📱 实机预览」走 window.open(file://…?preview=1)，
+       之前一刀切 deny 导致桌面端点预览没反应。本地 file:// 开独立窗口（无菜单），外域仍拒。 */
+    if (/^file:/.test(details.url)) return { action: 'allow', overrideBrowserWindowOptions: { autoHideMenuBar: true } };
     return { action: 'deny' };
   });
 
