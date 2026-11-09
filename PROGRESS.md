@@ -314,4 +314,9 @@
 - **跟版联动**：apple-touch-icon `?v=`、manifest / sw 版本串、CACHE_NAME、落地页静态版本兜底 V1.7.6、package.json / lock 版本号，一处不漏（漏 apple-touch-icon 会被 _v3910 咬）。
 - **测试债处理**：_v2172 / _v2185 / _v2189 / _v2280 四套钉的是旧候选池字面量，产品抽成 bySid 后换成同强度新锚点（不是放宽断言）；新增 _v3919_test.js 52 项真跑（含 dist 同步）。
 - **验收**：网页版 100 files / FAIL none；桌面版契约 28/0、图标 52/0；build.js 13 条补丁全过、baseWeb 自动跟到 v3.9.19、dist 无 cmgx 双挂载。
-- [ ] **推送 / 发 Release**：等老板明示（本次只本地 commit + 重建 dist）。
+- [x] **推送 / 发 Release**（2026-11-09，老板明示「推送 + 发 v1.7.6 Release」）：
+  - 网页版远端 main **`bbbbafba`**：REST 增量推 10 文件（白名单），末态 tree `d57747d9` 与本地 `HEAD^{tree}` 同哈希；站仓 `data.json` 仍 404（删除生效，非故障）。Pages 已用该提交 built，线上 `CACHE_NAME=class-manager-v3.9.19`、`cmgx.js?v=3.9.19`、portal `pvSearch`/`previewFilter` 可见，抽查 7 个默认地址全 200。
+  - 桌面版远端 main **`7ec73795`**：REST 增量推 5 文件，末态 tree `39459f09` 与本地同哈希。两仓均 `git -c http.proxy= -c https.proxy= fetch` + `reset --soft origin/main` 对齐，本地 ahead 0。
+  - Release **v1.7.6 / id `439081875`**（draft=false、prerelease=false、已是 **Latest**）：三资产 `state=uploaded` —— `class-manager-desktop-Setup-1.7.6.exe` 83,836,321 B、`ClassManager-Setup.exe` 同字节稳定直链、`latest.yml` 370 B；API 的 sha256 digest 与本地逐字节相符，线上 `latest.yml` 与本地 MATCH，稳定直链 302 → 200 且 Content-Length 一致。
+  - 打包版冒烟 `verdict=PASS`（版本标 `v1.7.6 桌面版`、`consoleErrors=[]`）；落地页 Pages 用 `7ec73795` built，静态兜底 `WINDOWS 桌面版 · V1.7.6`，下载按钮走 `/releases/latest/download/ClassManager-Setup.exe` 动态指向 Latest。
+  - 🔴 发版环境坑复现：本机 `git push` 仍走不通（全局代理 `192.168.8.104` 失效），两仓推代码一律 REST Git Data（建 blob → tree → commit → **立刻** PATCH ref，动指针前先校验 tree 同哈希）；`git fetch` 必须显式清代理，网页版第一次 `Connection was reset`、重试即通。他人未提交的 `app/_port_to_web.py` 与未跟踪 `MEMORY.md` 全程未碰；本地备份分支 `backup-local-v176-20261109` / `backup-local-v3919-20261109` 保留。
