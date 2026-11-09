@@ -336,4 +336,10 @@
 - **跟版 v3.9.20**：五处联动一处没漏 —— `CACHE_NAME`、index 的 `cmgx.js?v=` 与 `apple-touch-icon ?v=`、sw `CORE_ASSETS` 三处、manifest 三处、版本徽标三处 + 速览标题；速览正文新增本版条目（历史条目版本号一律不回改）。新增 `_v3920_test.js`：档案排序静态 + `bySid` 真跑 + 桌面版 cross-env 声明 + dist 同步（版本号从 CACHE_NAME 反推，版本无关）。
 - **`npm run smoke` 补齐依赖**：`cross-env` 只在 scripts 里被引用、从未进 `devDependencies`，Windows 下 `npm run smoke` 直接报「不是内部或外部命令」。用 `npm install --save-dev cross-env@7.0.3` 补声明 + lock 条目 + node_modules（传递依赖 `cross-spawn` 原本已在 lock 里，diff 只增一个包）。此后 `npm run smoke` 原生可跑。
 - **桌面版 v1.7.7 重出包**：网页版 `index.html` 改动 ⇒ 必须先本地 commit 再 `build.js`（build 读 `git show HEAD:index.html`）；`baseWeb` 自动跟到 v3.9.20，dist 里的档案排序、请假分析注入层、portal 搜索框一并复核。同版本号内容更新 ⇒ 安装包与 `ClassManager-Setup.exe` 稳定直链副本全部换成当版同字节，再发 Release。
-- [x] **推送 / 发 Release**：老板明示后执行，服务器验收结果见本条收尾提交。
+- [x] **推送 / 发 Release**（2026-11-09，老板原话「一起收了，推送」）：
+  - 网页版远端 main **`678dbb1e`**：REST 增量推 6 个白名单文件，新 tree `ac82053e` 与本地 `HEAD^{tree}` 同哈希；站仓 `data.json` 仍 404（删除生效，非故障）。Pages 用 `678dbb1e` built，线上 `CACHE_NAME=class-manager-v3.9.20`、`cmgx.js?v=3.9.20`、登录徽标 v3.9.20、档案 `bySid` 与速览本版说明可见；抽查 6 个默认地址全 200。
+  - 桌面版远端代码提交 **`a2d82688`**：REST 增量推 7 文件（逐笔 blob 校验 + tree `4b835846` 同哈希硬断言），本条 PROGRESS 收尾另起一笔。
+  - Release **v1.7.7 / id `439252934`**（draft=false、prerelease=false、已被 `/releases/latest` 指向 = **Latest**）：三资产 `state=uploaded` —— `class-manager-desktop-Setup-1.7.7.exe` 83,838,976 B、`ClassManager-Setup.exe` 同字节稳定直链、`latest.yml` 370 B；API 的 sha256 digest 与本地三文件逐一相符，线上 latest.yml 与本地 MATCH，稳定直链 302 → 206 且 `Content-Range: bytes 0-0/83838976`。
+  - 落地页 Pages 用 `a2d82688` built，静态兜底 `WINDOWS 桌面版 · V1.7.7`，下载按钮仍走 `/releases/latest/download/ClassManager-Setup.exe` 动态指向 Latest。
+  - **验收**：网页版 101 files / FAIL none；桌面版契约 28/0、图标 52/0、请假分析 62/0；新增 `_v3920_test.js` 40/0；`npm run smoke` 原生命令 `verdict=PASS`（`consoleErrors=[]`、版本标 `v1.7.7 桌面版`）；CDP 真机探针九项全绿（请假分析页签 + 空态渲染链已重拍）。
+  - 🔴 环境坑复现且已挡住：网页版 `git -c http.proxy= -c https.proxy= fetch` 第一次 21s 连接超时，**用条件判断确保 fetch 失败绝不紧接着 `reset --soft`**（v1.7.6 那次误 reset 会让 HEAD 倒退），重试一次即通；两仓末态 ahead 0。他人未提交的 `app/_port_to_web.py` 与未跟踪 `MEMORY.md` 全程未碰；备份分支 `backup-local-v3920-20261109` / `backup-local-v177-20261109` 保留。
