@@ -320,3 +320,20 @@
   - Release **v1.7.6 / id `439081875`**（draft=false、prerelease=false、已是 **Latest**）：三资产 `state=uploaded` —— `class-manager-desktop-Setup-1.7.6.exe` 83,836,321 B、`ClassManager-Setup.exe` 同字节稳定直链、`latest.yml` 370 B；API 的 sha256 digest 与本地逐字节相符，线上 `latest.yml` 与本地 MATCH，稳定直链 302 → 200 且 Content-Length 一致。
   - 打包版冒烟 `verdict=PASS`（版本标 `v1.7.6 桌面版`、`consoleErrors=[]`）；落地页 Pages 用 `7ec73795` built，静态兜底 `WINDOWS 桌面版 · V1.7.6`，下载按钮走 `/releases/latest/download/ClassManager-Setup.exe` 动态指向 Latest。
   - 🔴 发版环境坑复现：本机 `git push` 仍走不通（全局代理 `192.168.8.104` 失效），两仓推代码一律 REST Git Data（建 blob → tree → commit → **立刻** PATCH ref，动指针前先校验 tree 同哈希）；`git fetch` 必须显式清代理，网页版第一次 `Connection was reset`、重试即通。他人未提交的 `app/_port_to_web.py` 与未跟踪 `MEMORY.md` 全程未碰；本地备份分支 `backup-local-v176-20261109` / `backup-local-v3919-20261109` 保留。
+
+## v1.7.7（2026-11-09）桌面版「请假分析」补上（还 v3.9.7 的欠账）
+
+- **欠账来源**：v3.9.7 做请假页改版 + 请假分析时老板选「先只发网页版」；页签 `tab-leave` 与面板由网页版 `cmgx.js` 的 `cmLvInject()` 运行时注入，`index.html` 故意不写。桌面版 `build.js` 摘掉 cmgx 换 `app/src/app.patch.js`（防双挂载），而注入层没有 `cmLv*` ⇒ dist 一直没这个页签。
+- **移植**：把网页版 `cmgx.js` 的 `cmLvPal / cmLvAgg / cmLvInject / cmLvDispose / cmLvRender / cmLvOverdueHtml / cmLvLongHtml / cmLvDraw / cmWrapLvRender / cmWrapLvTab` 整段**逐字同源**搬进 `app.patch.js`（回归里有两版逐字比对），六图 + 六 KPI + 高频画像 + 超时/最长列表全带过来；数据只走主应用 `lvAggregate(leaves, students)` 纯函数，不另算一套。`wizard.css` 补 `.cmLvChip` 两条。
+- 🔴 **桌面版独有的 Pro 闸顺序**：`cmWrapPro('switchAnalyticsTab')` 未激活时直接弹窗、不调 `orig`。若照抄网页版把 `cmWrapLvTab` 包在最外层，免费用户点页签照样渲染出面板＝绕过付费。⇒ `cmLvInject()` + `cmWrapLvTab()` 放在 Pro 闸**之前**调用（包在闸内），`cmWrapLvRender()` 放在 `cmWrapCreditTabSwitch()` **之后**（renderAnalytics 最外层，拦住 credit 渲染）。
+- **接线其余**：`cmGxThemeExtras()` 补 leave tab 换肤整块重绘；echarts 首访懒加载由 `cmLvDraw` 的 `cmLoadEcharts` 回调自兜（不用改 `cmEchartsAfterLoad`）；页签复用主应用 `#i-chart-cal` 符号。
+- **网页版零改动**：`index.html` 不写死页签、`cmgx.js` 不动；`_v3910` 从桌面版 `package.json` 反推落地页静态兜底 V1.7.7，只改落地页一行。
+- [x] **推送 / 发 Release**：2026-11-09 老板明示「一起收了，推送」，随 v3.9.20 / v1.7.7 一并上线（见下节）。
+
+## v3.9.20 / v1.7.7（2026-11-09）收两个遗留尾巴 + 上线
+
+- **学生档案名单按学号**：网页版 `index.html` 的 `renderProfileList()` 从 `sortStudentsByPinyin(state.students…)` 改成 `bySid(state.students…)`（numeric 感知、缺学号垫底），与 v3.9.19 建立的全局默认排序口径同源。`sortStudentsByPinyin()` 函数本体保留（座次表按姓名排座等仍可能复用）；`bySid` 注释里「功能性排序」去掉「拼音」例外，免得自相矛盾。🔴 真钉档案排序的只有 `_v2177_test.js` 一套（`_v2185`/`_v2189` 的「拼音」是座次表排座策略），换成同强度新锚点：**同时断言接入 bySid 且不再调用拼音**，不是放宽断言。
+- **跟版 v3.9.20**：五处联动一处没漏 —— `CACHE_NAME`、index 的 `cmgx.js?v=` 与 `apple-touch-icon ?v=`、sw `CORE_ASSETS` 三处、manifest 三处、版本徽标三处 + 速览标题；速览正文新增本版条目（历史条目版本号一律不回改）。新增 `_v3920_test.js`：档案排序静态 + `bySid` 真跑 + 桌面版 cross-env 声明 + dist 同步（版本号从 CACHE_NAME 反推，版本无关）。
+- **`npm run smoke` 补齐依赖**：`cross-env` 只在 scripts 里被引用、从未进 `devDependencies`，Windows 下 `npm run smoke` 直接报「不是内部或外部命令」。用 `npm install --save-dev cross-env@7.0.3` 补声明 + lock 条目 + node_modules（传递依赖 `cross-spawn` 原本已在 lock 里，diff 只增一个包）。此后 `npm run smoke` 原生可跑。
+- **桌面版 v1.7.7 重出包**：网页版 `index.html` 改动 ⇒ 必须先本地 commit 再 `build.js`（build 读 `git show HEAD:index.html`）；`baseWeb` 自动跟到 v3.9.20，dist 里的档案排序、请假分析注入层、portal 搜索框一并复核。同版本号内容更新 ⇒ 安装包与 `ClassManager-Setup.exe` 稳定直链副本全部换成当版同字节，再发 Release。
+- [x] **推送 / 发 Release**：老板明示后执行，服务器验收结果见本条收尾提交。

@@ -2773,6 +2773,275 @@
     window.switchAnalyticsTab = w;
   }
 
+  /* ---------- v1.7.7 请假分析页签（桌面版：移植网页版 v3.9.7 的 cmLv* 段）----------
+     欠账来源：网页版请假分析的页签/面板由 cmgx.js 运行时注入，index.html 故意不写 tab-leave；
+     桌面版 build.js 摘掉 cmgx.js 换 app.patch.js，而 app.patch.js 没有 cmLv* ⇒ dist 一直没这个页签。
+     移植四原则：
+     ① 实现代码与网页版【逐字同源】（回归里有逐字比对），数据只走主应用 lvAggregate() 纯函数，绝不另算一套；
+     ② 页签仍运行时注入，不写死 index.html —— 主应用零改动，也不会留一个点不动的死页签；
+     ③ 【桌面版独有】cmWrapLvTab 必须包在 cmWrapPro('switchAnalyticsTab') 之内：
+        Pro 未激活时闸会弹窗且不调 orig，若把本层包在闸外，免费用户点页签照样渲染出面板＝绕过付费；
+        而 cmWrapLvRender 要包在 renderAnalytics 最外层（credit 两层包装之后），才能拦住 credit 渲染。
+     ④ 换肤由 cmGxThemeExtras() 补一发整块重绘；echarts 首访懒加载由 cmLvDraw 的回调自兜。 */
+  var CM_LV_COLORS = null;
+  function cmLvPal() {
+    return {
+      sick: cmGxIsDark() ? '#D45A4A' : '#B42318',      // 病假：朱
+      personal: cmGxIsDark() ? '#D08A45' : '#C0762B',  // 事假：赭
+      official: cmGxIsDark() ? '#4F9E77' : '#2F7D5B',  // 公假：青
+      other: cmGxIsDark() ? '#93A5B3' : '#7A8B99',     // 其它：灰
+      overdue: cmGxIsDark() ? '#D9604F' : '#B42318'
+    };
+  }
+  function cmLvAgg() {
+    try {
+      if (typeof lvAggregate === 'function') {
+        var st = cmGxState() || {};
+        return lvAggregate(st.leaves || [], st.students || []);
+      }
+    } catch (e) { console.warn('[cmgx] 请假聚合失败', e); }
+    return null;
+  }
+  function cmLvInject() {
+    var tabs = document.querySelector('.analytics-tabs');
+    if (tabs && !document.getElementById('tab-leave')) {
+      var t = el('div', 'analytics-tab');
+      t.id = 'tab-leave';
+      t.innerHTML = '<svg class="ic"><use href="#i-chart-cal"/></svg>请假分析';
+      t.addEventListener('click', function () { try { switchAnalyticsTab('leave'); } catch (e) {} });
+      tabs.appendChild(t);
+    }
+    var page = document.getElementById('page-analytics');
+    if (page && !document.getElementById('analyticsLeavePanel')) {
+      var p = el('div');
+      p.id = 'analyticsLeavePanel';
+      p.style.display = 'none';
+      page.appendChild(p);
+    }
+  }
+  function cmLvDispose() {
+    for (var id in cmGradeCharts) {
+      if (id.indexOf('cmGxLv') === 0) { try { cmGradeCharts[id].dispose(); } catch (e) {} delete cmGradeCharts[id]; }
+    }
+  }
+  function cmLvRender() {
+    cmLvInject();
+    var panel = document.getElementById('analyticsLeavePanel');
+    if (!panel) return;
+    var agg = cmLvAgg();
+    if (!agg) { panel.innerHTML = '<div class="cmGx-empty" style="padding:60px 10px">请假数据引擎未就绪</div>'; return; }
+    if (!agg.total) {
+      panel.innerHTML = '<div class="cmGx-empty" style="padding:60px 10px">还没有请假记录 —— 去「请假」页登记一条，这里就有数据了</div>';
+      cmLvDispose();
+      return;
+    }
+    cmLvDispose();
+    var c = cmLvPal();
+    var stus = ((cmGxState() || {}).students || []).length || 1;
+    var perCap = agg.people ? (agg.total / agg.people) : 0;
+    var involvePct = Math.round(agg.people / stus * 100);
+    var last6 = agg.byMonth.reduce(function (s, m) { return s + m.count; }, 0);
+    var topType = agg.byType.slice().sort(function (a, b) { return b.count - a.count; })[0] || { label: '—', pct: 0 };
+
+    var h = '';
+    h += '<div class="cmGx-kpis cols6">';
+    h += '<div class="cmGx-kpi"><div class="cmGx-klabel">请假总次数</div><div class="cmGx-kvalue">' + agg.total + '<small>次</small></div><span class="cmGx-ktrend cmGx-flat">近 6 个月 ' + last6 + ' 次</span></div>';
+    h += '<div class="cmGx-kpi"><div class="cmGx-klabel">涉及学生</div><div class="cmGx-kvalue">' + agg.people + '<small>人</small></div><span class="cmGx-ktrend cmGx-flat">占全班 ' + involvePct + '%</span></div>';
+    h += '<div class="cmGx-kpi"><div class="cmGx-klabel">累计请假天数</div><div class="cmGx-kvalue">' + (Math.round(agg.days * 10) / 10) + '<small>天</small></div><span class="cmGx-ktrend cmGx-flat">人均 ' + (Math.round(agg.avgGapDays * 10) / 10) + ' 天</span></div>';
+    h += '<div class="cmGx-kpi"><div class="cmGx-klabel">人均请假次数</div><div class="cmGx-kvalue">' + perCap.toFixed(1) + '<small>次</small></div><span class="cmGx-ktrend cmGx-flat">按有请假的学生算</span></div>';
+    h += '<div class="cmGx-kpi"><div class="cmGx-klabel">平均单次时长</div><div class="cmGx-kvalue">' + (Math.round(agg.avgDur * 10) / 10) + '<small>天</small></div><span class="cmGx-ktrend cmGx-flat">' + (topType.label || '—') + ' 最多</span></div>';
+    h += '<div class="cmGx-kpi"><div class="cmGx-klabel">当前在假</div><div class="cmGx-kvalue">' + agg.active + '<small>人</small></div><span class="cmGx-ktrend ' + (agg.overdue ? 'cmGx-down' : 'cmGx-up') + '">超时未销 ' + agg.overdue + ' 条</span></div>';
+    h += '</div>';
+
+    /* 高频画像：把「最常发生在哪天 / 哪类 / 哪个月」三句话直接摆出来，比让人自己在图上找更快 */
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>高频画像</div><div class="cmGx-cap">一眼看清请假最集中的时段与类型</div>';
+    h += '<div style="display:flex;gap:8px;flex-wrap:wrap;padding:2px 0 6px">';
+    h += '<span class="cmLvChip">高峰星期 <b>' + (agg.peakWeekday || '—') + '</b></span>';
+    h += '<span class="cmLvChip">首要类型 <b>' + (agg.peakType || '—') + '</b>（' + topType.pct + '%）</span>';
+    h += '<span class="cmLvChip">高峰月份 <b>' + (agg.peakMonth || '—') + '</b></span>';
+    h += '<span class="cmLvChip">最频繁学生 <b>' + (agg.top[0] ? cmGxEsc(agg.top[0].name) : '—') + '</b>' + (agg.top[0] ? '（' + agg.top[0].count + ' 次）' : '') + '</span>';
+    h += '</div></div>';
+
+    h += '<div class="cmGx-grid2 gx-stagger">';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>请假类型占比</div><div class="cmGx-cap">病假 / 事假 / 公假 按登记条数</div><div id="cmGxLvType" class="cmGx-chart"></div></div>';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>近 6 个月请假次数</div><div class="cmGx-cap">按请假开始日期归月 · 悬停看当月天数</div><div id="cmGxLvMonth" class="cmGx-chart"></div></div>';
+    h += '</div>';
+    h += '<div class="cmGx-grid2 gx-stagger">';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>星期分布</div><div class="cmGx-cap">哪天最容易请假 · 按开始日期归星期</div><div id="cmGxLvWeek" class="cmGx-chart"></div></div>';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>请假时长分布</div><div class="cmGx-cap">短假为主还是长假为主，一眼分得出</div><div id="cmGxLvDur" class="cmGx-chart"></div></div>';
+    h += '</div>';
+    h += '<div class="cmGx-grid2 gx-stagger">';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>请假次数排行</div><div class="cmGx-cap">前 8 名 · 次数相同看天数</div><div id="cmGxLvTop" class="cmGx-chart tall"></div></div>';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>需跟进：超时未销假</div><div class="cmGx-cap">过了结束日仍未销假 · 共 ' + agg.overdue + ' 条</div><div id="cmGxLvOver" style="max-height:250px;overflow:auto">' + cmLvOverdueHtml(agg) + '</div></div>';
+    h += '</div>';
+    h += '<div class="cmGx-grid2 gx-stagger">';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>请假起始时段</div><div class="cmGx-cap">上午走 / 下午走 / 整天不在</div><div id="cmGxLvPeriod" class="cmGx-chart"></div></div>';
+    h += '<div class="cmGx-card"><div class="cmGx-title"><i></i>最长 5 次请假</div><div class="cmGx-cap">按登记时长排序</div><div id="cmGxLvLong" style="padding:2px 0">' + cmLvLongHtml(agg) + '</div></div>';
+    h += '</div>';
+
+    panel.innerHTML = h;
+    gxCountAnnotate(panel);
+    cmLvDraw(agg, c);
+    gxPlayCounters(panel);
+  }
+  function cmLvOverdueHtml(agg) {
+    if (!agg.overdueList.length) return '<div class="cmGx-empty">没有超时未销假的记录</div>';
+    return agg.overdueList.map(function (o) {
+      return '<div class="cmGx-rank"><div class="cmGx-rnum rn" style="color:' + cmLvPal().overdue + '">!</div>' +
+        '<div class="cmGx-rmain"><div class="cmGx-rname">' + cmGxEsc(o.name) + '</div>' +
+        '<div class="cmGx-rsubs">应于 ' + cmGxEsc(o.endDate) + ' 结束</div></div>' +
+        '<div class="cmGx-rscore" style="color:' + cmLvPal().overdue + '">超 ' + o.days + ' 天</div></div>';
+    }).join('');
+  }
+  function cmLvLongHtml(agg) {
+    if (!agg.longest.length) return '<div class="cmGx-empty">暂无数据</div>';
+    var mx = agg.longest[0].days || 1;
+    return agg.longest.map(function (o, i) {
+      return '<div class="cmGx-rank"><div class="cmGx-rnum ' + (i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : 'rn') + '">' + (i + 1) + '</div>' +
+        '<div class="cmGx-rmain"><div class="cmGx-rname">' + cmGxEsc(o.name) + '</div>' +
+        '<div class="cmGx-rbar"><i style="width:' + (o.days / mx * 100).toFixed(1) + '%"></i></div>' +
+        '<div class="cmGx-rsubs">' + cmGxEsc(o.startDate) + ' → ' + cmGxEsc(o.endDate) + '</div></div>' +
+        '<div class="cmGx-rscore">' + o.days + ' 天</div></div>';
+    }).join('');
+  }
+  function cmLvDraw(agg, c) {
+    if (!cmEchartsReady()) {
+      cmLoadEcharts(function (okFlag) {
+        if (okFlag) { try { cmLvRender(); } catch (e) {} }
+      });
+      return;
+    }
+    var pal = c || cmLvPal();
+    var muted = cmCssVar('--text-muted', '#8C8577');
+    var text2 = cmCssVar('--text-secondary', '#5C574F');
+    var typeCol = { sick: pal.sick, personal: pal.personal, official: pal.official, other: pal.other };
+
+    /* 类型占比：环形 + 中心总数（与学分五档构成同一手法） */
+    cmGxChart('cmGxLvType', {
+      tooltip: cmGxTT(),
+      legend: { bottom: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { color: text2, fontSize: 11, fontFamily: cmGxFont() }, itemGap: 12 },
+      title: { text: String(agg.total), subtext: '次请假', left: 'center', top: '38%',
+        textStyle: { fontSize: 26, fontWeight: 700, color: cmCssVar('--text', '#2B2B33'), fontFamily: cmGxFont() },
+        subtextStyle: { color: muted, fontSize: 11 } },
+      series: [{ type: 'pie', radius: ['52%', '72%'], center: ['50%', '44%'],
+        data: agg.byType.filter(function (t) { return t.count > 0; }).map(function (t) {
+          return { name: t.label + '（' + t.count + '次）', value: t.count, itemStyle: { color: typeCol[t.key] || pal.other } };
+        }),
+        itemStyle: { borderRadius: 5, borderColor: cmCssVar('--card-bg', '#FFFDF7'), borderWidth: 2 },
+        label: { show: false }, emphasis: { scaleSize: 4 }, animationDuration: 900, animationEasing: 'cubicOut' }]
+    });
+
+    /* 近 6 个月次数 */
+    cmGxChart('cmGxLvMonth', {
+      tooltip: cmGxTT('axis'), grid: cmGxGrid({ left: 34 }),
+      xAxis: cmGxAxisX({ data: agg.byMonth.map(function (m) { return m.label; }), boundaryGap: true }),
+      yAxis: cmGxAxisY({ minInterval: 1 }),
+      series: [{ type: 'bar', barWidth: '46%',
+        data: agg.byMonth.map(function (m) {
+          return { value: m.count, itemStyle: { borderRadius: [6, 6, 0, 0], color: cmGxVGrad(cmGxShade(cmCssVar('--primary', '#A63A2B'), 0.2), cmCssVar('--primary', '#A63A2B')) } };
+        }),
+        label: { show: true, position: 'top', color: text2, fontSize: 11, fontWeight: 600 },
+        animationDuration: 900, animationDelay: function (i) { return i * 70; } }]
+    });
+
+    /* 星期分布 */
+    var wmax = Math.max.apply(null, agg.byWeekday.map(function (w) { return w.count; }).concat([1]));
+    cmGxChart('cmGxLvWeek', {
+      tooltip: cmGxTT('axis'), grid: cmGxGrid({ left: 34 }),
+      xAxis: cmGxAxisX({ data: agg.byWeekday.map(function (w) { return w.label.replace('周', ''); }), boundaryGap: true }),
+      yAxis: cmGxAxisY({ minInterval: 1 }),
+      series: [{ type: 'bar', barWidth: '50%',
+        data: agg.byWeekday.map(function (w) {
+          var hot = w.count === wmax && w.count > 0;
+          var col = hot ? pal.overdue : cmCssVar('--text-secondary', '#5C574F');
+          return { value: w.count, itemStyle: { borderRadius: [6, 6, 0, 0], color: cmGxVGrad(cmGxShade(col, 0.28), col) } };
+        }),
+        label: { show: true, position: 'top', color: text2, fontSize: 11, fontWeight: 600 },
+        animationDuration: 900, animationDelay: function (i) { return i * 60; } }]
+    });
+
+    /* 时长分布 */
+    cmGxChart('cmGxLvDur', {
+      tooltip: cmGxTT('axis'), grid: cmGxGrid({ left: 34 }),
+      xAxis: cmGxAxisX({ data: agg.byDur.map(function (d) { return d.label; }), axisLabel: { color: muted, fontSize: 10.5, interval: 0 }, boundaryGap: true }),
+      yAxis: cmGxAxisY({ minInterval: 1 }),
+      series: [{ type: 'bar', barWidth: '46%',
+        data: agg.byDur.map(function (d) {
+          return { value: d.count, itemStyle: { borderRadius: [6, 6, 0, 0], color: cmGxVGrad(cmGxShade(pal.personal, 0.3), pal.personal) } };
+        }),
+        label: { show: true, position: 'top', color: text2, fontSize: 11, fontWeight: 600 },
+        animationDuration: 900, animationDelay: function (i) { return i * 70; } }]
+    });
+
+    /* 起始时段 */
+    cmGxChart('cmGxLvPeriod', {
+      tooltip: cmGxTT('axis'), grid: cmGxGrid({ left: 34 }),
+      xAxis: cmGxAxisX({ data: agg.byPeriod.map(function (p) { return p.label; }), boundaryGap: true }),
+      yAxis: cmGxAxisY({ minInterval: 1 }),
+      series: [{ type: 'bar', barWidth: '44%',
+        data: agg.byPeriod.map(function (p) {
+          var col = p.key === 'am' ? pal.official : p.key === 'pm' ? pal.personal : pal.other;
+          return { value: p.count, itemStyle: { borderRadius: [6, 6, 0, 0], color: cmGxVGrad(cmGxShade(col, 0.3), col) } };
+        }),
+        label: { show: true, position: 'top', color: text2, fontSize: 11, fontWeight: 600 },
+        animationDuration: 900 }]
+    });
+
+    /* 次数排行（前 8，横条自下而上：最多的在顶） */
+    if (agg.top.length) {
+      var tp = agg.top.slice().reverse();
+      var tmax = Math.max.apply(null, agg.top.map(function (t) { return t.count; }).concat([1]));
+      cmGxChart('cmGxLvTop', {
+        tooltip: { trigger: 'item', backgroundColor: cmCssVar('--card-bg', '#FFFDF7'), borderColor: cmCssVar('--border', '#E6DECD'), borderWidth: 1,
+          padding: [9, 13], textStyle: { color: cmCssVar('--text', '#2B2B33'), fontSize: 12, fontFamily: cmGxFont() },
+          extraCssText: 'box-shadow:0 8px 24px rgba(25,22,19,.14);border-radius:10px;',
+          formatter: function (p) { var t = tp[p.dataIndex]; return cmGxEsc(t.name) + '<br>' + t.count + ' 次 · 共 ' + (Math.round(t.days * 10) / 10) + ' 天'; } },
+        grid: cmGxGrid({ left: 20, right: 46, top: 10, bottom: 10 }),
+        xAxis: cmGxAxisY({ show: false }),
+        yAxis: cmGxAxisX({ type: 'category', data: tp.map(function (t) { return t.name; }), axisLine: { show: false } }),
+        series: [{ type: 'bar', barWidth: 12,
+          data: tp.map(function (t) {
+            var hot = t.count >= tmax;
+            var col = hot ? pal.overdue : cmCssVar('--primary', '#A63A2B');
+            return { value: t.count, itemStyle: { borderRadius: 6, color: cmGxVGrad(col, cmGxShade(col, 0.25), true) } };
+          }),
+          label: { show: true, position: 'right', formatter: '{c} 次', color: text2, fontSize: 11, fontWeight: 600 },
+          animationDuration: 900, animationDelay: function (i) { return i * 60; } }]
+      });
+    } else {
+      document.getElementById('cmGxLvTop').innerHTML = '<div class="cmGx-empty">暂无数据</div>';
+    }
+  }
+  function cmWrapLvRender() {
+    var prev = window.renderAnalytics;
+    if (typeof prev !== 'function' || prev.__cmGxLv) return;
+    var w = function () {
+      var tl = document.getElementById('tab-leave');
+      if (tl && tl.classList.contains('active')) { cmLvRender(); return; }
+      return prev.apply(this, arguments);
+    };
+    w.__cmGxLv = true;
+    window.renderAnalytics = w;
+  }
+  function cmWrapLvTab() {
+    var prev = window.switchAnalyticsTab;
+    if (typeof prev !== 'function' || prev.__cmGxLvTab) return;
+    var w = function (tab) {
+      var r = prev.apply(this, arguments);   // 先让底层把 credit/grade 两个面板与页签摆正
+      try {
+        var lp = document.getElementById('analyticsLeavePanel');
+        var tl = document.getElementById('tab-leave');
+        if (lp) lp.style.display = (tab === 'leave') ? '' : 'none';
+        if (tl) tl.classList.toggle('active', tab === 'leave');
+        if (tab === 'leave') cmLvRender();
+      } catch (e) {}
+      return r;
+    };
+    w.__cmGxLvTab = true;
+    window.switchAnalyticsTab = w;
+  }
+
+
   /* ---------- v1.3.0 P2：首页学分分布 + 公示页四图（cmInk 统一）----------
      口径逐字复刻网页版：首页 = drawDistChart 自适应八档（lo=floor(min/5)*5，hi=ceil((max+1)/5)*5，≥8 档）；
      公示 = 趋势（30 天人均，流水反推）/ 每日（14 天加扣 diverging）/ 分布（五档）/ 原因（Top6 按条数）。
@@ -2979,6 +3248,9 @@
       window.drawPubDist('pubDistChart', st.students || []);
       window.drawPubReason('pubReasonChart', 'pubReasonLegend', st.operations || []);
     }
+    /* v1.7.7 请假分析：换肤/亮暗时若正停在该页签上，整块重绘（图表色是运行时读变量的） */
+    var lvTab = document.getElementById('tab-leave');
+    if (lvTab && lvTab.classList.contains('active')) { try { cmLvRender(); } catch (e) {} }
   }
 
   /* ---------- v1.4.0 界面符号统一（Lucide）+ 工作留痕/荣誉墙重设计 ----------
@@ -3554,6 +3826,9 @@
     cmWrapPro('cbRefundVoucherUI', '学分银行');
     cmWrapPro('cbOpenItemEditor', '学分银行');
     cmWrapPro('cbOpenBankProfile', '学分银行');
+    /* v1.7.7 请假分析：页签注入 + 页签切换包装必须在 Pro 闸【之内】 */
+    cmLvInject();
+    cmWrapLvTab();
     cmWrapPro('switchAnalyticsTab', '数据分析');
     cmWrapPro('exportPublicityPoster', '公示海报导出');
     cmWrapPro('exportWeeklyReport', '学分周报导出');
@@ -3563,6 +3838,7 @@
     cmGradeWatchTheme();                         // 亮/暗/皮肤切换自动重渲染图表
     cmWrapCreditRender();                        // v1.3.0 P1：学分 tab 图表迁移（KPI 六卡 + 四图）
     cmWrapCreditTabSwitch();                     // 切回学分 tab 时补渲染脏图表（链在 Pro gate 之上）
+    cmWrapLvRender();                            // v1.7.7 请假分析：renderAnalytics 最外层接管
     cmWrapDistChart();                           // v1.3.0 P2：首页学分分布接管（cmInk 八档直方图）
     cmWrapPubCharts();                           // v1.3.0 P2：公示页四图接管（趋势/每日/分布/原因）
     gxInjectSprite();                            // v1.4.0：Lucide 符号表注入（全台 emoji 替换地基）
