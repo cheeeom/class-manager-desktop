@@ -1572,6 +1572,18 @@
   function cmReportClassTitle() {
     try { return (state.className || '').trim(); } catch (e) { return ''; }
   }
+  /* v3.9.19 学号排序统一：优先复用主应用的 bySid（同一口径），独立加载时退回等价实现 */
+  function cmSidCmp(a, b){
+    var x = String(a == null ? '' : a).trim(), y = String(b == null ? '' : b).trim();
+    if(!x && !y) return 0;
+    if(!x) return 1;
+    if(!y) return -1;
+    return x.localeCompare(y, 'zh-Hans-CN', { numeric: true });
+  }
+  function cmBySid(list){
+    if(typeof bySid === 'function') return bySid(list);
+    return (list || []).slice().sort(function(a,b){ return cmSidCmp(a && a.sid, b && b.sid); });
+  }
   function cmReportLiveStudents() {
     return (state.students || []).filter(function (s) { return !(state.studentDeleted && state.studentDeleted[s.id]); });
   }
@@ -1647,7 +1659,7 @@
     var t0 = cmReportSemStart(), t0s = cmReportDstr(t0);
     var ops = liveOps(state.operations).filter(function (o) { return Number(o.time) >= t0; });
     var d = { sem: cmReportSemName(), cls: cmReportClassTitle(), n: 0, opCnt: ops.length, per: {}, top: [], clean: [], lvTotal: 0, lvDays: 0, exam: null };
-    var stus = cmReportLiveStudents();
+    var stus = cmBySid(cmReportLiveStudents());
     d.n = stus.length;
     ops.forEach(function (o) {
       var p = d.per[o.studentId]; if (!p) p = d.per[o.studentId] = { add: 0, sub: 0 };
@@ -1883,7 +1895,7 @@
     if (document.getElementById('cmDeskReport')) return;
     var m = el('div', 'cmDesk-modal-overlay');
     m.id = 'cmDeskReport';
-    var stus = cmReportLiveStudents().slice().sort(function (a, b) { return (a.sid || '') < (b.sid || '') ? -1 : 1; });
+    var stus = cmBySid(cmReportLiveStudents());
     var opts = stus.map(function (s) { return '<option value="' + s.id + '">' + (s.sid ? s.sid + ' ' : '') + s.name + '</option>'; }).join('');
     m.innerHTML =
       '<div class="cmDesk-donate-card cmDesk-report-panel">' +

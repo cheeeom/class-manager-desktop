@@ -304,3 +304,14 @@
 - winCodeSign 缓存事故复现+根治：21 份符号链接残骸（~230MB）清理，内容最全一份转正 winCodeSign-2.6.0，两枚 darwin dylib 占位补齐。
 - 28 套契约 + 52 项图标验收全绿；冒烟 verdict=PASS（v1.7.5 桌面版/向导翻页/console 零错误）。
 - 出包 class-manager-desktop-Setup-1.7.5.exe 83,834,435 B（D:\_cm_build）。
+
+## v1.7.6（2026-11-09）默认排序统一按学号 + 学生端实机预览搜索（同步网页版 v3.9.19）
+
+- **baseWeb v3.9.16 → v3.9.19**（顺带收编 v3.9.17 学生端「我的」页学期报告卡、v3.9.18 登录密码卡两栏式）。
+- **统一入口**：网页版 index.html 在 sidCmp 后新增 `bySid(list)`（numeric 感知、缺学号垫底）；三个选人池 + 公共学生搜索下拉默认池接入。学生管理 / 评语助手沿用 v3.9.16 的 sidCmp，功能性排序（学分/币/成绩/拼音/座位）一律不动。
+- **学期报告**：网页版 cmgx.js 与桌面版 app/src/app.patch.js 各有一份报告引擎，个人报告下拉 + 班级报告名单两处都从「字符串比大小」换成 `cmBySid()`（优先复用主应用 bySid，独立加载退回等价 cmSidCmp），两版口径同源。
+- **学生查询端实机预览**：portal/index.html 身份列表按学号排序，新增姓名 / 学号搜索框、实时计数与空态；筛选只切 `.pvstu` 的 display，不重画 DOM（保住输入焦点）。portal 三件构建时原样拷贝进 dist，零桌面适配。
+- **跟版联动**：apple-touch-icon `?v=`、manifest / sw 版本串、CACHE_NAME、落地页静态版本兜底 V1.7.6、package.json / lock 版本号，一处不漏（漏 apple-touch-icon 会被 _v3910 咬）。
+- **测试债处理**：_v2172 / _v2185 / _v2189 / _v2280 四套钉的是旧候选池字面量，产品抽成 bySid 后换成同强度新锚点（不是放宽断言）；新增 _v3919_test.js 52 项真跑（含 dist 同步）。
+- **验收**：网页版 100 files / FAIL none；桌面版契约 28/0、图标 52/0；build.js 13 条补丁全过、baseWeb 自动跟到 v3.9.19、dist 无 cmgx 双挂载。
+- [ ] **推送 / 发 Release**：等老板明示（本次只本地 commit + 重建 dist）。
