@@ -1,5 +1,8 @@
 # 班主任工作台 · 桌面版落地页
 
+> **授权方式**：保留所有权利 · 非商业使用许可 · 可免费使用与转发原版，禁止商用、禁止改名换皮、禁止删署名。
+> 完整条款见 [LICENSE](LICENSE)。
+
 线上地址：https://cheeeom.github.io/class-manager-desktop/
 
 单文件 `index.html`，零依赖、零网络字体（与应用同款系统字体栈），可直接作为 GitHub Pages 站点发布。
