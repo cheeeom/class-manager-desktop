@@ -30,6 +30,8 @@ class-manager-desktop/            ← GitHub 仓（cheeeom/class-manager-desktop
    ├─ _npmrc_proxy_toggle.py      ← .npmrc 死代理开关（off=禁用代理构建，on=恢复）
    ├─ _probe_toast.js             ← 一次性探针（查 toast CSS，调试用，可删）
    ├─ _probe_settings.js          ← 视觉探针：隔离 userData 进设置页截图（含 toast 样品），发版前决定去留
+   ├─ _archive/                   ← 已退役的一次性脚本，仅追溯用，**别跑**
+   │                                （_port_to_web.py = 图表/学期报告引擎从桌面注入层移植进网页版，使命已完成）
    ├─ dist/                       ← build.js 产物：index.html（补丁后）+ app.patch.js + wizard.css + pdf 库
    ├─ out/                        ← 安装包产物（Setup.exe / latest.yml / win-unpacked / _smoke.png）
    ├─ icon/                       ← 应用图标

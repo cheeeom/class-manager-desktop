@@ -1,4 +1,17 @@
 # -*- coding: utf-8 -*-
+# ============================================================================
+# 【已归档 2026-11-15】一次性移植脚本，使命已完成，保留仅供追溯。
+#
+# 它当初干的事：把桌面版 app.patch.js 的「图表引擎 + 学期报告引擎」整体搬进网页版
+# cmgx.js，并给 index.html / sw.js 打跟版补丁。那批产出早已逐版演进到当前线上版本。
+#
+# ⚠️ 现在直接跑它是有害的：下方 VER_OLD/VER_NEW 常量停在 v3.9.17 → v3.9.18，
+#    与线上实际版本脱节，跑一遍会写出错误的版本号与补丁。
+#
+# 什么时候才需要复活：基本不需要。真要做同类「桌面注入层 → 网页版」的整体再移植，
+# 可以借它的结构，但版本常量与补丁清单必须按当时的线上版本全部重写。
+# 历史全文：git log --follow -- app/_archive/_port_to_web.py
+# ============================================================================
 """把桌面版 app.patch.js 的「学期报告引擎 + 数据分析图表引擎 P0/P1/P2」移植进网页版（v3.6.0）；
 v3.6.1 增补：学期报告导航图标线条化（精灵符号 i-report，弃用 emoji）。
 
@@ -14,7 +27,7 @@ import io, re, sys
 
 DESK = r'C:\Users\84669\.zcode\workspace\default\class-manager-desktop\app'
 WEB = r'C:\Users\84669\.zcode\workspace\default\class-manager'
-VER_OLD, VER_NEW = 'v3.9.15', 'v3.9.16'
+VER_OLD, VER_NEW = 'v3.9.17', 'v3.9.18'
 
 def rd(p):
     with io.open(p, 'r', encoding='utf-8', newline='') as f:
@@ -166,7 +179,7 @@ print('✓ P0/P2 适配完成（cmGxChart 排队补画 + 首页分布失败回�
 # ---------- 5. 组装 cmgx.js ----------
 import json
 css_js = json.dumps('\n' + CSS + '\n', ensure_ascii=False)   # JSON 编码：CSS 含单引号（字体名），不能再嵌单引号 JS 串
-HEAD = """/*! cmgx.js — 班主任工作台 网页版 增强引擎（v3.9.16）
+HEAD = """/*! cmgx.js — 班主任工作台 网页版 增强引擎（v3.9.18）
  *  内容：数据分析图表引擎（成绩/学分/首页/公示，ECharts + 纸墨主题）+ 学期报告引擎（个人/班级，长图/打印PDF）
  *  移植自桌面版注入层（class-manager-desktop v1.5.5 app/src/app.patch.js 的 M3/P0/P1/P2 分节），
  *  网页版全部功能免费开放（无 Pro 闸）。echarts.min.js 首次渲染时懒加载，失败/超时静默回退原实现；
