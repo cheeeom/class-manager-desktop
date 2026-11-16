@@ -15,9 +15,12 @@ t('⑳ v1.5.0 动效系统', function () {
   has(p, "classList.add('gx-motion-off')", 'boot 挂降级类');
   has(p, 'function gxCloseMask', '遮罩关闭动画驱动');
   ok((p.match(/function close\(\) \{ gxCloseMask\(mask\); \}/g) || []).length === 2, '两处纸墨弹窗 close 接动画');
-  has(p, 'function gxCountKpis', 'KPI 数字滚动');
-  has(p, "gxCountKpis(detail);", '成绩 KPI 滚动接线');
-  has(p, "gxCountKpis(panel);", '学分 KPI 滚动接线');
+  /* 锚点升级（2026-11-16）：原钉 gxCountKpis，该函数在 v1.5.3 KPI 重设计时已更名为
+     gxPlayCounters，且成绩页不再单独调用——改为两处「进页统一播」钩子。功能未减，锚点跟架构。
+     仍按原强度核对三件事：函数在、显式接线在、进页兜底在（后者由 1 处升为 2 处，更强）。 */
+  has(p, 'function gxPlayCounters', 'KPI 数字滚动');
+  has(p, 'gxPlayCounters(panel);', '学分 KPI 滚动接线');
+  ok((p.match(/gxPlayCounters\(pg\)/g) || []).length >= 2, '进页统一播数字（成绩页靠此兜底，两处钩子）');
   ok((p.match(/cmGx-grid2 gx-stagger/g) || []).length >= 5, '五处 grid2 stagger');
   has(p, 'gxStagger(listEl);', '荣誉/留痕列表 stagger 接线');
   // 商店版 btn 空守卫回归（v1.4.2）
