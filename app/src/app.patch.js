@@ -3353,6 +3353,86 @@
     setTimeout(function () { if (!_gxTweenUntil) gxWriteCounters(1); }, dur + 220);
   }
   function gxStagger(el) { if (el && gxMotionOn()) el.classList.add('gx-stagger'); }
+
+  /* ---------- v1.7.9 统一按压反馈（cmPress）----------
+     为什么用事件委托而不是继续补 :active 选择器：网页版随时会加新元素
+     （学生行 / 表格行 / 日历格 / 座位格 / 奖励项 / 设置项全都没反馈），
+     列一次漏十个，永远在追赶。这里思路反转 —— 默认「凡是能点的都有」，
+     用豁免名单排除，以后主应用加新元素自动继承反馈，不用再来改这里。
+
+     三条释放路径缺一不可：pointerup / pointercancel / 滚动或位移超 8px。
+     少了「滚动取消」这条，滚轮一动满屏元素会集体缩小，像地震。 */
+  /* 豁免名单（这是「默认都有、按名单排除」的关键）。
+     ⚠️ .seat 必须整类豁免：座位拖拽是主应用自写的 pointerdown 实现
+     （seatPointerDown / seatDragActivate），**没有** draggable 属性。
+     给它加 0.985 的按压缩放会和 .dragging 的缩放打架，拖起来一直抖。 */
+  var CM_PRESS_SKIP = '.seat,[draggable="true"],[data-no-press],.echarts-container,.echarts,' +
+    'input,textarea,select,[contenteditable],.cmDesk-mask,.cmDesk-wizard';
+  var CM_PRESS_HIT = 'button,a,[role="button"],[onclick],.btn,.btn-icon,.nav-item,.tab,' +
+    '.mobile-tab,.card,tr,.student-row,.settings-item,.cal-day,.reward-item,.list-row,' +
+    '.cmGx-card,.cmGx-kpi,.gxSec-row,.cmGx-rank';
+  function cmPressHit(t) {
+    if (!t || !t.closest) return null;
+    if (t.closest(CM_PRESS_SKIP)) return null;
+    var el = t.closest(CM_PRESS_HIT);
+    /* 含 canvas 的容器不缩 —— 图表被 transform 缩放会糊一下，
+       而且 echarts 的 resize 侦测对合成层变换反应不友好。 */
+    if (el && el.querySelector && el.querySelector('canvas')) return null;
+    return el;
+  }
+  function cmPressInit() {
+    if (window.__CM_PRESS_ON__) return;
+    window.__CM_PRESS_ON__ = true;
+    var cur = null;
+    function release() {
+      if (!cur) return;
+      try { cur.el.classList.remove('cm-press'); } catch (e) {}
+      cur = null;
+    }
+    document.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;   // 只认左键，右键菜单不缩
+      if (!gxMotionOn()) return;
+      var el = cmPressHit(e.target);
+      if (!el || (cur && cur.el === el)) return;
+      release();
+      cur = { el: el, x: e.clientX, y: e.clientY };
+      el.classList.add('cm-press');
+    }, { passive: true });
+    document.addEventListener('pointerup', release, { passive: true });
+    document.addEventListener('pointercancel', release, { passive: true });
+    /* 位移判定：超过 8px 就当用户要滚动/拖拽，撤销按压 */
+    document.addEventListener('pointermove', function (e) {
+      if (!cur) return;
+      if (Math.abs(e.clientX - cur.x) + Math.abs(e.clientY - cur.y) > 8) release();
+    }, { passive: true });
+    window.addEventListener('scroll', release, { passive: true, capture: true });
+    window.addEventListener('blur', release);
+    /* 座位表换座：拖拽一开始立刻撤，否则拖起来座位在抖 */
+    document.addEventListener('dragstart', release, true);
+    /* 键盘用户也要有反馈 —— 他们按 Enter/Space 时原本完全没有视觉确认 */
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      if (!gxMotionOn()) return;
+      var el = cmPressHit(e.target);
+      if (!el) return;
+      el.classList.add('cm-press');
+      setTimeout(function () { try { el.classList.remove('cm-press'); } catch (e2) {} }, 140);
+    });
+  }
+  /* ---------- v1.7.9 进场兜底 ----------
+     背景：主应用 .stagger 是 opacity:0 写在基础态的死代码（当前无 JS 调用），
+     桌面层 .gx-stagger 则是安全的（动画挂子元素、基础态无 opacity）。
+     这里的兜底是为将来任何「opacity:0 起始」的进场兜住 —— 一旦动画没跑起来，
+     2s 后强制可见。不做这条，用户看到空白列表会以为数据丢了，比卡顿严重得多。 */
+  function cmRiseSafety() {
+    setTimeout(function () {
+      var list = document.querySelectorAll('.cm-rise:not(.cm-rise-safe),.stagger:not(.cm-rise-safe)');
+      for (var i = 0; i < list.length; i++) {
+        var n = list[i];
+        if (getComputedStyle(n).opacity === '0') n.classList.add('cm-rise-safe');
+      }
+    }, 2000);
+  }
   function gxInjectSprite() {
     if (document.getElementById('gxSprite')) return;
     var icons = window.__GX_ICONS || {};
@@ -3855,6 +3935,8 @@
     });
     gxWatchDom();                                // DOM 变更防抖补扫
     gxSweepSoon();                               // v1.4.0 首扫（页头/按钮/统计卡 emoji → Lucide）
+    cmPressInit();                               // v1.7.9 统一按压反馈（事件委托，新元素自动继承）
+    cmRiseSafety();                              // v1.7.9 进场兜底：2s 后强制可见，防永久隐形
     silenceCloudPush();
     wrapNavigatePro();
     buildNavPro();

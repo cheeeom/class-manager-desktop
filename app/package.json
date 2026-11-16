@@ -1,7 +1,7 @@
 {
   "name": "class-manager-desktop",
   "productName": "班主任工作台",
-  "version": "1.7.8",
+  "version": "1.7.9",
   "description": "班主任工作台 · 桌面版（数据全本地）",
   "author": "chee",
   "copyright": "© 2026 chee · 班主任工作台 · 保留所有权利",
@@ -30,6 +30,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "splash.html",
       "dist/**",
       "icon/**",
       "src/ed25519.cjs",
@@ -64,7 +65,7 @@
       "repo": "class-manager-desktop"
     }
   },
-  "baseWeb": "v3.9.23",
+  "baseWeb": "v3.9.24",
   "dependencies": {
     "electron-updater": "^6.8.9"
   }

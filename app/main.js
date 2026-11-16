@@ -144,6 +144,65 @@ ipcMain.handle('cm-dev-checkkey', function (e, k) {
 });
 /* Pro handlers（含 M3 学期报告 PDF 导出）全部在 pro.core.cjs —— main 与探针同源测真代码。 */
 
+/* ---------- v1.7.9 启动画面（splash）----------
+   为什么用独立窗口而不是主窗口内遮罩：主窗口加载的是 850KB+ 的 dist/index.html，
+   解析 + 首屏渲染本身就要时间，窗口内遮罩跟着一起慢，等于没有。
+   独立窗口是纯主进程改动 + 一个新文件，完全不碰主应用 ——
+   「线上零改动」的构建期保证仍然成立。
+
+   三条硬规矩（改这里之前先读）：
+   1. 事件驱动，不是定时器驱动：ready-to-show 一到就收，快机 300ms 就结束，
+      不能傻等动画播完 1.1s。
+   2. 4s 强制兜底：加载卡死时不能让人盯着 logo 一辈子。
+   3. 热启动压缩：见 splash.html 的 html.fast（天天开的软件，开场不该每次都 1.1s）。 */
+var splashWin = null;
+function splashSeenPath() { return path.join(app.getPath('userData'), 'splash-seen'); }
+function splashFast() { try { return fs.existsSync(splashSeenPath()); } catch (e) { return false; } }
+function markSplashSeen() { try { fs.writeFileSync(splashSeenPath(), '1'); } catch (e) {} }
+
+function createSplash() {
+  try {
+    splashWin = new BrowserWindow({
+      width: 400,
+      height: 240,
+      frame: false,
+      transparent: true,
+      resizable: false,
+      movable: false,
+      skipTaskbar: true,
+      alwaysOnTop: true,
+      show: false,
+      /* 透明窗口首次合成时 alpha 还没就绪，会闪一块白底方块 —— 必须显式给全透明底色 */
+      backgroundColor: '#00000000',
+      title: '班主任工作台',
+      webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: false }
+    });
+    splashWin.setMenu(null);
+    splashWin.loadFile(path.join(__dirname, 'splash.html'), {
+      query: { v: app.getVersion(), fast: splashFast() ? '1' : '0' }
+    });
+    splashWin.once('ready-to-show', function () {
+      if (splashWin && !splashWin.isDestroyed()) splashWin.show();
+    });
+  } catch (e) {
+    splashWin = null;
+    console.log('[splash] 创建失败，跳过启动画面: ' + e.message);
+  }
+}
+
+function closeSplash() {
+  if (!splashWin || splashWin.isDestroyed()) { splashWin = null; return; }
+  var s = splashWin;
+  splashWin = null;
+  try {
+    s.webContents.executeJavaScript("document.documentElement.classList.add('closing')").catch(function () {});
+  } catch (e) {}
+  setTimeout(function () {
+    if (!s.isDestroyed()) s.destroy();
+    markSplashSeen();
+  }, 260);
+}
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1280,
@@ -178,8 +237,19 @@ function createWindow() {
     return { action: 'deny' };
   });
 
+  createSplash();                              // v1.7.9 启动画面：盖住主窗口加载期
   win.loadFile(path.join(__dirname, 'dist', 'index.html'));
-  win.once('ready-to-show', function () { win.show(); });
+  win.once('ready-to-show', function () {
+    win.show();
+    closeSplash();                             // 主窗口一亮，splash 淡出 240ms 后销毁
+  });
+  /* 超时兜底：4s 后无论如何把 splash 收掉、把主窗口亮出来。
+     加载失败卡住时，用户至少能看到一个可以操作的窗口，而不是一个永远的 logo。 */
+  setTimeout(function () {
+    if (!win || win.isDestroyed()) return;
+    try { closeSplash(); } catch (e) {}
+    if (!win.isVisible()) win.show();
+  }, 4000);
 }
 
 app.whenReady().then(function () {
@@ -251,6 +321,20 @@ app.whenReady().then(function () {
           '    r.stepAfterClick = step ? step.textContent : null;' +
           '    r.stepAdvanced = !!(step && step.textContent.indexOf("第 2 步") >= 0);' +
           '  }' +
+          /* v1.7.9 按压反馈三连断言（事件委托是否真的命中真实 DOM）：
+             ① 侧栏项按下要加 .cm-press；② 抬手要撤；③ 向导内按钮必须被豁免（不能缩）。 */
+          '  var _nav = document.querySelector(".nav-item");' +
+          '  if (_nav) {' +
+          '    _nav.dispatchEvent(new PointerEvent("pointerdown", {bubbles:true,clientX:10,clientY:10,pointerType:"mouse",button:0}));' +
+          '    r.pressAdded = _nav.classList.contains("cm-press");' +
+          '    document.dispatchEvent(new PointerEvent("pointerup", {bubbles:true,pointerType:"mouse"}));' +
+          '    r.pressCleared = !_nav.classList.contains("cm-press");' +
+          '  }' +
+          '  var _wb = document.getElementById("cmWizNext");' +
+          '  if (_wb) {' +
+          '    _wb.dispatchEvent(new PointerEvent("pointerdown", {bubbles:true,clientX:10,clientY:10,pointerType:"mouse",button:0}));' +
+          '    r.wizardSkipped = !_wb.classList.contains("cm-press");' +
+          '  }' +
           '  return JSON.stringify(r);' +
           '})()'
         ).then(function (s) {
@@ -259,7 +343,11 @@ app.whenReady().then(function () {
           const wantTag = 'v' + app.getVersion() + ' 桌面版';
           const baseOk = r.ready === 'complete' && r.desktopFlag === true && r.loginOverlay && r.appShell && r.versionTag === wantTag;
           const wizardOk = r.wizardShown === true && r.nextBtn === true && r.stepAdvanced === true;
-          const pass = baseOk && wizardOk && consoleErrors.length === 0;
+          /* v1.7.9：按压反馈必须「加得上、撤得掉、该豁免的没被加」三件齐 */
+          const pressOk = r.pressAdded === true && r.pressCleared === true && r.wizardSkipped === true;
+          const pass = baseOk && wizardOk && pressOk && consoleErrors.length === 0;
+          console.log('[CM_SMOKE] pressFeedback=' + pressOk +
+            ' (added=' + r.pressAdded + ' cleared=' + r.pressCleared + ' wizardSkipped=' + r.wizardSkipped + ')');
           console.log('[CM_SMOKE] wizardInteractive=' + wizardOk);
           console.log('[CM_SMOKE] consoleErrors=' + JSON.stringify(consoleErrors));
           console.log('[CM_SMOKE] verdict=' + (pass ? 'PASS' : 'FAIL'));

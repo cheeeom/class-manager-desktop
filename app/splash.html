@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>班主任工作台</title>
+<style>
+  /* 启动画面（splash）—— 桌面版专属，随窗口一起销毁，不进主应用。
+     设计：朱砂「一」字横画起笔 + 1px 扫描线 + 光带循环。
+     为什么用横画不用圆环：C 弧是「做完一个环」的语义（适合一份卷子），
+     我们是「翻开一页」，横画是起笔，且在 400px 宽度里能拉满。 */
+  :root{
+    --t0:0ms; --t1:80ms; --t2:380ms; --t3:460ms; --t4:540ms; --t5:620ms;
+    --dur-draw:460ms;
+  }
+  /* 热启动：天天开的软件，开场每次都要等 1.1s 是折磨，整体压到六成 */
+  html.fast{--t1:40ms;--t2:190ms;--t3:230ms;--t4:270ms;--t5:310ms;--dur-draw:250ms}
+
+  html,body{margin:0;padding:0;height:100%;background:transparent;overflow:hidden}
+  body{
+    font-family:'MiSans','HarmonyOS Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .sp{
+    position:absolute;inset:0;background:#F6F2E9;border-radius:16px;overflow:hidden;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:0 24px;box-sizing:border-box;
+    transition:opacity 240ms ease,transform 240ms ease;
+  }
+  html.closing .sp{opacity:0;transform:scale(.98)}
+
+  .ico{
+    width:64px;height:64px;border-radius:15px;display:block;
+    box-shadow:0 6px 18px rgba(43,38,28,.18);
+    animation:icoIn 260ms cubic-bezier(.16,1,.3,1) var(--t0) both;
+  }
+  @keyframes icoIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+
+  /* .rule 必须 display:flex + svg display:block。
+     踩过的坑：<svg> 默认是 inline 元素，放在 height:4px 的容器里会按基线对齐、
+     向下溢出十几像素 —— 结果那根朱砂横画整个跑到下面去，把扫描线盖住了。
+     肉眼看图只觉得「怎么只有一根线」，rect 也一切正常，必须像素级扫描才看得出来。 */
+  .rule{width:160px;height:4px;margin-top:16px;display:flex;align-items:center;justify-content:center}
+  .rule svg{display:block}
+  /* 横画由中宫向两端铺开（两根等长线，同时从 x=80 往外画）。
+     为什么不写成一笔从左往右：splash 通常只显示 300-600ms，单笔从左起
+     意味着它**大半辈子都只有左半边** —— 看着像一根卡住的进度条，而不是「齐」的。
+     拆成两段后，任意一帧都以中线为轴对称。 */
+  .rule line{
+    stroke:#A63A2B;stroke-width:3;stroke-linecap:round;
+    stroke-dasharray:1;stroke-dashoffset:1;
+    animation:draw var(--dur-draw) cubic-bezier(.16,1,.3,1) var(--t1) both;
+  }
+  @keyframes draw{to{stroke-dashoffset:0}}
+
+  /* 扫描线：容器给 3px 高、真正的线画在 top:1px。
+     踩过的坑：父容器 height:1px + overflow:hidden，子元素也是 1px，
+     亚像素偏移会让整条线被裁得干干净净（DOM 里在、屏幕上没有）。
+     上下各留 1px 余量就安全了。
+     轨道色也别太客气：宣纸底 #F6F2E9 上，1px 线要比直觉再深一档才看得见。 */
+  .scan{
+    width:112px;height:3px;margin-top:10px;position:relative;overflow:hidden;
+    animation:scanIn 160ms linear var(--t4) both;
+  }
+  @keyframes scanIn{from{opacity:0}to{opacity:1}}
+  /* 轨道：整条均匀淡褐，左右对称。
+     原来只把左端 30% 填深、光带又从左往右扫 —— 静止时视觉重心全在左边，
+     虽然没有一个像素超出中线对称，看着就是「偏左」。 */
+  .scan::after{
+    content:'';position:absolute;left:0;top:1px;width:100%;height:1px;
+    background:#DCCFB6;
+  }
+  /* 进度从正中向两端生长，渐变本身也左右镜像 —— 任意时刻都是对称的。
+     节奏：0.63s 铺满 → 保持 → 淡出重来。慢加载时“还在动”比“卡在 100%”更让人安心。 */
+  .scan i{
+    position:absolute;left:0;top:1px;height:1px;width:100%;z-index:1;
+    background:linear-gradient(90deg,transparent,#A63A2B 20%,#C25B4A 50%,#A63A2B 80%,transparent);
+    transform:scaleX(.06);transform-origin:50% 50%;
+    animation:fill 1.4s cubic-bezier(.4,0,.2,1) var(--t5) infinite;
+  }
+  @keyframes fill{
+    0%{transform:scaleX(.06);opacity:.5}
+    45%{transform:scaleX(1);opacity:1}
+    82%{transform:scaleX(1);opacity:1}
+    100%{transform:scaleX(1);opacity:0}
+  }
+
+  .ttl{
+    margin-top:18px;font-size:15px;letter-spacing:.1em;color:#2B2B33;
+    font-family:'Noto Serif SC','Source Han Serif SC','STZhongsong','SimSun',serif;
+    animation:rise 260ms cubic-bezier(.16,1,.3,1) var(--t2) both;
+  }
+  .ver{
+    margin-top:6px;font-size:11px;letter-spacing:.04em;color:#8C8577;
+    animation:rise 260ms cubic-bezier(.16,1,.3,1) var(--t3) both;
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* 系统里关了动画就立刻定版 —— 启动画面也不该成为例外 */
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.01ms!important;animation-delay:0ms!important;animation-iteration-count:1!important}
+  }
+</style>
+</head>
+<body>
+<div class="sp">
+  <img class="ico" src="icon/icon.png" alt="">
+  <div class="rule">
+    <svg viewBox="0 0 160 4" width="160" height="4" preserveAspectRatio="none">
+      <line x1="80" y1="2" x2="2" y2="2" pathLength="1"/>
+      <line x1="80" y1="2" x2="158" y2="2" pathLength="1"/>
+    </svg>
+  </div>
+  <div class="scan"><i></i></div>
+  <div class="ttl">班主任工作台</div>
+  <div class="ver" id="ver">桌面版</div>
+</div>
+<script>
+  /* 版本号由主进程经 query 传入，页面一加载就是最终值 —— 不会先空后填闪一下 */
+  (function () {
+    var q = new URLSearchParams(location.search);
+    var v = q.get('v') || '';
+    var ver = document.getElementById('ver');
+    if (ver) ver.textContent = v ? ('v' + v + ' 桌面版') : '桌面版';
+    if (q.get('fast') === '1') document.documentElement.classList.add('fast');
+  })();
+</script>
+</body>
+</html>

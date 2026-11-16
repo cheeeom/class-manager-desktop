@@ -373,3 +373,149 @@ html.gx-motion-off .gxH-card{animation:none!important;transition:none!important}
 /* v1.7.7 请假分析：高频画像胶囊（与网页版 cmgx.js 注入的样式逐字同源） */
 .cmLvChip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-secondary,#5C574F);background:var(--bg,#F6F2E9);border:1px solid var(--border,#E6DECD);border-radius:999px;padding:4px 11px;line-height:1.5}
 .cmLvChip b{color:var(--text,#2B2B33);font-weight:700}
+
+/* ============================================================
+   v1.7.9 动效系统 v2（cmMotion2）
+   ------------------------------------------------------------
+   参考对象是「教师试卷工作台」的四档手感，但只借方法论不借色值 ——
+   它是蓝紫冷调工具感，我们是朱砂宣纸书卷气，硬搬色板会毁掉气质。
+
+   四条铁律（改这里之前先读一遍）：
+   1. 只动 transform / opacity，绝不动 width/height/top/left。
+   2. 退场永远比进场快（100ms 量级），等退场会被当成「点了没反应」。
+   3. 任何 opacity:0 起始的进场，必须有兜底强制可见（见 .cm-rise-safe）。
+   4. 打印 / 导出制品零动效（见文件末尾 @media print）。
+   ============================================================ */
+:root{
+  /* 时长阶梯：四档 */
+  --cm-dur-1:120ms;                     /* 按压 / hover / 颜色切换 */
+  --cm-dur-2:220ms;                     /* 指示器滑动 / 折叠展开 / toast */
+  --cm-dur-3:380ms;                     /* 页面 / 卡片 / 对话框进场 */
+  --cm-dur-4:640ms;                     /* KPI 数字滚动（既有实现，保留） */
+
+  /* 曲线阶梯：按「动作离手指多近」分档 */
+  --cm-ease-out:cubic-bezier(.16,1,.3,1);      /* 进场：快起慢收 */
+  --cm-ease-in-out:cubic-bezier(.65,0,.35,1);  /* 位移：两头缓 */
+  --cm-ease-spring:cubic-bezier(.34,1.4,.64,1);/* 回弹：y 过冲到 1.4 */
+  --cm-ease-exit:cubic-bezier(.4,0,1,1);       /* 退场：直接加速走 */
+
+  /* 按压尺度：按钮小面积可以缩得多，卡片大面积缩多会晕 */
+  --cm-press-btn:.965;
+  --cm-press-card:.985;
+
+  /* 进场错峰步长 */
+  --cm-stagger-step:28ms;
+}
+
+/* ---------- 统一按压反馈 ----------
+   注意：这里刻意**不用**「给全站元素打 .cm-pressable 类」的做法。
+   transition 是整条属性覆盖而非合并，一次性打标会把已有的 hover 过渡
+   （如 .cmGx-card 的 translateY 抬升）全部冲掉。改为预设一组选择器，
+   自带基础态 transition，JS 只负责加 .cm-press 这一个动作类。 */
+button,.btn,.btn-icon,.nav-item,.tab,.mobile-tab,.card,tr,.student-row,
+.settings-item,.cal-day,.reward-item,.list-row,.seat:not([draggable="true"]),
+.cm-press{
+  transition:transform var(--cm-dur-1) var(--cm-ease-out),
+             background-color var(--cm-dur-1) linear,
+             border-color var(--cm-dur-1) linear;
+}
+.cm-press{transform:scale(var(--cm-press-btn))}
+/* 大面积元素缩得轻一点，否则整页跟着晃 */
+.card.cm-press,tr.cm-press,.student-row.cm-press,.settings-item.cm-press,
+.cal-day.cm-press,.reward-item.cm-press,.list-row.cm-press{
+  transform:scale(var(--cm-press-card));
+}
+/* 明确豁免：拖拽源、图表容器、输入区不吃按压（JS 侧还有一道同源拦截） */
+[data-no-press].cm-press,.echarts-container.cm-press,
+input.cm-press,textarea.cm-press,select.cm-press{transform:none}
+
+/* ---------- 进场：上浮 10px ---------- */
+@keyframes cmRise{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:none}
+}
+.cm-rise{animation:cmRise var(--cm-dur-3) var(--cm-ease-out) both}
+/* 兜底：动画因任何原因没跑起来时，2s 后强制可见。
+   这条不是「保险起见」——用户看到空白列表会以为数据丢了，比卡顿严重得多。 */
+.cm-rise-safe{opacity:1!important;transform:none!important;animation:none!important}
+
+/* ---------- 对话框：从 0.85 收到 0.96 ----------
+   原来 modalIn 从 scale(.85) 起跳，是「被推开」的感觉。
+   专业工具的分寸是只给一点点暗示：0.96 + 上浮 6px。 */
+@keyframes cmModalIn{
+  from{opacity:0;transform:translateY(6px) scale(.96)}
+  to{opacity:1;transform:none}
+}
+.modal{animation:cmModalIn var(--cm-dur-3) var(--cm-ease-out) both}
+/* 注意：遮罩的动画挂在 .show 上（特异性 0,2,0），
+   写 .modal-overlay 单类会被它压掉，必须同特异性才生效。 */
+.modal-overlay.show{animation:cmOverlayIn var(--cm-dur-2) var(--cm-ease-out)}
+@keyframes cmOverlayIn{from{opacity:0}to{opacity:1}}
+
+/* ---------- 修 .stagger 的冻结风险 ----------
+   主应用里是 .stagger{opacity:0;animation:staggerIn .5s ease forwards}，
+   opacity:0 写在**基础态**：动画一旦没跑起来（元素被重渲、离屏、加类时机错），
+   这个元素就永久隐形，用户看到空白列表会以为数据丢了。
+   修法 = 把 opacity:0 从基础态挪进关键帧，基础态保底 opacity:1。 */
+.stagger{opacity:1;animation:cmRise var(--cm-dur-3) var(--cm-ease-out) both}
+
+/* ---------- 座位表拖拽 ----------
+   重要事实：座位拖拽**不是** HTML5 drag API，而是主应用自写的
+   seatPointerDown / seatDragActivate（走 pointerdown + pointermove）。
+   所以 [draggable="true"] 这类豁免对它完全无效 —— 座位格必须在 JS 侧整类豁免，
+   否则按下瞬间的 0.985 缩放会和 .dragging 的缩放打架，拖起来一直在抖。
+   这里只做一件事：把已有的 .dragging 状态做得更精致一点（接令牌，形状更明确）。 */
+.seat.dragging{
+  transform:scale(1.06) rotate(-1.5deg);
+  box-shadow:0 12px 28px rgba(25,22,19,.3);
+  transition:transform var(--cm-dur-1) var(--cm-ease-spring),
+             opacity var(--cm-dur-1) linear;
+}
+.seat.drag-over{
+  transition:border-color var(--cm-dur-1) linear,
+             box-shadow var(--cm-dur-1) var(--cm-ease-out),
+             background-color var(--cm-dur-1) linear;
+}
+
+/* ---------- 侧栏选中指示条：从「突然出现」改为「拉伸出现」 ----------
+   主应用已有 .nav-item.active::before 一条 4px 竖条，但它是静态的
+   （content 只写在 .active 里，没有过渡可言）。这里把它提到基础态、
+   用 opacity + scaleY 做从无到有，切换时就有「长出来」的感觉。
+   特异性注意：active 那条必须同为 .nav-item.active::before 才压得住主应用。 */
+.nav-item::before{
+  content:'';position:absolute;left:0;top:50%;
+  width:4px;height:24px;border-radius:0 4px 4px 0;
+  background:linear-gradient(180deg,var(--primary,#A63A2B),var(--primary-light,#C25B4A));
+  opacity:0;transform:translateY(-50%) scaleY(.2);
+  transform-origin:center;
+  transition:opacity var(--cm-dur-2) var(--cm-ease-out),
+             transform var(--cm-dur-2) var(--cm-ease-spring);
+}
+.nav-item.active::before{opacity:1;transform:translateY(-50%) scaleY(1)}
+.nav-item{transition:background-color var(--cm-dur-1) linear,color var(--cm-dur-1) linear}
+
+/* ---------- toast：退场更快 ---------- */
+.toast{transition:opacity var(--cm-dur-1) var(--cm-ease-exit),
+                   transform var(--cm-dur-1) var(--cm-ease-exit)}
+
+/* ---------- 降级：两条通道都必须留 ---------- */
+html.gx-motion-off .cm-press,
+html.gx-motion-off .cm-rise{
+  animation:none!important;transition:none!important;transform:none!important;
+}
+@media (prefers-reduced-motion: reduce){
+  .cm-press,.cm-rise{
+    animation:none!important;transition:none!important;transform:none!important;
+  }
+  button,.btn,.nav-item,.tab,.card,tr,.student-row,.settings-item,.cal-day,
+  .reward-item,.list-row{transition:none!important}
+}
+
+/* ---------- 打印与导出：零动效 ----------
+   学期报告 PDF、荣誉证书、截图制品里绝不能有动画残留。 */
+@media print{
+  *,*::before,*::after{
+    animation:none!important;transition:none!important;
+    transform:none!important;opacity:1!important;
+  }
+}
