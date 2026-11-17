@@ -65,7 +65,7 @@
       "repo": "class-manager-desktop"
     }
   },
-  "baseWeb": "v3.9.25",
+  "baseWeb": "v3.9.26",
   "dependencies": {
     "electron-updater": "^6.8.9"
   }
