@@ -358,3 +358,11 @@
   - 🔴 **`gh release create` 必须带 `-R`**：在非 git 目录（`D:\_cm_build`）执行会报 `fatal: not a git repository`。
   - 🔴 **本机 curl 连 GitHub 一律 HTTP 000**（环境代理 `127.0.0.1:53489`，`--noproxy '*'` 同样不通）⇒ 线上资产校验改走 `gh api .../releases/assets/<id> -H 'Accept: application/octet-stream'`；稳定直链 302→206 本机无法实测，改由「Latest 指向 + 资产 size/digest + 客户端探针读到 1.7.8」三重证据替代。
   - 他人未提交的 `app/_port_to_web.py`（版本常量仍停 `v3.9.17→v3.9.18`，已落后线上 3.9.23，属过期工具脚本）与未跟踪 `MEMORY.md` 全程未碰；备份分支 `backup-local-v178-20261115` 保留。
+
+### 2026-11-18（v1.7.10 出包：跟版网页版 v3.9.26，个人成绩单三件套进桌面）
+
+- [x] **基线**：baseWeb v3.9.25 → v3.9.26（个人成绩单三件套：成绩分析/成绩管理点学生姓名开详情弹窗、A4 批量个人成绩单打印、学生端成绩页逐科分数条+班均刻度；另含 v3.9.25 措辞对齐——「停课回家教育」→「一人一策帮扶」、「罚扫」→「劳动教育」）
+- [x] **版本**：app/package.json 1.7.9 → 1.7.10；连级修两处漏项——落地页静态兜底 `V1.7.9 → V1.7.10`、package-lock 根版本**两处**（顶层 + packages[""]）一并 bump（`_v3910/_v3920` 两套守卫当场抓红，106 套回绿）
+- [x] **打包**：`node build.js`（全部补丁命中）→ `_v_desktop_test.js` 28/28 → 旧 `D:\_cm_build\win-unpacked` 整体改名挪走（沙箱 safe-delete 坑）→ `_npmrc_proxy_toggle.py off` → `_build_retry.js` **BUILD-OK attempt 1** → `on` 恢复；产物 `D:\_cm_build\class-manager-desktop-Setup-1.7.10.exe` 83,855,942 B
+- [x] **冒烟**：`npm run smoke` PASS——version=1.7.10、引导向导可交互、按压反馈 ok、consoleErrors=[]、更新链探针读 GitHub 官方 latest.yml（head=1.7.9 属预期：新 Release 未发）
+- [ ] **推送 / 发 Release**：等老板明说「推送」再走 gh release（三资产 + 落地页兜底已是 1.7.10）
